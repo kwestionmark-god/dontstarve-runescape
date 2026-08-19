@@ -10,6 +10,7 @@ from config import (
     FIRE_INTERACTION_RADIUS_TILES,
     CAMPFIRE_SEARCH_RADIUS_TILES,
     INITIAL_MONSTER_SPAWN_RADIUS_TILES,
+    AUTOSAVE_INTERVAL,
 )
 
 from core.state import GameState
@@ -77,6 +78,7 @@ class Game:
         self.state = GameState.TITLE
         self.dt = 0.0
         self.loading_progress = 0.0
+        self._autosave_timer = 0.0
         self.death_count = 0
         self.world: "TileMap | None" = None
         self.player: object | None = None
@@ -179,10 +181,8 @@ class Game:
             for msg in spoilage_messages:
                 self.player.action_system.add_notification(msg, (255, 200, 50))
         if self.state == GameState.PLAYING and self.save_system is not None:
-            if not hasattr(self, "_autosave_timer"):
-                self._autosave_timer = 0.0
             self._autosave_timer += dt
-            if self._autosave_timer >= 300.0:
+            if self._autosave_timer >= AUTOSAVE_INTERVAL:
                 self._autosave_timer = 0.0
                 self.save_system.save(self, slot=0)
         if self.state == GameState.PLAYING:
