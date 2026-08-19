@@ -296,31 +296,38 @@ This plan is ordered so each pass is independently shippable and leaves the suit
 ## Suggested implementation order (granular checklist)
 
 ```
-[ ] Pass 0.1  noise dependency or internal replacement
-[ ] Pass 0.2  fix test_npc_dialogue_fix patches
-[ ] Pass 0.3  document dependency
-[ ] Pass 1.1  HUD / faction / npc / renderer init order
-[ ] Pass 1.2  single NPCFlows instance
-[ ] Pass 1.3  AUTOSAVE_INTERVAL from config
-[ ] Pass 1.4  _autosave_timer slots consistency
-[ ] Pass 2.1  deselect_target on soft death
-[ ] Pass 2.2  starvation → soft death wiring
-[ ] Pass 2.3  soft death invariant assertions + tests
-[ ] Pass 3.1  document resource non-persistence
-[ ] Pass 3.2  save/load inventory.gold
-[ ] Pass 3.3  save/load recruited_npcs + is_recruited
-[ ] Pass 3.5  fire total vs remaining (if cheap)
-[ ] Pass 4.1  audit router key paths vs tests
-[ ] Pass 4.2  E-key NPC flows with shared NPCFlows
-[ ] Pass 4.3  panel set_state transitions
-[ ] Pass 5.1  skill stub docstrings / thin wrappers
-[ ] Pass 5.2  poison behavior clarify or minimal DoT
-[ ] Pass 5.3  remove duplicate PANEL_STATES
-[ ] Pass 5.4  config combat comment
-[ ] Pass 6.x  seasonal/particle wiring verification
-[ ] Pass 7    full suite green + regression tests
-[ ] Pass 8    docs + project memory
+[x] Pass 0.1  noise dependency declared (requirements.txt)
+[x] Pass 0.2  fix test_npc_dialogue_fix patches — RESOLVED (submodule import works)
+[x] Pass 0.3  document dependency (README)
+[x] Pass 1.1  HUD / faction / npc / renderer init order — IMPLEMENTED (commit 7d53318)
+[ ] Pass 1.2  single NPCFlows instance — DROPPED (cosmetic)
+[x] Pass 1.3  AUTOSAVE_INTERVAL from config
+[ ] Pass 1.4  _autosave_timer slots consistency — DROPPED (cosmetic)
+[x] Pass 2.1  deselect_target on soft death — RESOLVED (remove_monster)
+[x] Pass 2.2  starvation → soft death wiring
+[x] Pass 2.3  soft death invariant assertions — RESOLVED (handler complete)
+[x] Pass 3.1  document resource non-persistence
+[x] Pass 3.2  save/load inventory.gold
+[x] Pass 3.3  save/load recruited_npcs + is_recruited
+[x] Pass 3.5  fire total vs remaining
+[ ] Pass 4.1  audit router key paths vs tests — RESOLVED
+[ ] Pass 4.2  E-key NPC flows with shared NPCFlows — RESOLVED
+[ ] Pass 4.3  panel set_state transitions — RESOLVED
+[x] Pass 5.1  skill stub docstrings — RESOLVED
+[ ] Pass 5.2  poison behavior clarify — DROPPED (cosmetic)
+[ ] Pass 5.3  remove duplicate PANEL_STATES — DROPPED (cosmetic)
+[ ] Pass 5.4  config combat comment — DROPPED (cosmetic)
+[ ] Pass 5.5  inventory gold comment — DROPPED (cosmetic)
+[ ] Pass 6.x  seasonal/particle wiring verification — RESOLVED
+[x] Pass 7    full suite green + regression tests  (545 passed)
+[x] Pass 8    docs + project memory (plan changelog + ledger updated)
 ```
+
+NOTE 1.1: HUD init-order (1.1) — IMPLEMENTED. Added `HUD.set_faction_system` /
+`set_npc_system` / `set_sprite_renderer` and a `Bootstrap._finalize_hud()` called at the
+end of `initialize()` (commit `7d53318`). The faction status bar, NPC proximity alert,
+and HUD item rendering now receive live references instead of the `None`/placeholder
+values captured at construction. No longer an open item.
 
 ---
 
@@ -361,11 +368,25 @@ This plan is ordered so each pass is independently shippable and leaves the suit
 
 ---
 
+## Re-audit status (2026-08-19)
+
+The suite was green at re-audit time (537 passed / 0 failed; was 514/11 at plan authorship).
+Read-only re-audit via subagent investigation clusters. Verdicts:
+
+- **Still actionable (real bugs):** 1.1 HUD init order, 1.3 autosave, 2.2 starvation death,
+  3.2 gold, 3.3 recruited_npcs, 3.5 fire total, 0.1 noise.
+- **Resolved already:** 0.2, 2.1, 2.3, 3.6, 4.x, 5.1, 6.x.
+- **Dropped (cosmetic / not live bugs):** 1.2 NPCFlows, 1.4, 5.2–5.5.
+- **Implemented this run:** 1.1, 1.3, 2.2, 3.2, 3.3, 3.5, 0.1/0.3, 3.1 (docs), 7 (regression tests).
+  Suite now 545 passed / 0 failed.
+
 ## Changelog
 
 | Date | Change |
 |------|--------|
 | 2026-08-18 | Initial plan from full codebase + test-suite trace (11 failures catalogued). |
+| 2026-08-19 | Re-audit: all actionable fixes applied (1.1 HUD init order, 1.3 autosave, 2.2 starvation death, 3.2 gold, 3.3 recruited_npcs, 3.5 fire total, 0.1/0.3 noise dep, 3.1 docs limitation note, 7 regression tests). Suite 537→545 passed. Cosmetic 1.2/1.4/5.2–5.5 and resolved 0.2/2.1/2.3/4.x/5.1/6.x dropped. See `.superpowers/sdd/phase-bugfix-granular/progress.md`. |
+| 2026-08-19 | Checklist / re-audit note corrected: Pass 1.1 was already implemented (commit 7d53318), so the stale "not implemented" note was removed. |
 
 ---
 
