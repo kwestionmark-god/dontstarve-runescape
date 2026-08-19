@@ -225,7 +225,12 @@ class SaveSystem:
                     world_x=fire_data.get("world_x", 0.0),
                     world_y=fire_data.get("world_y", 0.0),
                     fuel_items=fire_data.get("fuel_items", []),
-                    burn_duration_total=fire_data.get("burn_remaining", 0.0),
+                    # Preserve total planned burn time across loads so the
+                    # remaining/total ratio survives a reload. Falls back to
+                    # burn_remaining for saves written before this field existed.
+                    burn_duration_total=fire_data.get(
+                        "burn_duration_total", fire_data.get("burn_remaining", 0.0)
+                    ),
                     burn_duration_remaining=fire_data.get("burn_remaining", 0.0),
                     radius_tiles=1.0,
                     heat_output=1.0,
@@ -486,6 +491,7 @@ class SaveSystem:
                     "world_x": f.world_x,
                     "world_y": f.world_y,
                     "burn_remaining": getattr(f, "burn_duration_remaining", 0.0),
+                    "burn_duration_total": getattr(f, "burn_duration_total", 0.0),
                     "fuel_items": getattr(f, "fuel_items", []),
                 })
         snapshot["active_fires"] = fires
