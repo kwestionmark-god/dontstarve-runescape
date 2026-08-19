@@ -59,6 +59,11 @@ class Bootstrap:
         self._build_diplomacy_panel()
         self._build_npc_flows()
         self._build_combat_system()
+        # Route starvation death through the shared soft-death handler once
+        # combat exists. Combat-triggered death still goes via take_damage's
+        # return value; only starvation needed a bridge.
+        if self.game.survival is not None:
+            self.game.survival.on_death = self.game.combat_system._on_player_death
         self._spawn_initial_monsters()
         self._build_renderers()
         self._wire_phase4()

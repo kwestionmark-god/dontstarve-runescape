@@ -45,6 +45,7 @@ class SurvivalSystem:
         "max_hp",
         "starvation_timer",
         "is_dead",
+        "on_death",
         "environmental_pressure",
         "hunger_drain_interval",
         "hunger_drain_rate",
@@ -71,6 +72,9 @@ class SurvivalSystem:
         self.max_hp: float = HP_BASE_MAX
         self.starvation_timer: float = 0.0
         self.is_dead: bool = False
+        # Optional death callback injected by bootstrap once combat exists.
+        # Routes starvation death into the shared soft-death handler.
+        self.on_death = None
         self.environmental_pressure = environmental_pressure
         self.hunger_drain_interval: float = HUNGER_DRAIN_INTERVAL
         self.hunger_drain_rate: float = HUNGER_DRAIN_RATE
@@ -114,7 +118,12 @@ class SurvivalSystem:
             if self.starvation_timer >= self.hunger_drain_interval:
                 self.starvation_timer -= self.hunger_drain_interval
                 hp_drain = self.starvation_hp_drain_rate * self.environmental_pressure
-                self.take_damage(hp_drain)
+                if self.take_damage(hp_drain):
+                    # Starvation killed the player. Run the shared soft-death
+                    # handler (injected by bootstrap). tick() early-returns on
+                    # is_dead, so this fires once per death, not every frame.
+                    if self.on_death is not None:
+                        self.on_death()
 
     def eat(self, food_item: "FoodItem") -> str:
         """
