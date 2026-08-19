@@ -1,0 +1,262 @@
+{
+  "_description": "Gear definitions for Phase 2 combat system.",
+  "_note": "Weapons and armor with stat bonuses, damage values, and attack speed modifiers.",
+
+  "weapons": {
+    "wooden_sword": {
+      "item_id": "wooden_sword",
+      "name": "Wooden Sword",
+      "gear_type": "weapon",
+      "damage": 2,
+      "attack_bonus": 0,
+      "defence_bonus": 0,
+      "speed_bonus": 0.0,
+      "required_combat_level": 1,
+      "sprite_key": "gear/wooden_sword",
+      "tier": 1
+    },
+    "stone_sword": {
+      "item_id": "stone_sword",
+      "name": "Stone Sword",
+      "gear_type": "weapon",
+      "damage": 3,
+      "attack_bonus": 0,
+      "defence_bonus": 0,
+      "speed_bonus": -0.1,
+      "required_combat_level": 5,
+      "sprite_key": "gear/stone_sword",
+      "tier": 1
+    },
+    "iron_sword": {
+      "item_id": "iron_sword",
+      "name": "Iron Sword",
+      "gear_type": "weapon",
+      "damage": 5,
+      "attack_bonus": 1,
+      "defence_bonus": 0,
+      "speed_bonus": -0.2,
+      "required_combat_level": 10,
+      "sprite_key": "gear/iron_sword",
+      "tier": 1
+    },
+    "steel_sword": {
+      "item_id": "steel_sword",
+      "name": "Steel Sword",
+      "gear_type": "weapon",
+      "damage": 7,
+      "attack_bonus": 2,
+      "defence_bonus": 0,
+      "speed_bonus": -0.3,
+      "required_combat_level": 15,
+      "sprite_key": "gear/steel_sword",
+      "tier": 2
+    },
+    "bronze_sword": {
+      "item_id": "bronze_sword",
+      "name": "Bronze Sword",
+      "gear_type": "weapon",
+      "damage": 4,
+      "attack_bonus": 1,
+      "defence_bonus": 0,
+      "speed_bonus": -0.15,
+      "required_combat_level": 12,
+      "sprite_key": "gear/bronze_sword",
+      "tier": 2
+    },
+    "wooden_axe": {
+      "item_id": "wooden_axe",
+      "name": "Wooden Axe",
+      "gear_type": "weapon",
+      "damage": 2,
+      "attack_bonus": 1,
+      "defence_bonus": 0,
+      "speed_bonus": -0.1,
+      "required_combat_level": 1,
+      "sprite_key": "gear/wooden_axe",
+      "tier": 1
+    },
+    "iron_axe": {
+      "item_id": "iron_axe",
+      "name": "Iron Axe",
+      "gear_type": "weapon",
+      "damage": 4,
+      "attack_bonus": 2,
+      "defence_bonus": 0,
+      "speed_bonus": -0.2,
+      "required_combat_level": 10,
+      "sprite_key": "gear/iron_axe",
+      "tier": 1
+    },
+    "steel_axe": {
+      "item_id": "steel_axe",
+      "name": "Steel Axe",
+      "gear_type": "weapon",
+      "damage": 6,
+      "attack_bonus": 3,
+      "defence_bonus": 0,
+      "speed_bonus": -0.3,
+      "required_combat_level": 15,
+      "sprite_key": "gear/steel_axe",
+      "tier": 2
+    },
+    "wooden_spear": {
+      "item_id": "wooden_spear",
+      "name": "Wooden Spear",
+      "gear_type": "weapon",
+      "damage": 3,
+      "attack_bonus": 0,
+      "defence_bonus": 0,
+      "speed_bonus": -0.2,
+      "required_combat_level": 3,
+      "sprite_key": "gear/wooden_spear",
+      "tier": 1
+    },
+    "iron_spear": {
+      "item_id": "iron_spear",
+      "name": "Iron Spear",
+      "gear_type": "weapon",
+      "damage": 5,
+      "attack_bonus": 1,
+      "defence_bonus": 0,
+      "speed_bonus": -0.25,
+      "required_combat_level": 10,
+      "sprite_key": "gear/iron_spear",
+      "tier": 1
+    },
+    "steel_spear": {
+      "item_id": "steel_spear",
+      "name": "Steel Spear",
+      "gear_type": "weapon",
+      "damage": 7,
+      "attack_bonus": 2,
+      "defence_bonus": 0,
+      "speed_bonus": -0.3,
+      "required_combat_level": 15,
+      "sprite_key": "gear/steel_spear",
+      "tier": 2
+    }
+  },
+
+  "armor": {
+    "leather_armor": {
+      "item_id": "leather_armor",
+      "name": "Leather Armor",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 2,
+      "speed_bonus": -0.1,
+      "required_combat_level": 1,
+      "sprite_key": "gear/leather_armor",
+      "tier": 1
+    },
+    "iron_chestplate": {
+      "item_id": "iron_chestplate",
+      "name": "Iron Chestplate",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 4,
+      "speed_bonus": -0.2,
+      "required_combat_level": 10,
+      "sprite_key": "gear/iron_chestplate",
+      "tier": 1
+    },
+    "steel_chestplate": {
+      "item_id": "steel_chestplate",
+      "name": "Steel Chestplate",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 1,
+      "defence_bonus": 6,
+      "speed_bonus": -0.3,
+      "required_combat_level": 15,
+      "sprite_key": "gear/steel_chestplate",
+      "tier": 2
+    },
+    "bronze_chestplate": {
+      "item_id": "bronze_chestplate",
+      "name": "Bronze Chestplate",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 3,
+      "speed_bonus": -0.15,
+      "required_combat_level": 12,
+      "sprite_key": "gear/bronze_chestplate",
+      "tier": 2
+    },
+    "leather_helmet": {
+      "item_id": "leather_helmet",
+      "name": "Leather Helmet",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 1,
+      "speed_bonus": 0.0,
+      "required_combat_level": 1,
+      "sprite_key": "gear/leather_helmet",
+      "tier": 1
+    },
+    "iron_helmet": {
+      "item_id": "iron_helmet",
+      "name": "Iron Helmet",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 2,
+      "speed_bonus": 0.0,
+      "required_combat_level": 10,
+      "sprite_key": "gear/iron_helmet",
+      "tier": 1
+    },
+    "steel_helmet": {
+      "item_id": "steel_helmet",
+      "name": "Steel Helmet",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 3,
+      "speed_bonus": 0.0,
+      "required_combat_level": 15,
+      "sprite_key": "gear/steel_helmet",
+      "tier": 2
+    },
+    "leather_boots": {
+      "item_id": "leather_boots",
+      "name": "Leather Boots",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 1,
+      "speed_bonus": -0.05,
+      "required_combat_level": 1,
+      "sprite_key": "gear/leather_boots",
+      "tier": 1
+    },
+    "iron_boots": {
+      "item_id": "iron_boots",
+      "name": "Iron Boots",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 2,
+      "speed_bonus": -0.1,
+      "required_combat_level": 10,
+      "sprite_key": "gear/iron_boots",
+      "tier": 1
+    },
+    "steel_boots": {
+      "item_id": "steel_boots",
+      "name": "Steel Boots",
+      "gear_type": "armor",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 3,
+      "speed_bonus": -0.15,
+      "required_combat_level": 15,
+      "sprite_key": "gear/steel_boots",
+      "tier": 2
+    }
+  }
+}

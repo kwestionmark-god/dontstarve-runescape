@@ -1,0 +1,67 @@
+{
+  "_description": "Faction definitions for Phase 3. Defines groups, territories, leaders, hostility levels, and allied monsters.",
+  "_note": "6 factions matching Phase 3 design. IDs used across npcs.json (faction references) and quests.json (faction prerequisites).",
+
+  "factions": [
+    {
+      "faction_id": "forest_villagers",
+      "name": "Forest Villagers",
+      "leader_npc_id": "elder_mara",
+      "description": "A peaceful community of forest-dwelling villagers who trade herbs, food, and crafted goods.",
+      "territory_biomes": ["forest", "plains"],
+      "base_hostility": 0.2,
+      "hostile_monster_types": [],
+      "sprite_key": "faction/forest_villagers"
+    },
+    {
+      "faction_id": "goblins",
+      "name": "Goblin Tribes",
+      "leader_npc_id": "goblin_chief_grak",
+      "description": "Aggressive goblin warriors who raid forest settlements. Can be negotiated with for non-aggression pacts.",
+      "territory_biomes": ["forest", "swamp"],
+      "base_hostility": 0.7,
+      "hostile_monster_types": ["wolf", "goblin"],
+      "sprite_key": "faction/goblins"
+    },
+    {
+      "faction_id": "coastal_merchants",
+      "name": "Coastal Merchants",
+      "leader_npc_id": "captain_rourke",
+      "description": "A loose alliance of coastal traders who control sea routes and salt production.",
+      "territory_biomes": ["coastal"],
+      "base_hostility": 0.4,
+      "hostile_monster_types": ["sea_serpent"],
+      "sprite_key": "faction/coastal_merchants"
+    },
+    {
+      "faction_id": "desert_djinn",
+      "name": "Desert Djinn Clan",
+      "leader_npc_id": "djinn_elder_zara",
+      "description": "Mystical desert dwellers who control rare mineral trade routes. Powerful but isolationist.",
+      "territory_biomes": ["desert"],
+      "base_hostility": 0.6,
+      "hostile_monster_types": ["scorpion", "sand_worm"],
+      "sprite_key": "faction/desert_djinn"
+    },
+    {
+      "faction_id": "swamp_factions",
+      "name": "Swamp Tribes",
+      "leader_npc_id": "shaman_kree",
+      "description": "Dangerous swamp-dwelling tribes skilled in poison and stealth. Rarely trust outsiders.",
+      "territory_biomes": ["swamp"],
+      "base_hostility": 0.8,
+      "hostile_monster_types": ["poison_frog", "crocodile"],
+      "sprite_key": "faction/swamp_factions"
+    },
+    {
+      "faction_id": "mountain_clans",
+      "name": "Mountain Clans",
+      "leader_npc_id": "stone_guardian",
+      "description": "Stoic mountain dwellers who mine rare ores and craft masterwork weapons. Respectful of strength.",
+      "territory_biomes": ["mountains"],
+      "base_hostility": 0.5,
+      "hostile_monster_types": ["stone_golem"],
+      "sprite_key": "faction/mountain_clans"
+    }
+  ]
+}

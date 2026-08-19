@@ -1,0 +1,429 @@
+from __future__ import annotations
+
+import pygame
+from core.state import GameState, PANEL_STATES
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.game import Game
+    from input.input_manager import InputManager
+    from input.panel_dispatcher import PanelDispatcher
+
+
+class InputRouter:
+
+    def __init__(
+        self,
+        game: "Game",
+        input_manager: "InputManager",
+        panel_dispatcher: "PanelDispatcher",
+    ) -> None:
+        self._game = game
+        self._input_manager = input_manager
+        self._panel_dispatcher = panel_dispatcher
+        from interactions.npc_flows import NPCFlows
+        self._npc_flows = NPCFlows(game)
+
+    def handle(self, event: pygame.event.Event) -> None:
+        game = self._game
+        input_manager = self._input_manager
+        panel_dispatcher = self._panel_dispatcher
+
+        # Forward all events to InputManager for held-key / one-shot state
+        if input_manager is not None:
+            input_manager.handle_event(event)
+
+        if event.type == pygame.KEYDOWN:
+            self._handle_keydown(game, input_manager, panel_dispatcher, event)
+        elif event.type == pygame.MOUSEMOTION:
+            self._handle_mouse_move(game, event.pos[0], event.pos[1])
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self._handle_mouse_button_down(game, event)
+
+    def _handle_keydown(
+        self,
+        game: "Game",
+        input_manager: "InputManager",
+        panel_dispatcher: "PanelDispatcher",
+        event,
+    ) -> None:
+        is_state = input_manager.input_state
+
+        if event.key in (pygame.K_i, pygame.K_s, pygame.K_1):
+            pass
+
+        # Read InputState flags to actually control panels
+        if is_state.open_inventory:
+            is_state.open_inventory = False
+            if game.state == GameState.INVENTORY_OPEN:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.INVENTORY_OPEN)
+        elif is_state.open_skill_panel:
+            is_state.open_skill_panel = False
+            if game.state == GameState.SKILL_PANEL:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.SKILL_PANEL)
+        elif is_state.open_crafting:
+            is_state.open_crafting = False
+            if game.state == GameState.CRAFTING_PANEL:
+                game.set_state(GameState.PLAYING)
+            elif game.state not in (
+                GameState.INVENTORY_OPEN, GameState.SKILL_PANEL
+            ):
+                game.set_state(GameState.CRAFTING_PANEL)
+        elif is_state.open_building_panel:
+            is_state.open_building_panel = False
+            if game.state == GameState.BUILDING_PANEL:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.BUILDING_PANEL)
+        elif is_state.open_quest_panel:
+            is_state.open_quest_panel = False
+            if game.state == GameState.QUEST_PANEL:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.QUEST_PANEL)
+        elif is_state.open_trade_panel:
+            is_state.open_trade_panel = False
+            if game.state == GameState.TRADE_PANEL:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.TRADE_PANEL)
+        elif is_state.open_recruit_panel:
+            is_state.open_recruit_panel = False
+            if game.state == GameState.RECRUIT_PANEL:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.RECRUIT_PANEL)
+        elif is_state.open_diplomacy_panel:
+            is_state.open_diplomacy_panel = False
+            if game.state == GameState.DIPLOMACY_PANEL:
+                game.set_state(GameState.PLAYING)
+            else:
+                game.set_state(GameState.DIPLOMACY_PANEL)
+
+        # Q key: close crafting panel
+        if is_state.close_crafting and game.state == GameState.CRAFTING_PANEL:
+            is_state.close_crafting = False
+            if game._crafting_panel is not None:
+                game._crafting_panel.visible = False
+            game.set_state(GameState.PLAYING)
+
+        if event.key == pygame.K_g and game.state == GameState.PLAYING:
+            if game.state != GameState.GEAR_PANEL:
+                game.set_state(GameState.GEAR_PANEL)
+            else:
+                game.set_state(GameState.PLAYING)
+        elif event.key == pygame.K_y and game.state == GameState.PLAYING:
+            if game.state != GameState.QUEST_PANEL:
+                game.set_state(GameState.QUEST_PANEL)
+            else:
+                game.set_state(GameState.PLAYING)
+        elif event.key == pygame.K_f and game.state == GameState.PLAYING:
+            self._handle_light_fire(game)
+        elif event.key == pygame.K_ESCAPE:
+            if is_state.close_panel and game.state != GameState.PLAYING:
+                is_state.close_panel = False
+                if game.state == GameState.TRADE_PANEL:
+                    if game._trade_panel is not None:
+                        game._trade_panel.close_session()
+                elif game.state == GameState.QUEST_PANEL:
+                    if game._quest_panel is not None:
+                        game._quest_panel.close_session()
+                elif game.state == GameState.RECRUIT_PANEL:
+                    self._npc_flows.close_recruit_panel()
+                elif game.state == GameState.DIPLOMACY_PANEL:
+                    self._npc_flows.close_diplomacy_panel()
+                game.set_state(GameState.PLAYING)
+        elif event.key == pygame.K_F5:
+            if game.save_system:
+                game.save_system.save(game, slot=0)
+            if game.player is not None and game.player.action_system is not None:
+                game.player.action_system.add_notification("Game saved (F5).", (100, 255, 100))
+        if is_state.hotbar_slot and game.state == GameState.PLAYING:
+            is_state.hotbar_slot = 0
+            self._handle_hotbar(game, is_state.hotbar_slot)
+        elif event.key == pygame.K_e and game.state == GameState.PLAYING:
+            self._handle_e_interact(game)
+
+        if is_state.trade_accept_pressed and game.state == GameState.TRADE_PANEL:
+            is_state.trade_accept_pressed = False
+            self._npc_flows.handle_trade_accept_keyboard()
+        if is_state.quest_accept_pressed and game.state == GameState.QUEST_PANEL:
+            is_state.quest_accept_pressed = False
+            self._npc_flows.handle_quest_accept_keyboard()
+        if is_state.faction_negotiate_pressed and game.state == GameState.DIPLOMACY_PANEL:
+            is_state.faction_negotiate_pressed = False
+            self._npc_flows.handle_faction_negotiate_keyboard()
+
+        if game.state in PANEL_STATES:
+            active_panel = self._get_active_panel(game)
+            if active_panel and hasattr(active_panel, 'handle_key'):
+                result = active_panel.handle_key(event.key)
+                if result is not None:
+                    panel_dispatcher.dispatch(game.state, result)
+
+    def _handle_e_interact(self, game: "Game") -> None:
+        if game.npc_system is not None and game.player is not None:
+            nearby_npc = game.npc_system.check_proximity(game.player)
+            if nearby_npc is not None:
+                npc_type = getattr(nearby_npc, "npc_type", "")
+                if npc_type == "merchant":
+                    self._npc_flows.open_trade_panel(nearby_npc)
+                elif npc_type == "quest_giver":
+                    self._npc_flows.open_quest_panel(nearby_npc)
+                elif npc_type == "faction_leader":
+                    self._npc_flows.open_diplomacy_panel(nearby_npc)
+                elif npc_type == "recruit":
+                    self._npc_flows.open_recruit_panel(nearby_npc)
+                else:
+                    self._handle_interact(game)
+            else:
+                self._handle_interact(game)
+        else:
+            self._handle_interact(game)
+
+    def _handle_hotbar(self, game: "Game", slot: int) -> None:
+        """Handle a hotbar slot key press (1-8)."""
+        if game.inventory is None or game.survival is None or game.food_registry is None:
+            return
+        if slot < 1 or slot > 8:
+            return
+
+        # Find the slot index: hotbar maps to first N non-empty inventory slots
+        non_empty = []
+        for i, inv_slot in enumerate(game.inventory.slots):
+            if inv_slot is not None and inv_slot.item_id is not None and inv_slot.quantity > 0:
+                non_empty.append(i)
+            if len(non_empty) >= 8:
+                break
+
+        if slot > len(non_empty):
+            return
+
+        inv_idx = non_empty[slot - 1]
+        inv_slot = game.inventory.slots[inv_idx]
+        if inv_slot is None or inv_slot.item_id is None:
+            return
+
+        item_id = inv_slot.item_id
+
+        # Food → eat it
+        food_item = game.food_registry.get(item_id)
+        if food_item is not None:
+            result = game.survival.eat(food_item)
+            if game.player is not None and game.player.action_system is not None:
+                game.player.action_system.add_notification(result, (100, 255, 100))
+            # Remove one from inventory
+            game.inventory.remove_item(item_id, 1)
+            return
+
+        # Equippable tool → equip it
+        from data import load_json_list
+        items_data = load_json_list("items.json", "items")
+        for item_def in items_data:
+            if item_def.get("id") == item_id and item_def.get("is_equippable", False):
+                if game.inventory.equip_item(item_id):
+                    if game.player is not None and game.player.action_system is not None:
+                        game.player.action_system.add_notification(
+                            f"Equipped {item_def.get('name', item_id)}.", (100, 180, 255),
+                        )
+                return
+
+        # Everything else → generic use notification
+        if game.player is not None and game.player.action_system is not None:
+            item_name = next(
+                (d.get("name", item_id) for d in items_data if d.get("id") == item_id),
+                item_id,
+            )
+            game.player.action_system.add_notification(f"Used {item_name}.", (200, 200, 220))
+
+    def _close_all_panels(self) -> None:
+        game = self._game
+        if game._inventory_panel is not None:
+            game._inventory_panel.visible = False
+        if game._skill_panel is not None:
+            game._skill_panel.visible = False
+        if game._crafting_panel is not None:
+            game._crafting_panel.visible = False
+        if game._building_panel is not None:
+            game._building_panel.visible = False
+        if game._gear_panel is not None:
+            game._gear_panel.visible = False
+        if game._trade_panel is not None:
+            game._trade_panel.visible = False
+        if game._quest_panel is not None:
+            game._quest_panel.visible = False
+        if game._recruit_panel is not None:
+            game._recruit_panel.visible = False
+        if game._diplomacy_panel is not None:
+            game._diplomacy_panel.visible = False
+
+    def _is_panel_state(self, state: GameState) -> bool:
+        return state in PANEL_STATES
+
+    def _handle_light_fire(self, game: "Game") -> None:
+        if game._fire_interaction is not None:
+            game._fire_interaction.handle_light_fire()
+
+    def _handle_interact(self, game: "Game") -> None:
+        if game._interact_system is not None:
+            game._interact_system.handle_interact()
+
+    def _handle_mouse_move(self, game: "Game", mx: int, my: int) -> None:
+        # Hotbar hover (always, when playing)
+        if game.state == GameState.PLAYING and game.hud is not None:
+            rects = getattr(game.hud, "_hotbar_rects", [])
+            hovered = -1
+            for i, rect in enumerate(rects):
+                if rect.collidepoint(mx, my):
+                    hovered = i
+                    break
+            game.hud.set_hotbar_hover(hovered, mx, my)
+        if game.state == GameState.INVENTORY_OPEN and game._inventory_panel is not None:
+            game._inventory_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
+            game._crafting_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.GEAR_PANEL and game._gear_panel is not None:
+            game._gear_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.TRADE_PANEL and game._trade_panel is not None:
+            game._trade_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.QUEST_PANEL and game._quest_panel is not None:
+            game._quest_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.RECRUIT_PANEL and game._recruit_panel is not None:
+            game._recruit_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.DIPLOMACY_PANEL and game._diplomacy_panel is not None:
+            game._diplomacy_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.SKILL_PANEL and game._skill_panel is not None:
+            game._skill_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.BUILDING_PANEL and game._building_panel is not None:
+            game._building_panel.handle_mouse_move(mx, my)
+
+    def _handle_mouse_button_down(self, game: "Game", event) -> None:
+        # Scroll wheel
+        if event.button in (4, 5):
+            direction = 1 if event.button == 5 else -1
+            self._handle_scroll(game, event, direction)
+            return
+
+        # Quest panel handles all mouse buttons
+        if game.state == GameState.QUEST_PANEL and game._quest_panel is not None:
+            result = game._quest_panel.handle_click(event.pos[0], event.pos[1])
+            if result is not None:
+                self._panel_dispatcher.dispatch_click(game.state, "quest", result)
+        # Trade panel
+        elif game.state == GameState.TRADE_PANEL and game._trade_panel is not None:
+            result = game._trade_panel.handle_click(event.pos[0], event.pos[1])
+            if result is not None:
+                self._panel_dispatcher.dispatch_click(game.state, "trade", result)
+        # Recruit panel
+        elif game.state == GameState.RECRUIT_PANEL and game._recruit_panel is not None:
+            result = game._recruit_panel.handle_click(event.pos[0], event.pos[1])
+            if result is not None:
+                self._panel_dispatcher.dispatch_click(game.state, "recruit", result)
+        # Diplomacy panel
+        elif game.state == GameState.DIPLOMACY_PANEL and game._diplomacy_panel is not None:
+            result = game._diplomacy_panel.handle_click(event.pos[0], event.pos[1])
+            if result is not None:
+                self._panel_dispatcher.dispatch_click(game.state, "diplomacy", result)
+        # Building panel
+        elif game.state == GameState.BUILDING_PANEL and game._building_panel is not None:
+            result = game._building_panel.handle_click(event.pos[0], event.pos[1])
+            if result is not None:
+                self._panel_dispatcher.dispatch_click(game.state, "building", result)
+
+        if event.button == 1:
+            # Inventory panel left-click: use/equip items
+            if game.state == GameState.INVENTORY_OPEN and game._inventory_panel is not None:
+                result = game._inventory_panel.handle_click(
+                    event.pos[0], event.pos[1], 1,
+                )
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "inventory", result)
+            elif game.state == GameState.PLAYING:
+                # Click hotbar slot
+                if game.hud is not None:
+                    rects = getattr(game.hud, "_hotbar_rects", [])
+                    for i, rect in enumerate(rects):
+                        if rect.collidepoint(event.pos[0], event.pos[1]):
+                            game.hud.set_hotbar_selected(i)
+                            # Trigger hotbar use for this slot
+                            if game.inventory is not None and game.survival is not None and game.food_registry is not None:
+                                self._handle_hotbar(game, i + 1)
+                            break
+                # Click-to-move / attack
+                if (
+                    game.player is not None
+                    and game.camera is not None
+                    and game.combat_system is not None
+                ):
+                    screen_x, screen_y = event.pos
+                    world_x, world_y = game.camera.screen_to_world(screen_x, screen_y)
+
+                    nearby = game.combat_system.get_nearby_monsters(
+                        world_x, world_y, 30.0,
+                    )
+                    if nearby:
+                        game.combat_system.select_target(nearby[0])
+                    else:
+                        game.player.move_to(world_x, world_y)
+        elif event.button in (2, 3):
+            if game.state == GameState.INVENTORY_OPEN and game._inventory_panel is not None:
+                result = game._inventory_panel.handle_click(
+                    event.pos[0], event.pos[1], event.button,
+                )
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "inventory", result)
+            elif game.state == GameState.SKILL_PANEL and game._skill_panel is not None:
+                result = game._skill_panel.handle_click(event.pos[0], event.pos[1])
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "skill", result)
+            elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
+                result = game._crafting_panel.handle_click(event.pos[0], event.pos[1])
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "crafting", result)
+            elif game.state == GameState.GEAR_PANEL and game._gear_panel is not None:
+                result = game._gear_panel.handle_click(event.pos[0], event.pos[1])
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "gear", result)
+
+    def _handle_scroll(self, game: "Game", event, direction: int) -> None:
+        if game.state == GameState.INVENTORY_OPEN and game._inventory_panel is not None:
+            game._inventory_panel._scroll_offset = max(
+                0, game._inventory_panel._scroll_offset + direction
+            )
+        elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
+            game._crafting_panel._scroll_offset = max(
+                0, game._crafting_panel._scroll_offset + direction
+            )
+        elif game.state == GameState.TRADE_PANEL and game._trade_panel is not None:
+            game._trade_panel._scroll_offset = max(
+                0, game._trade_panel._scroll_offset + direction
+            )
+        elif game.state == GameState.QUEST_PANEL and game._quest_panel is not None:
+            game._quest_panel._scroll_offset = max(
+                0, game._quest_panel._scroll_offset + direction
+            )
+        elif game.state == GameState.RECRUIT_PANEL and game._recruit_panel is not None:
+            if direction < 0 and game._recruit_panel._scroll_offset > 0:
+                game._recruit_panel._scroll_offset += direction
+            elif direction > 0:
+                game._recruit_panel._scroll_offset += direction
+        elif game.state == GameState.DIPLOMACY_PANEL and game._diplomacy_panel is not None:
+            pass
+
+    def _get_active_panel(self, game: "Game") -> object | None:
+        panel_map = {
+            GameState.INVENTORY_OPEN: game._inventory_panel,
+            GameState.SKILL_PANEL: game._skill_panel,
+            GameState.CRAFTING_PANEL: game._crafting_panel,
+            GameState.BUILDING_PANEL: game._building_panel,
+            GameState.GEAR_PANEL: game._gear_panel,
+            GameState.TRADE_PANEL: game._trade_panel,
+            GameState.QUEST_PANEL: game._quest_panel,
+            GameState.RECRUIT_PANEL: game._recruit_panel,
+            GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+        }
+        return panel_map.get(game.state)

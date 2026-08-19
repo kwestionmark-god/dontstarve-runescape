@@ -1,0 +1,40 @@
+{
+  "_description": "Optional recruit definition overrides for Phase 3. Defines pre-recruit NPC stats and behavior assignments separately from the main NPC data.",
+  "_note": "Used by the recruitment system to check eligibility and assign behaviors. If not used, the recruit entries in npcs.json serve as the single source of truth.",
+
+  "recruits": [
+    {
+      "recruit_id": "recruit_forest_assistant",
+      "npc_id": "recruit_forest_assistant",
+      "name": "Young Scout Elara",
+      "commerce_requirement": 2,
+      "persuasion_requirement": 3,
+      "composite_requirement": 5,
+      "available_behaviors": ["assistant", "guard"],
+      "preferred_behavior": "assistant",
+      "intelligence_range": [1, 5]
+    },
+    {
+      "recruit_id": "recruit_coastal_trader",
+      "npc_id": "recruit_coastal_trader",
+      "name": "Dock Hand Finn",
+      "commerce_requirement": 5,
+      "persuasion_requirement": 3,
+      "composite_requirement": 8,
+      "available_behaviors": ["trader"],
+      "preferred_behavior": "trader",
+      "intelligence_range": [1, 5]
+    },
+    {
+      "recruit_id": "recruit_mountain_guard",
+      "npc_id": "recruit_mountain_guard",
+      "name": "Rock Breaker Thorg",
+      "commerce_requirement": 3,
+      "persuasion_requirement": 5,
+      "composite_requirement": 8,
+      "available_behaviors": ["guard", "assistant"],
+      "preferred_behavior": "guard",
+      "intelligence_range": [1, 5]
+    }
+  ]
+}

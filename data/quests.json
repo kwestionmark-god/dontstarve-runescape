@@ -1,0 +1,422 @@
+{
+  "_description": "Quest definitions for Phase 3. Each quest has acceptance requirements, completion conditions, fail conditions, and rewards.",
+  "_note": "Quest IDs referenced by npcs.json (quest_giver.available_quest_ids). Recipe unlocks reference recipes.json IDs. Item rewards reference items.json IDs. Faction references use factions.json faction_ids.",
+
+  "quests": [
+    {
+      "quest_id": "timber_collection",
+      "name": "Timber Collection",
+      "description": "Old Man Hemlock needs wood for his workshop. Bring him 5 oak logs.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "forest_villagers",
+      "min_commerce": 0,
+      "min_persuasion": 1,
+      "min_total_intelligence": 1,
+      "acceptance_threshold": 0.4,
+      "xp_reward": 80.0,
+      "skill_xp_rewards": {"woodcutting": 30.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["healing_herbs", 2]],
+      "conditions": [
+        {
+          "condition_type": "collect_item",
+          "target": "oak_logs",
+          "required_count": 5,
+          "description": "Collect 5 oak logs"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": null,
+      "prerequisite_quests": [],
+      "repeatable": false,
+      "sprite_key": "quest/timber"
+    },
+    {
+      "quest_id": "herb_gathering",
+      "name": "Herb Gathering",
+      "description": "Gather healing herbs for the forest village clinic. The villagers depend on them.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "forest_villagers",
+      "min_commerce": 0,
+      "min_persuasion": 2,
+      "min_total_intelligence": 3,
+      "acceptance_threshold": 0.5,
+      "xp_reward": 100.0,
+      "skill_xp_rewards": {"intelligence": 40.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["herb", 5], ["gold", 10]],
+      "conditions": [
+        {
+          "condition_type": "collect_item",
+          "target": "herb",
+          "required_count": 10,
+          "description": "Gather 10 herbs"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": null,
+      "prerequisite_quests": ["timber_collection"],
+      "repeatable": false,
+      "sprite_key": "quest/herbs"
+    },
+    {
+      "quest_id": "goblin_diplomacy",
+      "name": "Goblin Diplomacy",
+      "description": "Negotiate a non-aggression pact with the Goblin Chief to reduce forest attacks.",
+      "giver_npc_type": "faction_leader",
+      "giver_faction": "goblins",
+      "min_commerce": 3,
+      "min_persuasion": 5,
+      "min_total_intelligence": 5,
+      "acceptance_threshold": 0.7,
+      "xp_reward": 200.0,
+      "skill_xp_rewards": {"combat": 50.0},
+      "recipe_unlocks": ["planks"],
+      "gear_unlocks": ["wooden_sword", "leather_helmet"],
+      "item_rewards": [["goblin_trophy", 1], ["gold", 25]],
+      "conditions": [
+        {
+          "condition_type": "visit_location",
+          "target": "forest",
+          "required_count": 1,
+          "description": "Visit the Goblin territory in the forest"
+        },
+        {
+          "condition_type": "negotiate_faction",
+          "target": "goblins",
+          "required_count": 1,
+          "description": "Successfully negotiate with the Goblin faction"
+        }
+      ],
+      "fail_conditions": [
+        {
+          "condition_type": "combat_faction",
+          "target": "goblins",
+          "required_count": 3,
+          "description": "Do not attack 3+ Goblin members during the quest"
+        }
+      ],
+      "required_faction_status": "suspicious",
+      "prerequisite_quests": ["timber_collection"],
+      "repeatable": false,
+      "sprite_key": "quest/diplomacy"
+    },
+    {
+      "quest_id": "goblin_truce",
+      "name": "Goblin Truce",
+      "description": "Deepen relations with the goblins. Survive a night in their territory and trade wolf pelts for their goodwill.",
+      "giver_npc_type": "faction_leader",
+      "giver_faction": "goblins",
+      "min_commerce": 5,
+      "min_persuasion": 7,
+      "min_total_intelligence": 8,
+      "acceptance_threshold": 0.8,
+      "xp_reward": 300.0,
+      "skill_xp_rewards": {"intelligence": 60.0},
+      "recipe_unlocks": ["polish_bone", "craft_stick"],
+      "gear_unlocks": ["iron_sword", "iron_boots"],
+      "item_rewards": [["wolf_pelt", 5], ["gold", 50]],
+      "conditions": [
+        {
+          "condition_type": "collect_item",
+          "target": "wolf_pelt",
+          "required_count": 3,
+          "description": "Collect 3 wolf pelts to trade"
+        },
+        {
+          "condition_type": "negotiate_faction",
+          "target": "goblins",
+          "required_count": 2,
+          "description": "Successfully negotiate with the Goblin faction twice"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": "friendly",
+      "prerequisite_quests": ["goblin_diplomacy"],
+      "repeatable": false,
+      "sprite_key": "quest/truce"
+    },
+    {
+      "quest_id": "sea_trade",
+      "name": "Sea Trade",
+      "description": "Captain Rourke wants you to establish a trade route between the coastal merchants and the inland plains.",
+      "giver_npc_type": "faction_leader",
+      "giver_faction": "coastal_merchants",
+      "min_commerce": 3,
+      "min_persuasion": 4,
+      "min_total_intelligence": 6,
+      "acceptance_threshold": 0.6,
+      "xp_reward": 180.0,
+      "skill_xp_rewards": {"intelligence": 50.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["gold", 40]],
+      "conditions": [
+        {
+          "condition_type": "trade_at_location",
+          "target": "merchant_coastal_1",
+          "required_count": 3,
+          "description": "Complete 3 trades with the Coastal Merchant"
+        },
+        {
+          "condition_type": "visit_location",
+          "target": "coastal",
+          "required_count": 1,
+          "description": "Visit the coastal region"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": null,
+      "prerequisite_quests": [],
+      "repeatable": false,
+      "sprite_key": "quest/sea_trade"
+    },
+    {
+      "quest_id": "coastal_defense",
+      "name": "Coastal Defense",
+      "description": "Help Captain Rourke defend the coast from sea serpent attacks.",
+      "giver_npc_type": "faction_leader",
+      "giver_faction": "coastal_merchants",
+      "min_commerce": 5,
+      "min_persuasion": 3,
+      "min_total_intelligence": 7,
+      "acceptance_threshold": 0.65,
+      "xp_reward": 250.0,
+      "skill_xp_rewards": {"combat": 80.0},
+      "recipe_unlocks": ["smelt_iron", "craft_fired_brick"],
+      "gear_unlocks": ["iron_chestplate", "iron_helmet"],
+      "item_rewards": [["serpent_scale", 2], ["gold", 60]],
+      "conditions": [
+        {
+          "condition_type": "kill_monster",
+          "target": "sea_serpent",
+          "required_count": 3,
+          "description": "Kill 3 sea serpents"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": "neutral",
+      "prerequisite_quests": ["sea_trade"],
+      "repeatable": false,
+      "sprite_key": "quest/coastal_defense"
+    },
+    {
+      "quest_id": "desert_trade_route",
+      "name": "Desert Trade Route",
+      "description": "Establish a trade route with the Desert Djinn. Bring them salt blocks in exchange for Djinn Essence.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "desert_djinn",
+      "min_commerce": 5,
+      "min_persuasion": 3,
+      "min_total_intelligence": 8,
+      "acceptance_threshold": 0.6,
+      "xp_reward": 150.0,
+      "skill_xp_rewards": {"intelligence": 40.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["djinn_essence_trade", 1], ["evaporated_salt", 5]],
+      "conditions": [
+        {
+          "condition_type": "deliver_item",
+          "target": "salt_block",
+          "required_count": 3,
+          "description": "Deliver 3 salt blocks to the Djinn trader"
+        },
+        {
+          "condition_type": "trade_at_location",
+          "target": "merchant_desert_1",
+          "required_count": 1,
+          "description": "Complete a trade with the Desert Merchant"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": null,
+      "prerequisite_quests": [],
+      "repeatable": true,
+      "sprite_key": "quest/desert_trade"
+    },
+    {
+      "quest_id": "sand_storm_warning",
+      "name": "Sand Storm Warning",
+      "description": "Elder Zara asks you to collect cactus fibers for constructing wind shelters before the seasonal sand storm hits.",
+      "giver_npc_type": "faction_leader",
+      "giver_faction": "desert_djinn",
+      "min_commerce": 8,
+      "min_persuasion": 6,
+      "min_total_intelligence": 12,
+      "acceptance_threshold": 0.7,
+      "xp_reward": 350.0,
+      "skill_xp_rewards": {"intelligence": 70.0, "mining": 25.0},
+      "recipe_unlocks": ["smelt_copper", "craft_cobblestone"],
+      "gear_unlocks": ["bronze_sword", "bronze_chestplate"],
+      "item_rewards": [["enchanted_amulet", 1], ["gold", 80]],
+      "conditions": [
+        {
+          "condition_type": "collect_item",
+          "target": "cactus_fiber",
+          "required_count": 5,
+          "description": "Gather 5 cactus fibers"
+        },
+        {
+          "condition_type": "craft_item",
+          "target": "candle",
+          "required_count": 3,
+          "description": "Craft 3 candles for the shelter"
+        },
+        {
+          "condition_type": "negotiate_faction",
+          "target": "desert_djinn",
+          "required_count": 2,
+          "description": "Successfully negotiate with the Desert Djinn faction twice"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": "friendly",
+      "prerequisite_quests": ["desert_trade_route"],
+      "repeatable": false,
+      "sprite_key": "quest/sand_storm"
+    },
+    {
+      "quest_id": "swamp_crossing",
+      "name": "Swamp Crossing",
+      "description": "Shaman Kree needs you to navigate the dangerous swamp and collect rare ingredients for her potions.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "swamp_factions",
+      "min_commerce": 0,
+      "min_persuasion": 3,
+      "min_total_intelligence": 4,
+      "acceptance_threshold": 0.6,
+      "xp_reward": 120.0,
+      "skill_xp_rewards": {"intelligence": 35.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["poison_antidote", 2], ["gold", 15]],
+      "conditions": [
+        {
+          "condition_type": "visit_location",
+          "target": "swamp",
+          "required_count": 1,
+          "description": "Venture into the swamp"
+        },
+        {
+          "condition_type": "collect_item",
+          "target": "toxic_reed",
+          "required_count": 5,
+          "description": "Collect 5 toxic reeds"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": null,
+      "prerequisite_quests": [],
+      "repeatable": false,
+      "sprite_key": "quest/swamp_crossing"
+    },
+    {
+      "quest_id": "poison_antidote",
+      "name": "Poison Antidote",
+      "description": "Craft poison antidotes using swamp ingredients. Shaman Kree wants to stock her clinic.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "swamp_factions",
+      "min_commerce": 2,
+      "min_persuasion": 4,
+      "min_total_intelligence": 6,
+      "acceptance_threshold": 0.65,
+      "xp_reward": 160.0,
+      "skill_xp_rewards": {"intelligence": 50.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["poison_antidote", 5], ["gold", 30]],
+      "conditions": [
+        {
+          "condition_type": "collect_item",
+          "target": "poison_gland",
+          "required_count": 3,
+          "description": "Collect 3 poison glands"
+        },
+        {
+          "condition_type": "collect_item",
+          "target": "toxic_reed",
+          "required_count": 5,
+          "description": "Collect 5 toxic reeds"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": "suspicious",
+      "prerequisite_quests": ["swamp_crossing"],
+      "repeatable": false,
+      "sprite_key": "quest/antidote"
+    },
+    {
+      "quest_id": "mountain_pass",
+      "name": "Mountain Pass",
+      "description": "The Stone Guardian asks you to clear the mountain pass of stone golems so trade caravans can pass safely.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "mountain_clans",
+      "min_commerce": 0,
+      "min_persuasion": 2,
+      "min_total_intelligence": 3,
+      "acceptance_threshold": 0.5,
+      "xp_reward": 130.0,
+      "skill_xp_rewards": {"combat": 40.0},
+      "recipe_unlocks": [],
+      "gear_unlocks": [],
+      "item_rewards": [["gold", 20]],
+      "conditions": [
+        {
+          "condition_type": "kill_monster",
+          "target": "stone_golem",
+          "required_count": 2,
+          "description": "Defeat 2 stone golems"
+        },
+        {
+          "condition_type": "visit_location",
+          "target": "mountains",
+          "required_count": 1,
+          "description": "Visit the mountains"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": null,
+      "prerequisite_quests": [],
+      "repeatable": false,
+      "sprite_key": "quest/mountain_pass"
+    },
+    {
+      "quest_id": "gem_mining",
+      "name": "Gem Mining",
+      "description": "Mine rare gemstones from the mountain veins for the mountain clan's crafters.",
+      "giver_npc_type": "quest_giver",
+      "giver_faction": "mountain_clans",
+      "min_commerce": 3,
+      "min_persuasion": 3,
+      "min_total_intelligence": 6,
+      "acceptance_threshold": 0.55,
+      "xp_reward": 200.0,
+      "skill_xp_rewards": {"intelligence": 45.0, "mining": 60.0},
+      "recipe_unlocks": ["smelt_steel", "craft_bone_powder"],
+      "gear_unlocks": ["steel_sword", "steel_boots"],
+      "item_rewards": [["gemstone", 3], ["gold", 35]],
+      "conditions": [
+        {
+          "condition_type": "collect_item",
+          "target": "gemstone",
+          "required_count": 3,
+          "description": "Mine 3 gemstones"
+        },
+        {
+          "condition_type": "collect_item",
+          "target": "rare_ore",
+          "required_count": 2,
+          "description": "Mine 2 rare ores"
+        }
+      ],
+      "fail_conditions": [],
+      "required_faction_status": "neutral",
+      "prerequisite_quests": ["mountain_pass"],
+      "repeatable": false,
+      "sprite_key": "quest/gem_mining"
+    }
+  ]
+}

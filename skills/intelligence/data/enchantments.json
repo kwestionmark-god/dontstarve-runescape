@@ -1,0 +1,61 @@
+{
+  "_description": "Enchantment definitions for advanced crafting.",
+  "_note": "Intelligence-gated. Applied to quality-eligible crafted items with enchantment_slots > 0.",
+
+  "enchantments": [
+    {
+      "enchantment_id": "flame_edge",
+      "name": "Flame Edge",
+      "intelligence_min": 25,
+      "material_cost": {"polished_amber": 2, "charcoal": 3},
+      "effect": {"damage": 0.15, "fire_dot": 0.05},
+      "success_rate_base": 0.55,
+      "failure_penalty": "damage_item"
+    },
+    {
+      "enchantment_id": "frost_edge",
+      "name": "Frost Edge",
+      "intelligence_min": 30,
+      "material_cost": {"polished_void_crystal": 1, "moonstone": 2},
+      "effect": {"damage": 0.12, "slow": 0.2},
+      "success_rate_base": 0.50,
+      "failure_penalty": "damage_item"
+    },
+    {
+      "enchantment_id": "void_shield",
+      "name": "Void Shield",
+      "intelligence_min": 35,
+      "material_cost": {"void_essence": 1, "moonstone_essence": 2},
+      "effect": {"defense": 0.10, "magic_resist": 0.15},
+      "success_rate_base": 0.45,
+      "failure_penalty": "consume_materials"
+    },
+    {
+      "enchantment_id": "rune_power",
+      "name": "Rune Power",
+      "intelligence_min": 40,
+      "material_cost": {"rune_stone": 1, "void_essence_concentrate": 1},
+      "effect": {"damage": 0.20, "mana_regen": 0.10},
+      "success_rate_base": 0.40,
+      "failure_penalty": "damage_item"
+    },
+    {
+      "enchantment_id": "phoenix_rebirth",
+      "name": "Phoenix Rebirth",
+      "intelligence_min": 45,
+      "material_cost": {"phoenix_cloth": 2, "attuned_celestial_crystal": 1},
+      "effect": {"hp_regen": 0.15, "resurrection_chance": 0.05},
+      "success_rate_base": 0.35,
+      "failure_penalty": "consume_materials"
+    },
+    {
+      "enchantment_id": "celestial_blessing",
+      "name": "Celestial Blessing",
+      "intelligence_min": 50,
+      "material_cost": {"attuned_celestial_crystal": 2, "star_metal_ingot": 1, "void_essence": 2},
+      "effect": {"all_stats": 0.10, "xp_boost": 0.10},
+      "success_rate_base": 0.30,
+      "failure_penalty": "damage_item"
+    }
+  ]
+}

@@ -1,0 +1,1364 @@
+{
+  "_description": "Item definitions for all Phase 1 items.",
+  "_note": "Items referenced by resources, recipes, and food tables.",
+
+  "items": [
+    {
+      "id": "oak_logs",
+      "name": "Oak Logs",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/logs_oak"
+    },
+    {
+      "id": "berries",
+      "name": "Berries",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 900,
+      "hunger_restore": 8,
+      "hp_restore": 0,
+      "sprite_key": "items/berries"
+    },
+    {
+      "id": "herb",
+      "name": "Herb",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/herb"
+    },
+    {
+      "id": "fibers",
+      "name": "Fibers",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/fibers"
+    },
+    {
+      "id": "grass",
+      "name": "Grass",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/grass"
+    },
+    {
+      "id": "wheat",
+      "name": "Wild Wheat",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/wheat"
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 0,
+      "hunger_restore": 5,
+      "hp_restore": 0,
+      "sprite_key": "items/water"
+    },
+    {
+      "id": "driftwood",
+      "name": "Driftwood",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/driftwood"
+    },
+    {
+      "id": "shells",
+      "name": "Shells",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/shells"
+    },
+    {
+      "id": "raw_fish",
+      "name": "Raw Fish",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 300,
+      "hunger_restore": 12,
+      "hp_restore": 0,
+      "sprite_key": "items/fish_raw"
+    },
+    {
+      "id": "raw_chicken",
+      "name": "Raw Chicken",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 600,
+      "hunger_restore": 15,
+      "hp_restore": 0,
+      "sprite_key": "items/chicken_raw"
+    },
+    {
+      "id": "raw_meat",
+      "name": "Raw Meat",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 600,
+      "hunger_restore": 15,
+      "hp_restore": 0,
+      "sprite_key": "items/meat_raw"
+    },
+    {
+      "id": "salt",
+      "name": "Salt",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/salt"
+    },
+    {
+      "id": "peat",
+      "name": "Peat",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/peat"
+    },
+    {
+      "id": "toxic_reed",
+      "name": "Toxic Reed",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/toxic_reed"
+    },
+    {
+      "id": "iron_ore",
+      "name": "Iron Ore",
+      "stack_size": 14,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_iron"
+    },
+    {
+      "id": "copper_ore",
+      "name": "Copper Ore",
+      "stack_size": 14,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_copper"
+    },
+    {
+      "id": "gold_ore",
+      "name": "Gold Ore",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_gold"
+    },
+    {
+      "id": "stone",
+      "name": "Stone",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/stone"
+    },
+    {
+      "id": "gemstone",
+      "name": "Gemstone",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/gemstone"
+    },
+    {
+      "id": "sand",
+      "name": "Sand",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/sand"
+    },
+    {
+      "id": "cactus_flesh",
+      "name": "Cactus Flesh",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 600,
+      "hunger_restore": 6,
+      "hp_restore": -2,
+      "sprite_key": "items/cactus_flesh"
+    },
+    {
+      "id": "rare_ore",
+      "name": "Rare Ore",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_rare"
+    },
+
+    {
+      "id": "cooked_chicken",
+      "name": "Cooked Chicken",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 1800,
+      "hunger_restore": 25,
+      "hp_restore": 3,
+      "sprite_key": "items/chicken_cooked",
+      "cooking_base_item": "raw_chicken"
+    },
+    {
+      "id": "cooked_fish",
+      "name": "Cooked Fish",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 1500,
+      "hunger_restore": 20,
+      "hp_restore": 2,
+      "sprite_key": "items/fish_cooked",
+      "cooking_base_item": "raw_fish"
+    },
+    {
+      "id": "cooked_meat",
+      "name": "Cooked Meat",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 2400,
+      "hunger_restore": 35,
+      "hp_restore": 5,
+      "sprite_key": "items/meat_cooked",
+      "cooking_base_item": "raw_meat"
+    },
+
+    {
+      "id": "planks",
+      "name": "Planks",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/planks"
+    },
+    {
+      "id": "charcoal",
+      "name": "Charcoal",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/charcoal"
+    },
+    {
+      "id": "chert",
+      "name": "Chert",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/chert"
+    },
+    {
+      "id": "campfire",
+      "name": "Campfire",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "is_structure": true,
+      "sprite_key": "world/campfire"
+    },
+
+    {
+      "id": "axe",
+      "name": "Axe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": true,
+      "is_food": false,
+      "tool_type": "axe",
+      "durability": 100,
+      "sprite_key": "items/axe"
+    },
+    {
+      "id": "pickaxe",
+      "name": "Pickaxe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": true,
+      "is_food": false,
+      "tool_type": "pickaxe",
+      "durability": 100,
+      "sprite_key": "items/pickaxe"
+    },
+
+    {
+      "id": "tin_ore",
+      "name": "Tin Ore",
+      "stack_size": 14,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_tin"
+    },
+
+    {
+      "id": "smelted_iron_ingot",
+      "name": "Smelted Iron Ingot",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_iron"
+    },
+
+    {
+      "id": "smelted_copper_ingot",
+      "name": "Smelted Copper Ingot",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_copper"
+    },
+
+    {
+      "id": "smelted_bronze_ingot",
+      "name": "Smelted Bronze Ingot",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_bronze"
+    },
+
+    {
+      "id": "smelted_steel_ingot",
+      "name": "Smelted Steel Ingot",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_steel"
+    },
+
+    {
+      "id": "fired_brick",
+      "name": "Fired Brick",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/brick"
+    },
+
+    {
+      "id": "cobblestone",
+      "name": "Cobblestone",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/cobblestone"
+    },
+
+    {
+      "id": "stick",
+      "name": "Stick",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/stick"
+    },
+
+    {
+      "id": "wolf_pelt",
+      "name": "Wolf Pelt",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/pelt_wolf"
+    },
+
+    {
+      "id": "wolf_bone",
+      "name": "Wolf Bone",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/bone_wolf"
+    },
+
+    {
+      "id": "bear_hide",
+      "name": "Bear Hide",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/hide_bear"
+    },
+
+    {
+      "id": "bear_claw",
+      "name": "Bear Claw",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/claw_bear"
+    },
+
+    {
+      "id": "poison_gland",
+      "name": "Poison Gland",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/gland_poison"
+    },
+
+    {
+      "id": "scorpion_carapace",
+      "name": "Scorpion Carapace",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/carapace_scorpion"
+    },
+
+    {
+      "id": "golem_core",
+      "name": "Golem Core",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/core_golem"
+    },
+
+    {
+      "id": "boar_meat",
+      "name": "Raw Boar Meat",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 600,
+      "hunger_restore": 15,
+      "hp_restore": 0,
+      "sprite_key": "items/meat_boar_raw"
+    },
+
+    {
+      "id": "crab_meat",
+      "name": "Crab Meat",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 300,
+      "hunger_restore": 10,
+      "hp_restore": 0,
+      "sprite_key": "items/meat_crab_raw"
+    },
+
+    {
+      "id": "animal_fat",
+      "name": "Animal Fat",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/fat_animal"
+    },
+
+    {
+      "id": "torch",
+      "name": "Torch",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/torch"
+    },
+
+    {
+      "id": "ash",
+      "name": "Ash",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ash"
+    },
+
+    {
+      "id": "tree_sap",
+      "name": "Tree Sap",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/sap"
+    },
+
+    {
+      "id": "polished_bone",
+      "name": "Polished Bone",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/bone_polished"
+    },
+
+    {
+      "id": "bone_powder",
+      "name": "Bone Powder",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/bone_powder"
+    },
+
+    {
+      "id": "refined_resin",
+      "name": "Refined Resin",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/resin"
+    },
+
+    {
+      "id": "pitch",
+      "name": "Pitch",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/pitch"
+    },
+
+    {
+      "id": "evaporated_salt",
+      "name": "Evaporated Salt",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/salt_evaporated"
+    },
+
+    {
+      "id": "refined_salt",
+      "name": "Refined Salt",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/salt_refined"
+    },
+
+    {
+      "id": "rendered_tallow",
+      "name": "Rendered Tallow",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/tallow"
+    },
+
+    {
+      "id": "candle",
+      "name": "Candle",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/candle"
+    },
+
+    {
+      "id": "filtered_honey",
+      "name": "Filtered Honey",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 3600,
+      "hunger_restore": 20,
+      "hp_restore": 0,
+      "sprite_key": "items/honey_filtered"
+    },
+
+    {
+      "id": "mead_base",
+      "name": "Mead Base",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": true,
+      "spoilage_seconds": 1800,
+      "hunger_restore": 15,
+      "hp_restore": 0,
+      "sprite_key": "items/mead"
+    },
+
+    {
+      "id": "reed",
+      "name": "Reed",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/reed"
+    },
+
+    {
+      "id": "pressed_papyrus",
+      "name": "Pressed Papyrus",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/papyrus"
+    },
+
+    {
+      "id": "paper",
+      "name": "Paper",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/paper"
+    },
+
+    {
+      "id": "honeycomb",
+      "name": "Honeycomb",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/honeycomb"
+    },
+
+    {
+      "id": "gold",
+      "name": "Gold Coin",
+      "stack_size": 999,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "is_currency": true,
+      "sprite_key": "items/gold"
+    },
+
+    {
+      "id": "healing_herbs",
+      "name": "Healing Herbs",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/healing_herbs"
+    },
+    {
+      "id": "berry_jar",
+      "name": "Berry Jar",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 3600,
+      "hunger_restore": 15,
+      "hp_restore": 0,
+      "sprite_key": "items/berry_jar"
+    },
+    {
+      "id": "wheat_bundle",
+      "name": "Wheat Bundle",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/wheat_bundle"
+    },
+    {
+      "id": "grass_rope",
+      "name": "Grass Rope",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/grass_rope"
+    },
+    {
+      "id": "honeycomb_raw",
+      "name": "Honeycomb",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/honeycomb"
+    },
+    {
+      "id": "salt_block",
+      "name": "Salt Block",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/salt_block"
+    },
+    {
+      "id": "shell_necklace",
+      "name": "Shell Necklace",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/shell_necklace"
+    },
+    {
+      "id": "dried_fish",
+      "name": "Dried Fish",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 7200,
+      "hunger_restore": 18,
+      "hp_restore": 0,
+      "sprite_key": "items/fish_dried"
+    },
+    {
+      "id": "poison_antidote",
+      "name": "Poison Antidote",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/antidote"
+    },
+    {
+      "id": "peat_block",
+      "name": "Peat Block",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/peat_block"
+    },
+    {
+      "id": "iron_ingot_raw",
+      "name": "Raw Iron Ingot",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_iron_raw"
+    },
+    {
+      "id": "gemstone_raw",
+      "name": "Raw Gemstone",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/gemstone_raw"
+    },
+    {
+      "id": "eagle_feather_pack",
+      "name": "Eagle Feather Pack",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/feather_pack"
+    },
+    {
+      "id": "cactus_fiber",
+      "name": "Cactus Fiber",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/cactus_fiber"
+    },
+    {
+      "id": "scorpion_tail_dried",
+      "name": "Dried Scorpion Tail",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/scorpion_tail_dried"
+    },
+    {
+      "id": "sand_glass",
+      "name": "Sand Glass",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/sand_glass"
+    },
+
+    {
+      "id": "steel_ingot_trade",
+      "name": "Steel Ingot",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_steel"
+    },
+    {
+      "id": "bronze_ingot_trade",
+      "name": "Bronze Ingot",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ingot_bronze"
+    },
+    {
+      "id": "glass_sheet",
+      "name": "Glass Sheet",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/glass_sheet"
+    },
+    {
+      "id": "refined_resin_trade",
+      "name": "Refined Resin",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/resin_refined"
+    },
+    {
+      "id": "polished_bone_trade",
+      "name": "Polished Bone",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/bone_polished"
+    },
+    {
+      "id": "refined_salt_trade",
+      "name": "Refined Salt",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/salt_refined"
+    },
+    {
+      "id": "molten_glass",
+      "name": "Molten Glass",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/molten_glass"
+    },
+    {
+      "id": "filtered_honey_trade",
+      "name": "Filtered Honey",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": true,
+      "is_raw": false,
+      "spoilage_seconds": 3600,
+      "hunger_restore": 20,
+      "hp_restore": 0,
+      "sprite_key": "items/honey_filtered"
+    },
+    {
+      "id": "diamond_ring",
+      "name": "Diamond Ring",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/diamond_ring"
+    },
+    {
+      "id": "enchanted_amulet",
+      "name": "Enchanted Amulet",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/amulet"
+    },
+    {
+      "id": "djinn_essence_trade",
+      "name": "Djinn Essence",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/djinn_essence"
+    },
+
+    {
+      "id": "goblin_trophy",
+      "name": "Goblin Trophy",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/trophy_goblin"
+    },
+    {
+      "id": "serpent_scale",
+      "name": "Serpent Scale",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/scale_serpent"
+    },
+    {
+      "id": "void_crystal",
+      "name": "Void Crystal",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/crystal_void"
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/obsidian"
+    },
+    {
+      "id": "dragonbone",
+      "name": "Dragonbone",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/bone_dragon"
+    },
+    {
+      "id": "mithril_ore",
+      "name": "Mithril Ore",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_mithril"
+    },
+    {
+      "id": "silk",
+      "name": "Silk",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/silk"
+    },
+    {
+      "id": "amber",
+      "name": "Amber",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/amber"
+    },
+    {
+      "id": "moonstone",
+      "name": "Moonstone",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/moonstone"
+    },
+    {
+      "id": "ghost_iron",
+      "name": "Ghost Iron",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ore_ghost_iron"
+    },
+    {
+      "id": "star_metal",
+      "name": "Star Metal",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/star_metal"
+    },
+    {
+      "id": "void_essence",
+      "name": "Void Essence",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/void_essence"
+    },
+    {
+      "id": "phoenix_feather",
+      "name": "Phoenix Feather",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/phoenix_feather"
+    },
+    {
+      "id": "ancient_rune",
+      "name": "Ancient Rune",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ancient_rune"
+    },
+    {
+      "id": "elder_wood",
+      "name": "Elder Wood",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/elder_wood"
+    },
+    {
+      "id": "celestial_crystal",
+      "name": "Celestial Crystal",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/celestial_crystal"
+    },
+    {
+      "id": "obsidian_glass",
+      "name": "Obsidian Glass",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/obsidian_glass"
+    },
+    {
+      "id": "polished_void_crystal",
+      "name": "Polished Void Crystal",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/polished_void_crystal"
+    },
+    {
+      "id": "polished_amber",
+      "name": "Polished Amber",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/polished_amber"
+    },
+    {
+      "id": "ground_moonstone",
+      "name": "Ground Moonstone",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ground_moonstone"
+    },
+    {
+      "id": "polished_dragonbone",
+      "name": "Polished Dragonbone",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/polished_dragonbone"
+    },
+    {
+      "id": "dragonbone_whistle",
+      "name": "Dragonbone Whistle",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/dragonbone_whistle"
+    },
+    {
+      "id": "mithril_ingot",
+      "name": "Mithril Ingot",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/mithril_ingot"
+    },
+    {
+      "id": "refined_ghost_iron",
+      "name": "Refined Ghost Iron",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/refined_ghost_iron"
+    },
+    {
+      "id": "mithril_longsword",
+      "name": "Mithril Longsword",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/mithril_longsword"
+    },
+    {
+      "id": "ghost_iron_chestplate",
+      "name": "Ghost Iron Chestplate",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/ghost_iron_chestplate"
+    },
+    {
+      "id": "silk_fabric",
+      "name": "Silk Fabric",
+      "stack_size": 15,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/silk_fabric"
+    },
+    {
+      "id": "silk_thread",
+      "name": "Silk Thread",
+      "stack_size": 20,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/silk_thread"
+    },
+    {
+      "id": "silk_enchanted_cloak",
+      "name": "Silk Enchanted Cloak",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/silk_enchanted_cloak"
+    },
+    {
+      "id": "moonstone_essence",
+      "name": "Moonstone Essence",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/moonstone_essence"
+    },
+    {
+      "id": "void_elixir",
+      "name": "Void Elixir",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/void_elixir"
+    },
+    {
+      "id": "star_metal_ingot",
+      "name": "Star Metal Ingot",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/star_metal_ingot"
+    },
+    {
+      "id": "star_metal_longsword",
+      "name": "Star Metal Longsword",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/star_metal_longsword"
+    },
+    {
+      "id": "void_essence_concentrate",
+      "name": "Void Essence Concentrate",
+      "stack_size": 5,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/void_essence_concentrate"
+    },
+    {
+      "id": "void_draught",
+      "name": "Void Draught",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/void_draught"
+    },
+    {
+      "id": "phoenix_cloth",
+      "name": "Phoenix Cloth",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/phoenix_cloth"
+    },
+    {
+      "id": "phoenix_cloak",
+      "name": "Phoenix Feather Cloak",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/phoenix_cloak"
+    },
+    {
+      "id": "rune_stone",
+      "name": "Rune Stone",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/rune_stone"
+    },
+    {
+      "id": "rune_mithril_longsword",
+      "name": "Rune-Enchanted Mithril Longsword",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/rune_mithril_longsword"
+    },
+    {
+      "id": "elder_wood_planks",
+      "name": "Elder Wood Planks",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/elder_wood_planks"
+    },
+    {
+      "id": "elder_wood_staff",
+      "name": "Elder Wood Staff",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/elder_wood_staff"
+    },
+    {
+      "id": "attuned_celestial_crystal",
+      "name": "Attuned Celestial Crystal",
+      "stack_size": 3,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/attuned_celestial_crystal"
+    },
+    {
+      "id": "celestial_chestplate",
+      "name": "Celestial Chestplate",
+      "stack_size": 1,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/celestial_chestplate"
+    }
+  ]
+}

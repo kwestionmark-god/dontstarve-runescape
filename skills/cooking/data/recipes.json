@@ -1,0 +1,40 @@
+{
+  "recipes": [
+    {
+      "id": "cook_chicken",
+      "name": "Cook Chicken",
+      "input_items": [["raw_chicken", 1]],
+      "output_item": "cooked_chicken",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 25.0,
+      "processing_chain": "food_chain",
+      "tier": 1,
+      "skill_affects_yield": "cooking"
+    },
+    {
+      "id": "cook_fish",
+      "name": "Cook Fish",
+      "input_items": [["raw_fish", 1]],
+      "output_item": "cooked_fish",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 20.0,
+      "processing_chain": "food_chain",
+      "tier": 1,
+      "skill_affects_yield": "cooking"
+    },
+    {
+      "id": "cook_meat",
+      "name": "Cook Meat",
+      "input_items": [["raw_meat", 1]],
+      "output_item": "cooked_meat",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 30.0,
+      "processing_chain": "food_chain",
+      "tier": 1,
+      "skill_affects_yield": "cooking"
+    }
+  ]
+}

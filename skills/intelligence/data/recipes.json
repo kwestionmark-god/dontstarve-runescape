@@ -1,0 +1,92 @@
+{
+  "recipes": [
+    {
+      "recipe_id": "process_silk",
+      "name": "Process Silk",
+      "input_items": [["silk", 2]],
+      "output_item": "silk_thread",
+      "output_quantity": 1,
+      "xp_reward": 40.0,
+      "processing_chain": "intelligence_silk",
+      "tier": 3,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "process_amber",
+      "name": "Process Amber",
+      "input_items": [["amber", 1]],
+      "output_item": "polished_amber",
+      "output_quantity": 1,
+      "xp_reward": 50.0,
+      "processing_chain": "intelligence_amber",
+      "tier": 3,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "process_moonstone",
+      "name": "Process Moonstone",
+      "input_items": [["moonstone", 2]],
+      "output_item": "moonstone_essence",
+      "output_quantity": 1,
+      "xp_reward": 55.0,
+      "processing_chain": "intelligence_moonstone",
+      "tier": 3,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "process_dragonbone",
+      "name": "Process Dragonbone",
+      "input_items": [["dragonbone", 1]],
+      "output_item": "dragonbone_shard",
+      "output_quantity": 2,
+      "xp_reward": 60.0,
+      "processing_chain": "intelligence_dragonbone",
+      "tier": 3,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "concentrate_void_essence",
+      "name": "Concentrate Void Essence",
+      "input_items": [["void_essence", 2]],
+      "output_item": "void_essence_concentrate",
+      "output_quantity": 1,
+      "xp_reward": 80.0,
+      "processing_chain": "intelligence_void",
+      "tier": 4,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "weave_phoenix_feather",
+      "name": "Weave Phoenix Feather",
+      "input_items": [["phoenix_feather", 1]],
+      "output_item": "phoenix_cloth",
+      "output_quantity": 1,
+      "xp_reward": 90.0,
+      "processing_chain": "intelligence_phoenix",
+      "tier": 4,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "inscribe_ancient_rune",
+      "name": "Inscribe Ancient Rune",
+      "input_items": [["ancient_rune", 1]],
+      "output_item": "rune_stone",
+      "output_quantity": 1,
+      "xp_reward": 100.0,
+      "processing_chain": "intelligence_rune",
+      "tier": 4,
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "attune_celestial_crystal",
+      "name": "Attune Celestial Crystal",
+      "input_items": [["celestial_crystal", 1]],
+      "output_item": "attuned_celestial_crystal",
+      "output_quantity": 1,
+      "xp_reward": 110.0,
+      "processing_chain": "intelligence_celestial",
+      "tier": 4,
+      "skill_affects_yield": "intelligence"
+    }
+  ]
+}
