@@ -121,6 +121,18 @@ class HUD:
         """Set the WeatherSystem reference for weather/forecast data."""
         self._weather_system = weather_system
 
+    def set_faction_system(self, faction_system: object) -> None:
+        """Update the faction system reference (wired after NPC system is built)."""
+        self.faction_system = faction_system
+
+    def set_npc_system(self, npc_system: object) -> None:
+        """Update the NPC system reference (wired after NPC system is built)."""
+        self.npc_system = npc_system
+
+    def set_sprite_renderer(self, sprite_renderer: "SpriteRenderer") -> None:
+        """Update the sprite renderer reference (wired after the real renderer is built)."""
+        self.sprite_renderer = sprite_renderer
+
     def get_action_system(self) -> object | None:
         """Return the action system, for convenience."""
         if self._action_system is None and self.player is not None:
