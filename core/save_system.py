@@ -175,6 +175,7 @@ class SaveSystem:
             player_data = save_data["player"]
             game.player.unlocked_recipes = set(player_data.get("unlocked_recipes", []))
             game.player.unlocked_gear = set(player_data.get("unlocked_gear", []))
+            game.player.recruited_npcs = list(player_data.get("recruited_npcs", []))
 
         # 6. Restore structures
         if "structures" in save_data and game.building_system:
@@ -316,6 +317,16 @@ class SaveSystem:
             if "base_x" in rs_data and rs.base_x is None:
                 rs.base_x = rs_data["base_x"]
                 rs.base_y = rs_data["base_y"]
+            # Restore per-NPC recruit state (is_recruited + assigned behavior).
+            # Runs before the behaviors loop below so recruit-flagged NPCs are
+            # recognized when matching behavior entries.
+            if game.npc_system is not None:
+                for npc_recruit in rs_data.get("npc_recruits", []):
+                    for npc in game.npc_system.npcs:
+                        if npc.npc_id == npc_recruit.get("npc_id"):
+                            npc.is_recruited = npc_recruit.get("is_recruited", False)
+                            npc.recruit_behavior = npc_recruit.get("recruit_behavior")
+                            break
             # Restore behavior states
             for npc_id, behavior_data in rs_data.get("behaviors", {}).items():
                 if npc_id not in rs.behaviors:
@@ -415,6 +426,7 @@ class SaveSystem:
             # Quest unlock state (S17)
             player_data["unlocked_recipes"] = list(getattr(game.player, "unlocked_recipes", set()))
             player_data["unlocked_gear"] = list(getattr(game.player, "unlocked_gear", set()))
+            player_data["recruited_npcs"] = list(getattr(game.player, "recruited_npcs", []))
             snapshot["player"] = player_data
         else:
             snapshot["player"] = {"world_x": 0, "world_y": 0, "gear": None}
@@ -574,6 +586,19 @@ class SaveSystem:
             snapshot["recruitment_state"] = {
                 "behaviors": dict(getattr(rs, "behaviors", {})),
             }
+            # Persist per-NPC recruit state (is_recruited + assigned behavior).
+            # Saved here rather than in the player block because it is NPC-system
+            # state; the recruited-id list lives in the player block.
+            if game.npc_system is not None:
+                snapshot["recruitment_state"]["npc_recruits"] = [
+                    {
+                        "npc_id": npc.npc_id,
+                        "is_recruited": getattr(npc, "is_recruited", False),
+                        "recruit_behavior": getattr(npc, "recruit_behavior", None),
+                    }
+                    for npc in game.npc_system.npcs
+                    if getattr(npc, "is_recruited", False)
+                ]
             # Restore base position if known
             if rs.base_x is not None and rs.base_y is not None:
                 snapshot["recruitment_state"]["base_x"] = rs.base_x
