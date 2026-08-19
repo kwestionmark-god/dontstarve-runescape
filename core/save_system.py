@@ -132,6 +132,8 @@ class SaveSystem:
                         spoilage_remaining=slot_data.get("spoilage_remaining"),
                         is_equipped=slot_data.get("is_equipped", False),
                     )
+            # Restore carried gold currency.
+            game.inventory.gold = save_data.get("inventory_gold", game.inventory.gold)
 
         # 4. Restore gear
         if "player" in save_data and save_data["player"].get("gear"):
@@ -420,8 +422,10 @@ class SaveSystem:
         # Inventory
         if game.inventory:
             snapshot["inventory"] = game.inventory.get_snapshot()
+            snapshot["inventory_gold"] = game.inventory.gold
         else:
             snapshot["inventory"] = [None] * 20
+            snapshot["inventory_gold"] = 0
 
         # Skills (guard null)
         if game.skill_manager:
