@@ -177,7 +177,11 @@ class SaveSystem:
             game.player.unlocked_gear = set(player_data.get("unlocked_gear", []))
             game.player.recruited_npcs = list(player_data.get("recruited_npcs", []))
 
-        # 6. Restore structures
+        # 6. Restore structures.
+        # Known limitation (v1): depleted world resource nodes are NOT
+        # persisted. The world is regenerated from seed on load and
+        # structures/fires are overlaid on top. See plan
+        # phase-bugfix-granular (3.1) for the v2 resource-overlay follow-up.
         if "structures" in save_data and game.building_system:
             from building.structure import Structure, StructureDef
             for struct_data in save_data["structures"]:
