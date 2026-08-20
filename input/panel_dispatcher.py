@@ -288,15 +288,6 @@ class PanelDispatcher:
         self._game._building_panel.visible = False
         self._game.set_state(GameState.PLAYING)
 
-    def _handle_inventory_use(self, item_id: str) -> None:
-        game = self._game
-        if game.player is None or game.player.action_system is None or game.inventory is None:
-            return
-        if game.inventory.get_item_quantity(item_id) > 0:
-            game.player.action_system.add_notification(
-                f"Used {item_id}.",
-                (100, 255, 100))
-
     def _handle_inventory_click(self, action: str, detail: str) -> None:
         game = self._game
         if action == "gear":

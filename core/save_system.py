@@ -195,7 +195,7 @@ class SaveSystem:
                             world_x=struct_data.get("world_x", 0.0),
                             world_y=struct_data.get("world_y", 0.0),
                             hp=struct_data.get("hp", struct_def.hp),
-                            max_hp=struct_data.get("hp", struct_def.hp),
+                            max_hp=struct_data.get("max_hp", struct_def.hp),
                             is_active=struct_data.get("is_active", True),
                         )
                         game.building_system.structures.append(structure)
@@ -482,6 +482,7 @@ class SaveSystem:
                         "world_x": s.world_x,
                         "world_y": s.world_y,
                         "hp": s.hp if hasattr(s, "hp") else 0,
+                        "max_hp": getattr(s, "max_hp", s.hp if hasattr(s, "hp") else 0),
                         "is_active": s.is_active,
                     })
         snapshot["structures"] = structures
