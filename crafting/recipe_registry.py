@@ -14,6 +14,7 @@ Sources:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
 
@@ -89,6 +90,10 @@ class RecipeRegistry:
                 loaded += 1
             return loaded
         except Exception:
+            logging.exception(
+                "Failed to load recipes from %s/%s; no recipes loaded from this source.",
+                str(directory), filename,
+            )
             return 0
 
     # ── Recipe Queries ─────────────────────────────────────────────
