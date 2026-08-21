@@ -45,3 +45,6 @@ assets/
 # Build corpus
 .build_corpus.py
 .corpus.json
+
+# Scratch reports for README generation (agent scratch space)
+tmp/
