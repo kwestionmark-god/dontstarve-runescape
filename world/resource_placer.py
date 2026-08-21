@@ -33,14 +33,15 @@ class ResourcePlacer:
     Fields:
         rng: Random instance seeded for deterministic placement.
         season_system: Optional SeasonSystem for seasonal gating.
-        _resource_cache: Lookup of resource_id → ResourceNode (module-level cached).
+        _resource_cache: Per-instance lookup of resource_id → ResourceNode
+            (reloaded fresh each place()).
         _available_resources: Precomputed set of resource IDs available this season.
     """
 
     rng: random.Random
     season_system: object | None = None
 
-    # Module-level cache for resource definitions (shared across placements)
+    # Per-instance resource lookup (reloaded fresh each place()).
     _resource_cache: dict[str, ResourceNode] = field(default_factory=dict, repr=False)
     _available_resources: set[str] = field(default_factory=set, repr=False)
 
@@ -225,24 +226,31 @@ class ResourcePlacer:
     @staticmethod
     def _load_resource_definitions() -> dict[str, ResourceNode]:
         """
-        Load all resource definitions from resources.json into a lookup cache.
+        Load resource definitions from resources.json into a lookup dict.
 
-        Cached at class level to avoid repeated JSON reads.
+        Always returns a fresh dict (no shared class-level state), so callers
+        get an independent, per-call result.
 
         Returns:
-            Dict mapping resource_id → ResourceNode.
+            Dict mapping resource_id → ResourceNode. Empty dict (with a
+            warning) if the data file cannot be read.
         """
-        if not hasattr(ResourcePlacer, "_cache"):
-            try:
-                from data import load_json_list
-                all_resources = load_json_list("resources.json", "resources")
-                ResourcePlacer._cache = {
-                    r["id"]: ResourceNode.from_dict(r, r.get("biome", "forest"))
-                    for r in all_resources
-                }
-            except Exception:
-                ResourcePlacer._cache = {}
-        return ResourcePlacer._cache
+        try:
+            from data import load_json_list
+            all_resources = load_json_list("resources.json", "resources")
+            return {
+                r["id"]: ResourceNode.from_dict(r, r.get("biome", "forest"))
+                for r in all_resources
+            }
+        except Exception:
+            import sys
+            import traceback
+            print(
+                "Warning: failed to load resources.json; no resources will be placed.",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            return {}
 
 
 

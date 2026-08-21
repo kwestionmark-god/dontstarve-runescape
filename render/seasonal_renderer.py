@@ -30,6 +30,24 @@ DEFAULT_PALETTES: dict[str, dict[str, tuple[int, int, int]]] = {
         "autumn": (200, 175, 120),
         "winter": (180, 165, 140),
     },
+    "mountains": {
+        "spring": (120, 130, 140),
+        "summer": (130, 140, 130),
+        "autumn": (140, 120, 110),
+        "winter": (215, 222, 230),
+    },
+    "coastal": {
+        "spring": (120, 172, 192),
+        "summer": (92, 160, 192),
+        "autumn": (112, 152, 162),
+        "winter": (150, 172, 182),
+    },
+    "swamp": {
+        "spring": (92, 122, 72),
+        "summer": (82, 112, 62),
+        "autumn": (92, 102, 62),
+        "winter": (72, 86, 82),
+    },
 }
 
 

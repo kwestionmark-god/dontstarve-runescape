@@ -211,6 +211,26 @@ class TestSeasonInfluence:
         ws.set_season_system(ss)
         assert ws.season_system is ss
 
+    def test_seasonal_default_weights_roll_non_clear(self):
+        """With no spawn_weights, defaults should roll non-clear weather."""
+        ss = SeasonSystem()
+        ss.current_season = "winter"
+        ws = WeatherSystem(season_system=ss)  # no spawn_weights -> defaults
+        ws.weather_timer = 0.0
+        for _ in range(12):
+            ws.tick(ws.change_interval)
+        assert any(w in ("rain", "snow", "storm", "fog") for w in ws.weather_history)
+
+    def test_spring_never_snows(self):
+        """Spring snow weight is 0 -> snow must never roll."""
+        ss = SeasonSystem()
+        ss.current_season = "spring"
+        ws = WeatherSystem(season_system=ss)
+        ws.weather_timer = 0.0
+        for _ in range(20):
+            ws.tick(ws.change_interval)
+        assert "snow" not in ws.weather_history
+
 
 class TestSaveLoad:
     """Test weather save/load persistence."""

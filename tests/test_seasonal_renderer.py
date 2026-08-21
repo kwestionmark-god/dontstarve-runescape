@@ -117,6 +117,13 @@ class TestSeasonalRendererLerp:
         color = sr.get_tile_color("plains", (0, 0, 0))
         assert color == (140, 170, 50)
 
+    def test_missing_biomes_get_seasonal_tint(self):
+        """mountains/coastal/swamp should receive seasonal tint (not base)."""
+        sr = SeasonalRenderer()
+        sr.sync(0.0, "winter", None)
+        for b in ("mountains", "coastal", "swamp"):
+            assert sr.get_tile_color(b, (128, 128, 128)) != (128, 128, 128)
+
 
 class TestSeasonalRendererFallback:
     """Test fallback behavior for unknown biomes."""

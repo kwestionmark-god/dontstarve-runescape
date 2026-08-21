@@ -12,6 +12,16 @@ from typing import Any
 DEFAULT_WEATHER_TYPES = ("clear", "rain", "snow", "storm", "fog")
 DEFAULT_WEATHER_CHANGE_INTERVAL = 120.0
 
+# Season → weights fallback (mirrors DEFAULT_WEATHER_TYPES order).
+# Used when a WeatherSystem is constructed without explicit spawn_weights so
+# that a missing/empty mapping does not hard-lock weather to "clear".
+DEFAULT_WEATHER_WEIGHTS: dict[str, tuple[float, ...]] = {
+    "spring": (40.0, 35.0, 0.0, 10.0, 15.0),
+    "summer": (50.0, 30.0, 0.0, 15.0, 5.0),
+    "autumn": (45.0, 30.0, 0.0, 15.0, 10.0),
+    "winter": (40.0, 15.0, 30.0, 10.0, 5.0),
+}
+
 
 class WeatherSystem:
     """Weather state machine with seasonal weights and forecast."""
@@ -52,7 +62,7 @@ class WeatherSystem:
             )[0]
         else:
             season = self.season_system.current_season
-            weights = self.spawn_weights.get(season)
+            weights = (self.spawn_weights or DEFAULT_WEATHER_WEIGHTS).get(season)
             if weights is not None and sum(weights) > 0:
                 self.current_weather = self._rng.choices(
                     self.weather_types, weights=weights, k=1
