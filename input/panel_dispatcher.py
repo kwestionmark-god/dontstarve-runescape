@@ -217,8 +217,6 @@ class PanelDispatcher:
         if game.player is not None and game.player.action_system is not None:
             color = (100, 255, 100) if result.success else (255, 150, 100)
             game.player.action_system.add_notification(result.message, color)
-        if result.xp_gained > 0 and game.skill_manager is not None:
-            game.skill_manager.add_xp("metallurgy", result.xp_gained)
 
     def _handle_gear_action(self, action: str) -> None:
         game = self._game

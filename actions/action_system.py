@@ -94,7 +94,9 @@ class ActionSystem:
             action.yield_quantity = resource.yield_quantity
             action.stamina_cost = 3.0
             action.required_tool = resource.requires_tool
-            action.success_rate_bonus = skill_manager.get_effective_stat(
+            # Positive success_rate lowers the completion threshold (see
+            # _complete_gathering), so spend stat points to harvest more easily.
+            action.success_rate_bonus = -skill_manager.get_effective_stat(
                 "woodcutting", "success_rate"
             ) * 1.0
             action.extra_resources_bonus = skill_manager.get_effective_stat(
@@ -109,7 +111,7 @@ class ActionSystem:
             action.yield_quantity = resource.yield_quantity
             action.stamina_cost = 3.0
             action.required_tool = resource.requires_tool
-            action.success_rate_bonus = skill_manager.get_effective_stat(
+            action.success_rate_bonus = -skill_manager.get_effective_stat(
                 "mining", "success_rate"
             ) * 1.0
             action.extra_resources_bonus = skill_manager.get_effective_stat(

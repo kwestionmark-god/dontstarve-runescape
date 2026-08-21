@@ -105,6 +105,11 @@ class SaveSystem:
                     if "sub_stats" in skill_data:
                         skill.sub_stats = dict(skill_data["sub_stats"])
 
+        # Wildcard points live on the SkillManager, not per-skill. Older saves
+        # omit the key, so default to 0.
+        if game.skill_manager is not None:
+            game.skill_manager.wildcard_points = save_data.get("wildcard_points", 0)
+
         # 2. Restore survival
         if "survival" in save_data and save_data["survival"] and game.survival:
             surv = save_data["survival"]
@@ -458,6 +463,8 @@ class SaveSystem:
                     "stat_points": skill.stat_points,
                     "sub_stats": dict(skill.sub_stats),
                 }
+            # Wildcard points live on the SkillManager, not per-skill
+            snapshot["wildcard_points"] = game.skill_manager.wildcard_points
         else:
             snapshot["skills"] = {}
 

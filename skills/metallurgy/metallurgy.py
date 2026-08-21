@@ -107,8 +107,8 @@ class MetallurgySkill:
                         output_item=recipe.output_item,
                         output_quantity=recipe.output_quantity,
                         xp_reward=recipe.xp_reward,
-                        base_fuel_cost=1,
-                        requires_alloy_mastery=0,
+                        base_fuel_cost=recipe.base_fuel_cost,
+                        requires_alloy_mastery=recipe.requires_alloy_mastery,
                     )
             return recipes
         return _SMELT_RECIPES

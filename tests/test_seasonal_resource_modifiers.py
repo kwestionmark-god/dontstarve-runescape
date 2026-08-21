@@ -105,7 +105,7 @@ class TestActionSystemSeasonalYield(unittest.TestCase):
         active.yield_item = "herb"
         active.yield_quantity = 2  # Base yield
         active.xp_reward = 15.0
-        active.success_rate_bonus = -60  # Negative = easier (lowers threshold to 50-60=-10)
+        active.success_rate_bonus = -60  # Negative = easier (raises threshold to 50-(-60)=110)
         active.extra_resources_bonus = 0
 
         # Mock resource (not depleted)
