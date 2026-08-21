@@ -295,10 +295,14 @@ class Monster:
         elif self.special == "aerial":
             # Aerial: higher movement speed (+30%), reduced ground defence (-1)
             self.speed = getattr(self, "_base_speed", self.speed) * 1.3
-            effective_defence = max(0, self.defence - 1)
+            if not hasattr(self, "_base_defence"):
+                self._base_defence = self.defence
+            self.defence = max(0, self._base_defence - 1)
 
         elif self.special == "ranged":
             # Ranged: effective attack range +50px
+            if not hasattr(self, "_base_attack_range"):
+                self._base_attack_range = self._attack_range
             self._attack_range = 95.0  # Base 40 + 55 extra
 
     def reset_special(self) -> None:
@@ -317,4 +321,9 @@ class Monster:
         elif self.special == "aerial":
             if hasattr(self, "_base_speed"):
                 self.speed = self._base_speed
+            if hasattr(self, "_base_defence"):
+                self.defence = self._base_defence
+        elif self.special == "ranged":
+            if hasattr(self, "_base_attack_range"):
+                self._attack_range = self._base_attack_range
 

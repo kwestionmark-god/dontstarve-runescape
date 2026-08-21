@@ -85,6 +85,78 @@ class TestCombatSystem(unittest.TestCase):
         self.assertGreaterEqual(damage, 1)
         self.assertLessEqual(damage, 15)  # Should be reasonable
 
+    def test_calculate_damage_applies_gear_attack_bonus(self):
+        from combat.combat_system import CombatSystem
+        from combat.gear import PlayerGear, GearItem
+        from combat.monster import Monster
+        from skills.skill_manager import SkillManager
+
+        sm = SkillManager()
+        # SkillManager starts the combat skill with only 3 stat points, so
+        # allocate_stat("combat", "attack", 20) silently returns False. Force
+        # the allocation directly so the test is discriminating.
+        sm.skills["combat"].sub_stats["attack"] = 20
+
+        monster = Monster(monster_id="goblin", name="Goblin", biome="forest",
+                          world_x=0.0, world_y=0.0, hp=20, attack=4,
+                          defence=0, speed=70.0)
+
+        def make_cs(weapon: GearItem) -> CombatSystem:
+            # calculate_damage reads self.player (skill + gear), so each
+            # weapon needs its own engine.
+            gear = PlayerGear()
+            gear.equip(weapon)
+            player = type("Player", (), {
+                "world_x": 0.0, "world_y": 0.0,
+                "skill_manager": sm, "gear": gear,
+            })()
+            return CombatSystem(player, survival=None)
+
+        # iron_sword: damage=5, attack_bonus=1.
+        # base_attack = 20 (+1) = 21, mult = 1.105, raw = 21 * 5 * 1.105 = 116.025.
+        # => 116 (110 before the fix).
+        iron_cs = make_cs(GearItem.load_all()["iron_sword"])
+        self.assertEqual(iron_cs.calculate_damage(iron_cs.player, monster), 116)
+
+        # Isolation: a bonus-0 weapon of the SAME damage (5) yields exactly the
+        # no-bonus value 110, so the +1 delta is attributable only to the bonus.
+        bonus0 = GearItem.from_dict({
+            "item_id": "dmg5_bonus0", "name": "Dmg5 Bonus0",
+            "gear_type": "weapon", "damage": 5,
+            "attack_bonus": 0, "defence_bonus": 0, "speed_bonus": 0.0,
+        })
+        bonus0_cs = make_cs(bonus0)
+        self.assertEqual(bonus0_cs.calculate_damage(bonus0_cs.player, monster), 110)
+
+        # Bonus-0 real weapon is unaffected: wooden_sword (dmg 2, bonus 0) =>
+        # 20 * 2 * 1.10 = 44, identical before and after the fix.
+        wooden_cs = make_cs(GearItem.load_all()["wooden_sword"])
+        self.assertEqual(wooden_cs.calculate_damage(wooden_cs.player, monster), 44)
+
+    def test_ranged_special_reset_restores_attack_range(self):
+        from combat.monster import Monster
+
+        m = Monster(monster_id="swamp_drake", name="Swamp Drake", biome="swamp",
+                    world_x=0.0, world_y=0.0, special="ranged")
+        self.assertEqual(m._attack_range, 40.0)
+        m._apply_special_behavior(None, 0.0)
+        self.assertEqual(m._attack_range, 95.0)     # applied
+        m.reset_special()
+        self.assertEqual(m._attack_range, 40.0)     # restored (stuck at 95.0 before fix)
+
+    def test_aerial_special_defence_penalty_is_applied_and_reset(self):
+        from combat.monster import Monster
+
+        m = Monster(monster_id="eagle", name="Eagle", biome="mountains",
+                    world_x=0.0, world_y=0.0, special="aerial", defence=2, speed=120.0)
+        self.assertEqual(m.defence, 2)
+        self.assertEqual(m.speed, 120.0)
+        m._apply_special_behavior(None, 0.0)
+        self.assertEqual(m.speed, 120.0 * 1.3)   # existing speed behavior preserved
+        self.assertEqual(m.defence, 1)           # -1 defence penalty applied (stays 2 before fix)
+        m.reset_special()
+        self.assertEqual(m.defence, 2)           # penalty lifted after disengage (new after fix)
+
     def test_attack_cooldown(self):
         from combat.combat_system import CombatSystem
 

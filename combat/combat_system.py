@@ -157,6 +157,8 @@ class CombatSystem:
         base_attack = self.player.skill_manager.get_effective_stat(
             "combat", "attack"
         )
+        if self.player.gear:
+            base_attack += self.player.gear.get_attack_bonus()
         weapon_damage = self._get_weapon_damage()
         attack_mult = 1.0 + base_attack * 0.005  # +0.5% per point
 
