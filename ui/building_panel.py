@@ -154,8 +154,9 @@ class BuildingPanel:
         mat = self._hint_font.render(mat_text, True, (160, 160, 180))
         screen.blit(mat, (x + 5, y + 18))
 
-        # HP and type
-        hp_text = f"HP: {struct_def.hp} | {struct_def.structure_type}"
+        # HP and type (display the placed HP, i.e. with Construction bonuses)
+        placed_hp = building_system.construction.calculate_structure_hp(struct_def)
+        hp_text = f"HP: {placed_hp} | {struct_def.structure_type}"
         hp = self._hint_font.render(hp_text, True, (140, 140, 160))
         screen.blit(hp, (x + 5, y + 32))
 

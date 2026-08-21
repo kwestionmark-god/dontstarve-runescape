@@ -308,7 +308,6 @@ class BuildingSystem:
             The destroyed structure if it died, or None if no structure was
             within range / attacked structure survives.
         """
-        import math
         if not self.structures:
             return None
 
@@ -378,9 +377,6 @@ class BuildingSystem:
         """
         if combat_system is None:
             return
-
-        import random
-        import math
 
         # Offensive structure firing
         for structure in self.structures:
