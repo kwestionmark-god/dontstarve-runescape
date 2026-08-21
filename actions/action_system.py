@@ -71,6 +71,12 @@ class ActionSystem:
         if self.active.state == ActionState.RUNNING:
             return "Already performing an action."
 
+        # Cooldown guard: block re-gathering until the failure penalty elapses.
+        # (update() decrements cooldown only while state != RUNNING; this makes the
+        #  2s failure / 1s depletion-or-exhaustion penalty actually gate input.)
+        if self.active.cooldown > 0:
+            return "You must wait a moment before acting again."
+
         # Required-tool check (for gathering)
         if resource is not None and resource.requires_tool:
             tool = self._find_equipped_tool(inventory, resource.requires_tool)
@@ -130,6 +136,7 @@ class ActionSystem:
         messages: List[str],
         inventory: "Inventory",
         skill_manager: "SkillManager",
+        food_registry: "FoodRegistry | None" = None,
     ) -> None:
         """
         Process action-complete messages: add items, grant XP, show notifications.
@@ -159,6 +166,13 @@ class ActionSystem:
                         self.add_notification(
                             f"+{quantity} {item_id}", (100, 255, 100),
                         )
+
+                        # Perishable food harvested via gathering now spoils
+                        # (previously only crafted/cooked food did).
+                        if food_registry is not None:
+                            food = food_registry.get(item_id)
+                            if food is not None and food.spoilage_rate > 0:
+                                inventory.set_spoilage(item_id, food.spoilage_rate)
 
                     # Determine skill from active resource
                     skill_id = self._action_type_to_skill_id()
