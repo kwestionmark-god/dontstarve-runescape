@@ -243,7 +243,7 @@ class Game:
     def render(self, screen: pygame.Surface) -> None:
         if self.state == GameState.TITLE:
             render_title_screen(self, screen)
-        elif self.state in (GameState.LOADING, GameState.LOADING_SAVE):
+        elif self.state in (GameState.LOADING, GameState.LOADING_SAVE, GameState.ERROR):
             render_loading_screen(self, screen)
         else:
             self.render_game(screen)
@@ -321,7 +321,7 @@ class Game:
     def handle_event(self, event) -> None:
         if self.state == GameState.TITLE:
             handle_title_event(self, event)
-        elif self.state in (GameState.LOADING, GameState.LOADING_SAVE):
+        elif self.state in (GameState.LOADING, GameState.LOADING_SAVE, GameState.ERROR):
             handle_loading_event(self, event)
         else:
             if self._input_router is not None:
