@@ -173,7 +173,7 @@ class RecruitPanel:
             with open(filepath, "r") as f:
                 data = json.load(f)
             for faction in data.get("factions", []):
-                fid = faction.get("id", "")
+                fid = faction.get("faction_id", "")
                 name = faction.get("name", fid)
                 if fid:
                     self._faction_names[fid] = name
