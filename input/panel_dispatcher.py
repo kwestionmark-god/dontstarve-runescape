@@ -188,7 +188,7 @@ class PanelDispatcher:
         player_x = game.player.world_x if game.player else 0.0
         player_y = game.player.world_y if game.player else 0.0
         if recipe.requires_campfire:
-            has_campfire = game._check_nearby_campfire()
+            has_campfire = game._fire_interaction.check_nearby_campfire()
             result = game.crafting.cook(item_id, game.inventory, game.skill_manager,
                 has_campfire, structures=structures, player_pos=(player_x, player_y))
         else:
