@@ -123,7 +123,7 @@ class Camera:
                              min(self.pitch, math.radians(CAMERA_PITCH_MAX)))
 
         # ── Zoom (delta from mouse wheel) ─────────────────────────
-        zoom_delta = 2.0
+        zoom_delta = 0.0
         if input_state.zoom_in:
             zoom_delta += 1.0
         if input_state.zoom_out:

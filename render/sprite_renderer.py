@@ -806,7 +806,12 @@ class SpriteRenderer:
         - recruit: "[E] Recruit {name}"
         - default: "[E] Talk to {name}"
         """
-        screen_x, screen_y = camera.world_to_screen(npc.world_x, npc.world_y)
+        npc_x = int(npc.world_x // self.TILE_SIZE)
+        npc_y = int(npc.world_y // self.TILE_SIZE)
+        elevation = 0.0
+        if self.tile_map is not None:
+            elevation = self.tile_map.get_tile_center_height(npc_x, npc_y) * Z_SCALE
+        screen_x, screen_y = camera.world_to_screen(npc.world_x, npc.world_y, elevation=elevation)
 
         npc_type = getattr(npc, "npc_type", "unknown")
         prompt_text = "[E] Talk to " + npc.name  # default
