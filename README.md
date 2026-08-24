@@ -503,79 +503,69 @@ structures, world). Trees and depletable resources support
 
 ## Known bugs & issues
 
-The following are curated from the subsystem documentation pass. Severity is the
-documentation author's assessment; "confirmed" means the code path was traced.
-Each cites `file:line`. This is a **curated subset** (the full ledger with
-every finding lives in the research notes).
+The following are curated from the subsystem documentation pass. Severity is
+the documentation author's assessment; "confirmed" means the code path was
+traced. Each cites `file:line`. Already-fixed items are retained for history.
+A fuller, actively-maintained ledger of live and resolved findings lives in the
+research notes (`tmp/LIVE-ISSUES.md` and `tmp/exploration-log.md`).
 
-### CRITICAL / HIGH — functional
+### Still live
 
-- 🟠 **[actions] Woodcutting/Mining `success_rate` is inverted.**
-  `actions/action_system.py:279`: `success_threshold = 50.0 - success_rate_bonus`.
-  Investing stat points makes harvesting **harder**, contradicting the
-  documented behavior and the opposite sign cooking uses.
-- 🔴 **[input] Cooking a campfire recipe crashes the game.**
-  `input/panel_dispatcher.py:191` calls `game._check_nearby_campfire()`, which
-  does not exist — the real method is `FireInteraction.check_nearby_campfire`
-  (`interactions/fire.py:78`). An uncaught `AttributeError` propagates through
-  `game_loop.handle_event` (no try/except) → crash.
-- 🟠 **[input] Using inventory items is broken (shadowed method).**
-  `input/panel_dispatcher.py` defines `_handle_inventory_use` twice: lines
-  70–89 (real eat/equip) and 291–305 (a generic "Used" notification). The later
-  definition wins, so left-click/Enter on an item never eats or equips — it
-  only prints "Used {item_id}". Food/equip still work via the hotbar path.
+- 🟡 **[crafting] Foraging recipes grant woodcutting XP.** `crafting_system.py:330`
+  defaults to `"woodcutting"` when a recipe's `skill_affects_yield` is `None`; the
+  general-crafting recipes in `data/recipes.json` are all `None`, so foraging
+  (e.g. grass_rope, paper) awards woodcutting XP.
+- 🟡 **[seasons] Weather multipliers are rolled but never applied.** `weather_system.py`
+  `get_effects()` (movement/visibility/outdoor-crafting/spawn multipliers) is only
+  consumed by the test suite. Weather cycles and drives particles + the HUD icon,
+  but no gameplay system applies the multipliers.
+- 🟡 **[seasons] Seasonal resources can be permanently unobtainable.** `resource_placer.py`
+  gates seasonal resources at generation time and the world is generated once at
+  spring (`season_system.py:59`), so resources whose `seasons_available` excludes
+  spring (`mithril_vein`, `star_metal`, `dragonbone`, …) never spawn.
+- 🟡 **[combat] Loot is silently dropped when the inventory is full.** `combat_system.py`
+  ignores `Inventory.add_item`'s return on kill (`_monster_died`), so dropped items
+  vanish with no message — same class for crafted output (`crafting_system.py:417`).
+- 🟡 **[save] Merchant stock is restored by array index, ignoring `trade_item_id`.**
+  `core/save_system.py` maps saved slots onto a merchant's inventory by position
+  (:320), so a changed item order sends stock to the wrong slots.
+- 🟡 **[render] HUD is drawn before gameplay sprites.** `core/game.py` renders the HUD
+  after the player but before monsters/NPCs/structures/particles, so it is painted
+  over; it should render last.
+- 🟡 **[seasons] Seasonal renderer covers only 3 of 6 biomes** — mountains/coastal/swamp
+  never shift by season (`render/seasonal_renderer.py:14`).
+- 🟡 **[cooking] Cooking skill math is never applied.** `skills/cooking/cooking.py` methods
+  have no callers (see [Known limitations](#known-limitations)).
+- 🟡 **`reset_special` doesn't restore the `ranged` attack-range mutation** — permanent
+  ~95px attack-range drift on ranged monsters (`monster.py:303`).
+
+### Resolved (historical)
+
 - 🟢 **[building] Building placement is not wired into gameplay.** — **RESOLVED**
   (Phase 5, 2026-08-23). Selecting a structure enters `build_mode` (a PLAYING
   sub-state, not a new `GameState`); left-click places via
   `building_system.place_structure` (validate → consume materials → grant
   crafting XP → place), right-click/ESC cancels, invalid placement reports the
-  reason and stays in mode, and hotbar clicks still use items. Construction XP
-  is now granted. `tests/test_b4_building_placement.py` (11).
+  reason and stays in mode. Construction XP is now granted.
+  `tests/test_b4_building_placement.py` (11).
 - 🟢 **[combat] Player melee attack is never invoked during gameplay.** — **RESOLVED**
   (Phase 4, 2026-08-23). `J` calls `combat_system.player_attack()` while PLAYING;
   `auto_lock_target` locks the nearest alive monster when none is targeted;
   monster counter-attacks are enabled (and the death-path `None` crash was
   fixed). The skill panel was rebound from `J` to `TAB` (hint updated).
   `tests/test_b5_player_attack.py` (15).
-- 🟠 **[npc] Merchant stock is never populated — buy economy is bricked.**
-  `generate_merchant_inventory` (`trade_system.py:647`) is never called and
-  `MerchantNPC.inventory` defaults to `[]` (`npc_types.py:58,97`). Each buy can
-  purchase only 1 item and stock never decrements.
-- 🟠 **[data] Renewable "water" resource is unharvestable (inverted `is_depleted`).**
-  `data/resources.json:107` sets `depletion_count = -1` (infinite), but
-  `is_depleted` returns `current_depletions >= depletion_count` → `0 >= -1` →
-  `True`, so water is "depleted" from spawn. Contradicts the documented
-  infinite-resource convention.
-- 🟠 **[combat] Weapon `attack_bonus` is shown but never applied.**
-  `calculate_damage` (`combat_system.py:156`) never calls `gear.get_attack_bonus()`; every gear item's `attack_bonus` is displayed in the gear panel but has no effect.
-
-### MEDIUM
-
-- 🟡 **Smelting grants XP twice** — `metallurgy.py:216` and `panel_dispatcher.py:220` both `add_xp("metallurgy")` for the same reward.
-- 🟡 **Cooked food never spoils; gathered perishables never spoil.** Spoilage is set only in the crafting/cook path (`panel_dispatcher.py:200`); gathered raw food is added via `action_system.py:154` with no `set_spoilage`.
-- 🟡 **Quest craft-tracking in `craft()` is dead code** — `crafting_system.py:331` checks `hasattr(self, "game")`, which is never set.
 - 🟢 **`data/recipes.json` general-crafting table is missing.** — **RESOLVED**
   (Phase 1, 2026-08-23). `data/recipes.json` created (4 recipes: sticks,
   charcoal, grass_rope, paper), loaded via `recipe_registry.py:62` into the
-  unified registry; written with future unified-registry restructuring in mind.
-  `tests/test_b12_general_recipes.py`.
-- 🟡 **Cooking skill math is never applied** — `skills/cooking/cooking.py` methods have no callers.
-- 🟡 **Weather is hard-locked to "clear"** — `bootstrap.py:567` builds `WeatherSystem()` with no `spawn_weights`, so every roll falls back to `"clear"` and weather effects/particles never engage.
-- 🟡 **`NPCFlows` created twice** — `Game.__init__` then replaced by `Bootstrap._build_npc_flows`.
-- 🟡 **`core/save_system.py:195` structure `max_hp` reads the `"hp"` key** — saved `hp` and `max_hp` are always equal (copy-paste artifact).
-- 🟡 **Seasonal renderer covers only 3 of 6 biomes** — mountains/coastal/swamp never shift by season (`render/seasonal_renderer.py:14`).
-
-### LOW / cosmetic
-
-- 🟡 **`reset_special` doesn't restore the `ranged` attack-range mutation** — permanent 95px attack-range drift on ranged monsters (`monster.py:303`).
-- 🔵 **Camera zoom is broken** — continuously zooms in and cannot zoom out (`camera/camera.py:128`).
-- 🔵 **`wildcard_points` never saved/restored** — resets to 0 on load (`save_system.py:455`).
-- 🔵 **`NPCSystem._is_near_monster` is a hard stub** — spawns can occur on top of monsters (`npc_system.py:498`).
-- 🔵 **`data/recipes.json` docstring references a non-existent file.** — **RESOLVED**
+  unified registry. `tests/test_b12_general_recipes.py`.
+- 🟢 **`data/recipes.json` docstring references a non-existent file.** — **RESOLVED**
   (Phase 1, 2026-08-23); the file now exists and `recipe_registry.py` loads it.
+
+### Low priority
+
 - 🔵 **Stale `.pyc` files** in `skills/__pycache__/` for source that no longer exists.
-- 🔵 **`Game.get_snapshot()` is dead/unused** — returns 4 fields and is never called (`game.py:329`).
-- 🔵 **Panel shortcut hints contradict wired keys** (e.g. inventory hint says "C to close" but C opens crafting).
+- 🔵 **Panel shortcut hints contradict wired keys** (e.g. inventory hint says "C to close"
+  but C opens crafting).
 
 ---
 
