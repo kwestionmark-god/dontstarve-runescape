@@ -60,6 +60,44 @@ class Inventory:
 
     # ── Item Operations ────────────────────────────────────────────
 
+    def can_add(self, item_id: str, quantity: int) -> bool:
+        """
+        Return True if `quantity` copies of `item_id` would fit, stacking into
+        existing slots first then using empty slots. Does not mutate state.
+
+        Args:
+            item_id: The item to check.
+            quantity: Amount that would be added.
+
+        Returns:
+            True if every copy would fit, False if the inventory is full.
+        """
+        if quantity <= 0:
+            return True
+
+        remaining = quantity
+        max_stack = self._get_max_stack(item_id)
+        empty_slots = 0
+        for slot in self.slots:
+            if slot is None:
+                empty_slots += 1
+                continue
+            if slot.item_id is None and slot.quantity == 0:
+                # Slot freed by remove_item — add_item reuses these too.
+                empty_slots += 1
+                continue
+            if slot.item_id == item_id:
+                space = max_stack - slot.quantity
+                if space > 0:
+                    remaining -= min(remaining, space)
+                    if remaining <= 0:
+                        return True
+        if remaining > 0:
+            # add_item dumps the whole remainder into a single empty slot, so a
+            # lone empty slot is enough.
+            return empty_slots > 0
+        return True
+
     def add_item(self, item_id: str, quantity: int) -> bool:
         """
         Add items to inventory. Stacks into existing slots first,
@@ -89,7 +127,9 @@ class Inventory:
                     if remaining <= 0:
                         return True
 
-        # Then: use empty slots
+        # Then: use empty slots. A slot may already exist but be empty
+        # (item_id None / quantity 0, e.g. after remove_item) — reuse it rather
+        # than spinning forever, since _find_empty_slot treats such slots as free.
         while remaining > 0:
             slot_idx = self._find_empty_slot()
             if slot_idx is None:
@@ -99,7 +139,11 @@ class Inventory:
             if slot is None:
                 slot = InventorySlot(item_id=item_id, quantity=remaining)
                 self.slots[slot_idx] = slot
-                remaining = 0
+            else:
+                slot.item_id = item_id
+                slot.quantity = remaining
+            # add_item dumps the whole remainder into a single slot.
+            remaining = 0
 
         return True
 

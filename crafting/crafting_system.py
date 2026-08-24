@@ -22,6 +22,19 @@ from typing import Dict
 from inventory.recipe import Recipe
 
 
+def _chain_to_skill(processing_chain: str) -> str:
+    """
+    Map a processing chain to the registered skill that earns XP for its
+    recipes. Used as the XP-routing default when a recipe does not set
+    ``skill_affects_yield``; prevents every generic recipe from awarding
+    woodcutting XP.
+    """
+    chain = (processing_chain or "").lower()
+    if chain.startswith("wood"):
+        return "woodcutting"
+    return "crafting"
+
+
 class CraftResult:
     """Result of a craft attempt."""
 
@@ -316,6 +329,11 @@ class CraftingSystem:
         if not self.validate_recipe(recipe_id, inventory):
             return CraftResult(success=False, message="Missing materials.")
 
+        # Check capacity before consuming so a full inventory reports
+        # "inventory full" instead of silently losing the materials.
+        if not inventory.can_add(recipe.output_item, recipe.output_quantity):
+            return CraftResult(success=False, message="Your inventory is full.")
+
         # Consume materials (backed up for rollback on cooking failure)
         backed_up: Dict[str, int] = {}
         for item_id, quantity in recipe.input_items:
@@ -325,10 +343,12 @@ class CraftingSystem:
         # Produce output
         inventory.add_item(recipe.output_item, recipe.output_quantity)
 
-        # Grant XP to the relevant skill based on recipe
+        # Grant XP to the relevant skill based on recipe. Fall back to the
+        # skill implied by the processing chain when the recipe does not set
+        # skill_affects_yield, so generic recipes stop awarding woodcutting XP.
         xp_gained = recipe.xp_reward
         if skill_manager is not None:
-            skill_id = recipe.skill_affects_yield or "woodcutting"
+            skill_id = recipe.skill_affects_yield or _chain_to_skill(recipe.processing_chain)
             skill_manager.add_xp(skill_id, xp_gained)
 
         # Mark completed
@@ -401,6 +421,11 @@ class CraftingSystem:
         # Check materials
         if not self.validate_recipe(recipe_id, inventory):
             return CraftResult(success=False, message="Missing materials.")
+
+        # Refuse when there is no room for the result, so a full inventory
+        # reports "inventory full" rather than silently dropping the cooked item.
+        if not inventory.can_add(recipe.output_item, recipe.output_quantity):
+            return CraftResult(success=False, message="Your inventory is full.")
 
         # Save inventory state for rollback on failure
         saved_slots = list(inventory.slots)

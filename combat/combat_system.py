@@ -553,10 +553,19 @@ class CombatSystem:
         self.player.skill_manager.add_xp("combat", xp_reward)
 
         # Drop loot
+        loot_lost = False
         for drop in monster.loot_table:
             import random
             if random.random() < drop["chance"]:
-                self.player.inventory.add_item(drop["item_id"], 1)
+                if not self.player.inventory.add_item(drop["item_id"], 1):
+                    loot_lost = True
+
+        if loot_lost:
+            action = getattr(self.player, "action_system", None)
+            if action is not None:
+                action.add_notification(
+                    "Inventory full — some loot was lost.", (255, 120, 120)
+                )
 
         # Remove from active monsters
         if monster in self.monsters:
