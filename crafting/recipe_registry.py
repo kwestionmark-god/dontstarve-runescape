@@ -18,7 +18,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
 
-from inventory.recipe import Recipe
+from inventory.recipe import Recipe, validate_recipe_dict
 
 if TYPE_CHECKING:
     pass
@@ -83,6 +83,13 @@ class RecipeRegistry:
             data = json.loads(path.read_text())
             loaded = 0
             for entry in data.get("recipes", []):
+                errors = validate_recipe_dict(entry)
+                if errors:
+                    logging.warning(
+                        "Skipping invalid recipe in %s/%s: %s",
+                        str(directory), filename, "; ".join(errors),
+                    )
+                    continue
                 recipe = Recipe.from_dict(entry)
                 self.recipes[recipe.recipe_id] = recipe
                 if recipe.quest_unlock is not None:

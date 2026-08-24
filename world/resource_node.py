@@ -43,7 +43,14 @@ class ResourceNode:
 
     @property
     def is_depleted(self) -> bool:
-        """True if the resource has been harvested to its limit."""
+        """True if the resource has been harvested to its limit.
+
+        A ``depletion_count`` of 0 or less marks the resource as unending
+        (e.g. ``water_source``): it can never be depleted. This honors the
+        ``-1 = infinite`` convention that world data uses for water.
+        """
+        if self.depletion_count <= 0:
+            return False
         return self.current_depletions >= self.depletion_count
 
     @property

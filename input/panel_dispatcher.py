@@ -11,8 +11,8 @@ class PanelDispatcher:
 
     def __init__(self, game: "Game") -> None:
         self._game = game
-        from interactions.npc_flows import NPCFlows
-        self._npc_flows = NPCFlows(game)
+        # B15: reuse the shared, single-owned Game._npc_flows (deduped).
+        self._npc_flows = getattr(game, "_npc_flows", None)
 
     def dispatch(self, state: "GameState", action: tuple | str) -> None:
         if isinstance(action, tuple) and action[0] == "close":
@@ -190,10 +190,12 @@ class PanelDispatcher:
         if recipe.requires_campfire:
             has_campfire = game._fire_interaction.check_nearby_campfire()
             result = game.crafting.cook(item_id, game.inventory, game.skill_manager,
-                has_campfire, structures=structures, player_pos=(player_x, player_y))
+                has_campfire, structures=structures, player_pos=(player_x, player_y),
+                quest_system=getattr(game, "quest_system", None))
         else:
             result = game.crafting.craft(item_id, game.inventory, game.skill_manager,
-                structures=structures, player_pos=(player_x, player_y))
+                structures=structures, player_pos=(player_x, player_y),
+                quest_system=getattr(game, "quest_system", None))
         if not result.success:
             return
         if (game.food_registry is not None and recipe.is_food and
@@ -258,8 +260,16 @@ class PanelDispatcher:
 
     def _handle_building_select(self, structure_id: str) -> None:
         game = self._game
-        if game._building_panel is not None:
-            game._building_panel.selected_structure_id = structure_id
+        panel = getattr(game, "_building_panel", None)
+        if panel is not None:
+            panel.selected_structure_id = structure_id
+            panel.visible = False
+        # Selecting a structure closes the palette and enters placement mode —
+        # a PLAYING sub-state (B4, Phase 5): a ghost follows the cursor and
+        # left-click places, right-click / ESC cancels.
+        game.set_state(GameState.PLAYING)
+        game.build_mode = True
+        game._building_pending_id = structure_id
         self._notify_building_select(game, structure_id)
 
     def _handle_building_place(self, structure_id: str) -> None:

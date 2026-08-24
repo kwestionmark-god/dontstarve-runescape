@@ -57,7 +57,6 @@ class Bootstrap:
         self._build_quest_panel()
         self._build_recruit_panel()
         self._build_diplomacy_panel()
-        self._build_npc_flows()
         self._build_combat_system()
         # Route starvation death through the shared soft-death handler once
         # combat exists. Combat-triggered death still goes via take_damage's
@@ -329,11 +328,6 @@ class Bootstrap:
         self.game._diplomacy_panel = DiplomacyPanel()
         self.game._diplomacy_panel.set_player(self.game.player)
         self.game._diplomacy_panel.visible = False
-
-    def _build_npc_flows(self) -> None:
-        """Create NPC flows and wire to game."""
-        from interactions.npc_flows import NPCFlows
-        self.game._npc_flows = NPCFlows(self.game)
 
     def _build_combat_system(self) -> None:
         """Initialize the combat system."""

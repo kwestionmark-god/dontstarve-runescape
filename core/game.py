@@ -11,6 +11,7 @@ from config import (
     CAMPFIRE_SEARCH_RADIUS_TILES,
     INITIAL_MONSTER_SPAWN_RADIUS_TILES,
     AUTOSAVE_INTERVAL,
+    TILE_SIZE,
 )
 
 from core.state import GameState
@@ -55,6 +56,7 @@ class Game:
         "camera", "hud", "save_system", "input_manager",
         "_inventory_panel", "_skill_panel", "_crafting_panel",
         "_gear_panel", "_building_panel", "_combat_panel",
+        "build_mode", "_building_pending_id",
         "_trade_panel", "_quest_panel", "_recruit_panel", "_diplomacy_panel",
         "quest_system", "faction_system",
         "combat_system", "firemaking", "metallurgy",
@@ -66,7 +68,7 @@ class Game:
         "particle_system", "seasonal_renderer",
         "_tile_renderer", "_sprite_renderer",
         "_title_selection_index", "_save_slots", "_flavor_text",
-        "_input_router", "_npc_flows", "_bootstrap",
+        "_build_cursor", "_input_router", "_npc_flows", "_bootstrap",
     )
 
     def __init__(self, seed: int = 42) -> None:
@@ -94,6 +96,11 @@ class Game:
         self._inventory_panel = None
         self._skill_panel = None
         self._crafting_panel = None
+        # B4 (Phase 5): build_mode is a PLAYING sub-state — selecting a
+        # structure closes the panel and enters placement mode; left-click
+        # places, right-click / ESC cancels.
+        self.build_mode = False
+        self._building_pending_id: "str | None" = None
         self.combat_system = None
         self.firemaking = None
         self.metallurgy = None
@@ -122,10 +129,11 @@ class Game:
         self.particle_system = None
         self.seasonal_renderer = None
         self._flavor_text = ""
+        self._build_cursor = None
         from core.save_system import SaveSystem
         self.save_system = SaveSystem()
-        self._panel_dispatcher = PanelDispatcher(self)
         self._npc_flows = NPCFlows(self)
+        self._panel_dispatcher = PanelDispatcher(self)
         from interactions.fire import FireInteraction
         from interactions.interact import InteractSystem
         self._fire_interaction = FireInteraction(self)
@@ -283,6 +291,10 @@ class Game:
             for structure in self.building_system.structures:
                 if structure.is_active:
                     self._sprite_renderer.render_structure(screen, structure, self.camera)
+        # Build-mode ghost preview (a PLAYING sub-state): translucent marker
+        # under the cursor showing where the next structure will land.
+        if self.build_mode and self.camera is not None and self.world is not None and self._build_cursor is not None:
+            self._render_build_ghost(screen)
         if self._sprite_renderer is not None and self.firemaking is not None and self.camera is not None:
             for fire in self.firemaking.get_active_fires():
                 self._sprite_renderer.render_fire(screen, fire, self.camera)
@@ -318,6 +330,25 @@ class Game:
         elif self.state == GameState.DIPLOMACY_PANEL and self._diplomacy_panel is not None:
             self._diplomacy_panel.render(screen)
 
+    def _render_build_ghost(self, screen: pygame.Surface) -> None:
+        """Draw a translucent marker at the tile under the build cursor."""
+        if self._build_cursor is None or self.camera is None or self.world is None:
+            return
+        mx, my = self._build_cursor
+        tx = int(mx // TILE_SIZE)
+        ty = int(my // TILE_SIZE)
+        if self.world.get_tile(tx, ty) is None:
+            return
+        wx = tx * TILE_SIZE + TILE_SIZE // 2
+        wy = ty * TILE_SIZE + TILE_SIZE // 2
+        sx, sy = self.camera.world_to_screen(wx, wy)
+        if sx < -TILE_SIZE or sy < -TILE_SIZE or sx > WINDOW_WIDTH or sy > WINDOW_HEIGHT:
+            return
+        ghost = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
+        ghost.fill((120, 220, 120, 90))
+        pygame.draw.rect(ghost, (180, 255, 180), (0, 0, TILE_SIZE, TILE_SIZE), 2)
+        screen.blit(ghost, (int(sx), int(sy)))
+
     def handle_event(self, event) -> None:
         if self.state == GameState.TITLE:
             handle_title_event(self, event)
@@ -326,13 +357,5 @@ class Game:
         else:
             if self._input_router is not None:
                 self._input_router.handle(event)
-
-    def get_snapshot(self) -> dict:
-        return {
-            "state": self.state,
-            "loading_progress": self.loading_progress,
-            "seed": self.seed,
-            "death_count": self.death_count,
-        }
 
  

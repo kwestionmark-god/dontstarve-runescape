@@ -524,15 +524,19 @@ every finding lives in the research notes).
   70–89 (real eat/equip) and 291–305 (a generic "Used" notification). The later
   definition wins, so left-click/Enter on an item never eats or equips — it
   only prints "Used {item_id}". Food/equip still work via the hotbar path.
-- 🟠 **[building] Building placement is not wired into gameplay.**
-  `building_system.place_structure` is called only from tests; selecting a
-  structure prints a placement prompt but nothing places it on map click. The
-  build → consume → XP → place pipeline is inert in the shipped game.
-- 🟠 **[combat] Player melee attack is never invoked during gameplay.**
-  `combat_system.py:204` `player_attack` is called only from tests; the game
-  loop never calls it and there is no attack key binding. A player can target
-  monsters but never hit them, and wild monsters never counter-attack. Combat
-  damage to the player in practice comes from NPC/faction paths and starvation.
+- 🟢 **[building] Building placement is not wired into gameplay.** — **RESOLVED**
+  (Phase 5, 2026-08-23). Selecting a structure enters `build_mode` (a PLAYING
+  sub-state, not a new `GameState`); left-click places via
+  `building_system.place_structure` (validate → consume materials → grant
+  crafting XP → place), right-click/ESC cancels, invalid placement reports the
+  reason and stays in mode, and hotbar clicks still use items. Construction XP
+  is now granted. `tests/test_b4_building_placement.py` (11).
+- 🟢 **[combat] Player melee attack is never invoked during gameplay.** — **RESOLVED**
+  (Phase 4, 2026-08-23). `J` calls `combat_system.player_attack()` while PLAYING;
+  `auto_lock_target` locks the nearest alive monster when none is targeted;
+  monster counter-attacks are enabled (and the death-path `None` crash was
+  fixed). The skill panel was rebound from `J` to `TAB` (hint updated).
+  `tests/test_b5_player_attack.py` (15).
 - 🟠 **[npc] Merchant stock is never populated — buy economy is bricked.**
   `generate_merchant_inventory` (`trade_system.py:647`) is never called and
   `MerchantNPC.inventory` defaults to `[]` (`npc_types.py:58,97`). Each buy can
@@ -550,7 +554,11 @@ every finding lives in the research notes).
 - 🟡 **Smelting grants XP twice** — `metallurgy.py:216` and `panel_dispatcher.py:220` both `add_xp("metallurgy")` for the same reward.
 - 🟡 **Cooked food never spoils; gathered perishables never spoil.** Spoilage is set only in the crafting/cook path (`panel_dispatcher.py:200`); gathered raw food is added via `action_system.py:154` with no `set_spoilage`.
 - 🟡 **Quest craft-tracking in `craft()` is dead code** — `crafting_system.py:331` checks `hasattr(self, "game")`, which is never set.
-- 🟡 **`data/recipes.json` general-crafting table is missing** — `recipe_registry.py:57` loads it but the file does not exist; only skill-driven chains load.
+- 🟢 **`data/recipes.json` general-crafting table is missing.** — **RESOLVED**
+  (Phase 1, 2026-08-23). `data/recipes.json` created (4 recipes: sticks,
+  charcoal, grass_rope, paper), loaded via `recipe_registry.py:62` into the
+  unified registry; written with future unified-registry restructuring in mind.
+  `tests/test_b12_general_recipes.py`.
 - 🟡 **Cooking skill math is never applied** — `skills/cooking/cooking.py` methods have no callers.
 - 🟡 **Weather is hard-locked to "clear"** — `bootstrap.py:567` builds `WeatherSystem()` with no `spawn_weights`, so every roll falls back to `"clear"` and weather effects/particles never engage.
 - 🟡 **`NPCFlows` created twice** — `Game.__init__` then replaced by `Bootstrap._build_npc_flows`.
@@ -563,7 +571,8 @@ every finding lives in the research notes).
 - 🔵 **Camera zoom is broken** — continuously zooms in and cannot zoom out (`camera/camera.py:128`).
 - 🔵 **`wildcard_points` never saved/restored** — resets to 0 on load (`save_system.py:455`).
 - 🔵 **`NPCSystem._is_near_monster` is a hard stub** — spawns can occur on top of monsters (`npc_system.py:498`).
-- 🔵 **`data/recipes.json` docstring references a non-existent file** (misleading, not crashing).
+- 🔵 **`data/recipes.json` docstring references a non-existent file.** — **RESOLVED**
+  (Phase 1, 2026-08-23); the file now exists and `recipe_registry.py` loads it.
 - 🔵 **Stale `.pyc` files** in `skills/__pycache__/` for source that no longer exists.
 - 🔵 **`Game.get_snapshot()` is dead/unused** — returns 4 fields and is never called (`game.py:329`).
 - 🔵 **Panel shortcut hints contradict wired keys** (e.g. inventory hint says "C to close" but C opens crafting).

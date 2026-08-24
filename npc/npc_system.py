@@ -483,18 +483,40 @@ class NPCSystem:
 
     def _is_near_monster(self, tile_x: int, tile_y: int) -> bool:
         """
-        Check if any monster is within 3 tiles of a position.
+        Check if any monster is within MONSTER_EXCLUSION_RADIUS_TILES of a tile.
 
-        Used to prevent NPC spawning near hostile monsters.
+        Used to prevent NPC spawning on top of / near hostile monsters.
 
         Args:
             tile_x: Tile X coordinate.
             tile_y: Tile Y coordinate.
 
         Returns:
-            True if a monster is within 3 tiles.
+            True if a monster is within the exclusion radius.
         """
-        # Stub for P3-S3; full check uses game.combat_system.monsters (P3-S4).
+        game = self.game
+        if game is None:
+            return False
+        combat_system = getattr(game, "combat_system", None)
+        if combat_system is None:
+            return False
+        monsters = getattr(combat_system, "monsters", None)
+        if not monsters:
+            return False
+
+        radius_px = self.MONSTER_EXCLUSION_RADIUS_TILES * 64
+        tile_cx = tile_x * 64 + 32
+        tile_cy = tile_y * 64 + 32
+        limit_sq = radius_px * radius_px
+        for monster in monsters:
+            mx = getattr(monster, "world_x", None)
+            my = getattr(monster, "world_y", None)
+            if mx is None or my is None:
+                continue
+            dx = mx - tile_cx
+            dy = my - tile_cy
+            if dx * dx + dy * dy <= limit_sq:
+                return True
         return False
 
     def _get_random_patrol_target(self, npc: NPC) -> Tuple[float, float]:

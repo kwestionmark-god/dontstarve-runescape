@@ -294,7 +294,7 @@ class CraftingPanel:
             y_offset += 8
 
         # Close hint
-        hint = self.font_small.render("Press ESC or H to close", True, (150, 150, 170))
+        hint = self.font_small.render("Press ESC or Q to close", True, (150, 150, 170))
         hint_x = panel_x + (self.PANEL_WIDTH - hint.get_width()) // 2
         hint_y = panel_y + 490
         screen.blit(hint, (hint_x, hint_y))

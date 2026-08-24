@@ -65,7 +65,7 @@ class InputManager:
             self.input_state.move_right = True
         elif key == pygame.K_b:
             self.input_state.open_building_panel = True
-        elif key == pygame.K_j:
+        elif key == pygame.K_TAB:
             self.input_state.open_skill_panel = True
         elif key == pygame.K_c:
             self.input_state.open_inventory = True

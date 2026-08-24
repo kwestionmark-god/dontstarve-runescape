@@ -30,7 +30,7 @@ class SkillPanel:
     │  │  Harvest Boost: [██░░░░] 2 pts [ + ] │   │
     │  │  Stamina: [██████░░░░] 5 pts [ + ]   │   │
     │  └───────────────────────────────────────┘   │
-    │  Wildcard Points: 0    [Escape to close]    │
+    │  Wildcard Points: 0    [ESC/Tab to close]    │
     └──────────────────────────────────────────────┘
     """
 
@@ -358,7 +358,7 @@ class SkillPanel:
         screen.blit(wc_surf, (wc_x, wc_y))
 
         # Close hint
-        hint = self.font_small.render("Press ESC or J to close", True, (150, 150, 170))
+        hint = self.font_small.render("Press ESC or Tab to close", True, (150, 150, 170))
         hint_x = panel_x + (self.PANEL_WIDTH - hint.get_width()) // 2
         hint_y = panel_y + panel_full_height - 20
         screen.blit(hint, (hint_x, hint_y))

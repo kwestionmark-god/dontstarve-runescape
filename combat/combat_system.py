@@ -114,6 +114,37 @@ class CombatSystem:
         """Clear the current combat target."""
         self.selected_target = None
 
+    def auto_lock_target(self, max_radius: float = 128.0) -> bool:
+        """
+        Select the nearest alive monster within range when none is locked.
+
+        Used by the melee attack key so combat is usable without a prior
+        click-to-target. A manually selected, still-alive target is left
+        untouched.
+
+        Returns:
+            True if a new target was selected, False otherwise.
+        """
+        if self.selected_target is not None and self.selected_target.is_alive():
+            return False
+
+        radius_sq = max_radius * max_radius
+        nearest: Monster | None = None
+        nearest_sq = float("inf")
+        for monster in self.monsters:
+            if not monster.is_alive():
+                continue
+            dx = monster.world_x - self.player.world_x
+            dy = monster.world_y - self.player.world_y
+            dist_sq = dx * dx + dy * dy
+            if dist_sq <= radius_sq and dist_sq < nearest_sq:
+                nearest = monster
+                nearest_sq = dist_sq
+        if nearest is not None:
+            self.selected_target = nearest
+            return True
+        return False
+
     def get_nearby_monsters(self, world_x: float, world_y: float, radius: float) -> List[Monster]:
         """
         Find monsters within a radius of a world position.
@@ -247,8 +278,9 @@ class CombatSystem:
 
         # Check monster death
         if not self.selected_target.is_alive():
-            self._monster_died(self.selected_target)
-            msg = f"You killed the {self.selected_target.name}!"
+            slain = self.selected_target
+            self._monster_died(slain)
+            msg = f"You killed the {slain.name}!"
             self.combat_log.append(msg)
             return AttackResult(damage_dealt=damage, damage_taken=0, monster_died=True, message=msg)
 

@@ -281,6 +281,7 @@ class CraftingSystem:
         skill_manager: Optional[SkillManager] = None,
         structures: list | None = None,
         player_pos: tuple[float, float] | None = None,
+        quest_system: Optional[object] = None,
     ) -> CraftResult:
         """
         Execute a craft: validate, consume materials, produce output.
@@ -291,6 +292,8 @@ class CraftingSystem:
             skill_manager: Optional skill manager for XP granting.
             structures: Optional list of placed Structure instances.
             player_pos: Optional (player_x, player_y) in pixels for station checks.
+            quest_system: Optional quest system; on success its record_craft()
+                is called so "craft N of X" quest objectives can advance.
 
         Returns:
             CraftResult with success/failure info.
@@ -310,7 +313,7 @@ class CraftingSystem:
                     message=f"You need to be near a {recipe.requires_structure} to craft this.",
                 )
 
-        if not self.validate_recipe(recipe, inventory):
+        if not self.validate_recipe(recipe_id, inventory):
             return CraftResult(success=False, message="Missing materials.")
 
         # Consume materials (backed up for rollback on cooking failure)
@@ -331,11 +334,9 @@ class CraftingSystem:
         # Mark completed
         self.completed_recipes.add(recipe_id)
 
-        # Quest system craft tracking
-        if hasattr(self, "game") and self.game is not None:
-            qs = getattr(self.game, "quest_system", None)
-            if qs is not None:
-                qs.record_craft(recipe_id)
+        # Quest system craft tracking (optional; quest_system.record_craft).
+        if quest_system is not None:
+            quest_system.record_craft(recipe_id)
 
         return CraftResult(
             success=True,
@@ -353,6 +354,7 @@ class CraftingSystem:
         has_campfire: bool = False,
         structures: list | None = None,
         player_pos: tuple[float, float] | None = None,
+        quest_system: Optional[object] = None,
     ) -> CraftResult:
         """
         Execute a cooking recipe with success/failure based on Cooking skill.
@@ -371,6 +373,8 @@ class CraftingSystem:
             has_campfire: Whether the player is near a campfire.
             structures: Optional list of placed Structure instances.
             player_pos: Optional (player_x, player_y) in pixels for station checks.
+            quest_system: Optional quest system; on success its record_craft()
+                is called so "craft N of X" quest objectives can advance.
 
         Returns:
             CraftResult with success/failure info.
@@ -420,6 +424,9 @@ class CraftingSystem:
                 skill_manager.add_xp("cooking", xp_gained)
 
             self.completed_recipes.add(recipe_id)
+
+            if quest_system is not None:
+                quest_system.record_craft(recipe_id)
 
             return CraftResult(
                 success=True,

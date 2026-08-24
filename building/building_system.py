@@ -196,8 +196,12 @@ class BuildingSystem:
 
         self.structures.append(structure)
 
-        # Grant Construction XP based on structure complexity
+        # Grant Construction XP based on structure complexity.
+        # Construction sub-stats live under the Crafting skill, so XP is
+        # granted through the crafting skill (mirrors combat granting combat XP).
         xp_gained = self._calculate_construction_xp(struct_def)
+        if xp_gained > 0:
+            self.skill_manager.add_xp("crafting", xp_gained)
 
         return BuildResult(
             success=True,

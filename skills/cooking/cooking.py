@@ -14,7 +14,15 @@ if TYPE_CHECKING:
 
 
 class CookingSkill:
-    """Manages cooking skill effects."""
+    """Manages cooking skill effects.
+
+    V1 limitation (B13): the math here (nutrition bonus, spoilage reduction,
+    success-rate modifier) is implemented but not yet wired into
+    ``CraftingSystem.cook``. ``CookingSkill`` is instantiated by bootstrap but
+    its methods are currently unreferenced from the cook flow. Wire it into
+    ``cook`` when cooking progression is prioritized; the methods are stable
+    and only need a call site.
+    """
 
     __slots__ = ("skill_manager",)
 

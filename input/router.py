@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pygame
+from config import TILE_SIZE
 from core.state import GameState, PANEL_STATES
 from typing import TYPE_CHECKING
 
@@ -21,8 +22,9 @@ class InputRouter:
         self._game = game
         self._input_manager = input_manager
         self._panel_dispatcher = panel_dispatcher
-        from interactions.npc_flows import NPCFlows
-        self._npc_flows = NPCFlows(game)
+        # B15: reuse the shared, single-owned Game._npc_flows (router and
+        # panel_dispatcher no longer construct their own NPCFlows).
+        self._npc_flows = getattr(game, "_npc_flows", None)
 
     def handle(self, event: pygame.event.Event) -> None:
         game = self._game
@@ -48,6 +50,15 @@ class InputRouter:
         event,
     ) -> None:
         is_state = input_manager.input_state
+
+        # Build mode (a PLAYING sub-state): ESC cancels placement. State stays
+        # PLAYING, so the panel toggles below are no-ops here.
+        if (
+            getattr(game, "build_mode", False)
+            and game.state == GameState.PLAYING
+            and event.key == pygame.K_ESCAPE
+        ):
+            self._cancel_build_mode(game)
 
         if event.key in (pygame.K_i, pygame.K_s, pygame.K_1):
             pass
@@ -78,6 +89,10 @@ class InputRouter:
             if game.state == GameState.BUILDING_PANEL:
                 game.set_state(GameState.PLAYING)
             else:
+                # A fresh selection intent supersedes any active placement.
+                if game.build_mode:
+                    game.build_mode = False
+                    game._building_pending_id = None
                 game.set_state(GameState.BUILDING_PANEL)
         elif is_state.open_quest_panel:
             is_state.open_quest_panel = False
@@ -123,6 +138,8 @@ class InputRouter:
                 game.set_state(GameState.PLAYING)
         elif event.key == pygame.K_f and game.state == GameState.PLAYING:
             self._handle_light_fire(game)
+        elif event.key == pygame.K_j and game.state == GameState.PLAYING:
+            self._handle_attack(game)
         elif event.key == pygame.K_ESCAPE:
             if is_state.close_panel and game.state != GameState.PLAYING:
                 is_state.close_panel = False
@@ -240,6 +257,93 @@ class InputRouter:
             )
             game.player.action_system.add_notification(f"Used {item_name}.", (200, 200, 220))
 
+    def _handle_hotbar_click(self, game, mx, my):
+        """Left-click on a hotbar slot: select the slot and use its item.
+        Shared with build mode so hotbar clicks still consume items while placing."""
+        if game.hud is None:
+            return
+        rects = getattr(game.hud, "_hotbar_rects", [])
+        for i, rect in enumerate(rects):
+            if rect.collidepoint(mx, my):
+                game.hud.set_hotbar_selected(i)
+                if (
+                    game.inventory is not None
+                    and game.survival is not None
+                    and game.food_registry is not None
+                ):
+                    self._handle_hotbar(game, i + 1)
+                return
+
+    def _hotbar_hit(self, game, mx, my):
+        """True if (mx, my) falls on a hotbar slot rect."""
+        if game.hud is None:
+            return False
+        for rect in getattr(game.hud, "_hotbar_rects", []):
+            if rect.collidepoint(mx, my):
+                return True
+        return False
+
+    def _handle_build_placement(self, game, mx, my):
+        """Left-click while in build mode: hotbar clicks still use items,
+        anything else attempts to place the pending structure at the tile
+        under the cursor."""
+        if self._hotbar_hit(game, mx, my):
+            self._handle_hotbar_click(game, mx, my)
+            return
+        self._do_build_placement(game, mx, my)
+
+    def _resolve_struct_def(self, game, structure_id):
+        """Resolve a pending structure_id to its StructureDef, or None."""
+        if game.building_system is None:
+            return None
+        for cat in game.building_system.structure_defs.values():
+            if structure_id in cat:
+                return cat[structure_id]
+        return None
+
+    def _do_build_placement(self, game, mx, my):
+        """Validate and place the pending structure at the cursor's tile.
+        Stays in build mode on both success and failure; only cancel keys
+        (right-click / ESC) leave placement mode."""
+        pending = getattr(game, "_building_pending_id", None)
+        if (
+            pending is None
+            or game.building_system is None
+            or game.camera is None
+            or game.world is None
+        ):
+            self._cancel_build_mode(game)
+            return
+
+        struct_def = self._resolve_struct_def(game, pending)
+        if struct_def is None:
+            self._cancel_build_mode(game)
+            return
+
+        world_x, world_y = game.camera.screen_to_world(mx, my)
+        tile = game.world.get_tile(int(world_x // TILE_SIZE), int(world_y // TILE_SIZE))
+        biome_id = tile.biome.id if (tile is not None and tile.biome is not None) else "unknown"
+
+        player = game.player
+        px = player.world_x if player is not None else 0.0
+        py = player.world_y if player is not None else 0.0
+
+        result = game.building_system.place_structure(
+            struct_def, world_x, world_y, px, py, biome_id,
+        )
+        ps = getattr(player, "action_system", None)
+        if ps is not None:
+            color = (100, 255, 100) if result.success else (255, 150, 100)
+            ps.add_notification(result.message, color)
+
+    def _cancel_build_mode(self, game):
+        """Exit placement mode and clear the pending structure."""
+        game.build_mode = False
+        game._building_pending_id = None
+        ps = getattr(game.player, "action_system", None)
+        if ps is not None:
+            ps.add_notification("Placement cancelled.", (200, 200, 220))
+
     def _close_all_panels(self) -> None:
         game = self._game
         if game._inventory_panel is not None:
@@ -267,6 +371,28 @@ class InputRouter:
     def _handle_light_fire(self, game: "Game") -> None:
         if game._fire_interaction is not None:
             game._fire_interaction.handle_light_fire()
+
+    def _handle_attack(self, game: "Game") -> None:
+        """J key: melee-attack the current target (auto-locks nearest if none)."""
+        combat_system = getattr(game, "combat_system", None)
+        if combat_system is None:
+            return
+
+        # Usable without a prior click: lock the nearest monster if untargeted.
+        if (
+            combat_system.selected_target is None
+            or not combat_system.selected_target.is_alive()
+        ):
+            combat_system.auto_lock_target()
+
+        # dt is 0 here; combat_system.tick() decrements the cooldown per frame.
+        result = combat_system.player_attack(0.0)
+        if (
+            result is not None
+            and game.player is not None
+            and game.player.action_system is not None
+        ):
+            game.player.action_system.add_notification(result.message, (255, 180, 80))
 
     def _handle_interact(self, game: "Game") -> None:
         if game._interact_system is not None:
@@ -301,11 +427,25 @@ class InputRouter:
         elif game.state == GameState.BUILDING_PANEL and game._building_panel is not None:
             game._building_panel.handle_mouse_move(mx, my)
 
+        # Track cursor for the build-mode ghost preview (a PLAYING sub-state).
+        if getattr(game, "build_mode", False) and game.state == GameState.PLAYING:
+            game._build_cursor = (mx, my)
+
     def _handle_mouse_button_down(self, game: "Game", event) -> None:
         # Scroll wheel
         if event.button in (4, 5):
             direction = 1 if event.button == 5 else -1
             self._handle_scroll(game, event, direction)
+            return
+
+        # Placement mode (a PLAYING sub-state) takes precedence: left-click
+        # places the pending structure (hotbar clicks still use items),
+        # right-click cancels.
+        if getattr(game, "build_mode", False) and game.state == GameState.PLAYING:
+            if event.button in (2, 3):
+                self._cancel_build_mode(game)
+            elif event.button == 1:
+                self._handle_build_placement(game, event.pos[0], event.pos[1])
             return
 
         # Quest panel handles all mouse buttons
@@ -343,16 +483,7 @@ class InputRouter:
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "inventory", result)
             elif game.state == GameState.PLAYING:
-                # Click hotbar slot
-                if game.hud is not None:
-                    rects = getattr(game.hud, "_hotbar_rects", [])
-                    for i, rect in enumerate(rects):
-                        if rect.collidepoint(event.pos[0], event.pos[1]):
-                            game.hud.set_hotbar_selected(i)
-                            # Trigger hotbar use for this slot
-                            if game.inventory is not None and game.survival is not None and game.food_registry is not None:
-                                self._handle_hotbar(game, i + 1)
-                            break
+                self._handle_hotbar_click(game, event.pos[0], event.pos[1])
                 # Click-to-move / attack
                 if (
                     game.player is not None

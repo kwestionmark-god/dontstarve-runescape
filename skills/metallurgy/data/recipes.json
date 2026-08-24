@@ -1,7 +1,6 @@
 {
   "recipes": [
     {
-      "id": "smelt_iron",
       "recipe_id": "smelt_iron",
       "name": "Smelt Iron",
       "input_items": [["iron_ore", 1], ["charcoal", 1]],
@@ -20,7 +19,6 @@
       "requires_alloy_mastery": 0
     },
     {
-      "id": "smelt_copper",
       "recipe_id": "smelt_copper",
       "name": "Smelt Copper",
       "input_items": [["copper_ore", 1], ["charcoal", 1]],
@@ -39,7 +37,6 @@
       "requires_alloy_mastery": 0
     },
     {
-      "id": "smelt_bronze",
       "recipe_id": "smelt_bronze",
       "name": "Smelt Bronze",
       "input_items": [["smelted_copper_ingot", 1], ["charcoal", 1], ["tin_ore", 1]],
@@ -58,7 +55,6 @@
       "requires_alloy_mastery": 1
     },
     {
-      "id": "smelt_steel",
       "recipe_id": "smelt_steel",
       "name": "Smelt Steel",
       "input_items": [["smelted_iron_ingot", 1], ["charcoal", 1]],
@@ -77,7 +73,6 @@
       "requires_alloy_mastery": 2
     },
     {
-      "id": "smelt_mithril",
       "recipe_id": "smelt_mithril",
       "name": "Smelt Mithril",
       "input_items": [["mithril_ore", 1], ["charcoal", 1]],
@@ -96,7 +91,6 @@
       "requires_alloy_mastery": 2
     },
     {
-      "id": "purify_ghost_iron",
       "recipe_id": "purify_ghost_iron",
       "name": "Purify Ghost Iron",
       "input_items": [["ghost_iron", 1], ["charcoal", 1]],
@@ -115,7 +109,6 @@
       "requires_alloy_mastery": 1
     },
     {
-      "id": "smelt_star_metal",
       "recipe_id": "smelt_star_metal",
       "name": "Smelt Star Metal",
       "input_items": [["star_metal", 1], ["charcoal", 2]],
@@ -134,7 +127,6 @@
       "requires_alloy_mastery": 3
     },
     {
-      "id": "refine_obsidian",
       "recipe_id": "refine_obsidian",
       "name": "Refine Obsidian",
       "input_items": [["obsidian", 1], ["charcoal", 1]],
@@ -153,7 +145,6 @@
       "requires_alloy_mastery": 0
     },
     {
-      "id": "refine_void_crystal",
       "recipe_id": "refine_void_crystal",
       "name": "Refine Void Crystal",
       "input_items": [["void_crystal", 1], ["charcoal", 1]],

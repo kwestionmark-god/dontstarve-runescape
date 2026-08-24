@@ -192,6 +192,13 @@ class TradeSystem:
         if not isinstance(merchant, MerchantNPC):
             return None
 
+        # B6: merchants are created with an empty inventory (see
+        # MerchantNPC.from_dict), so generate a biome-filtered, stock-bearing
+        # inventory before trading. Guarded by "already populated" so a merchant
+        # that has already sold some stock is not refilled on every reopen.
+        if not merchant.inventory:
+            self.generate_merchant_inventory(merchant)
+
         session = TradeSession(
             merchant=merchant,
             player=player,

@@ -28,7 +28,15 @@ def main():
     faction_leader_ids = {f["leader_npc_id"] for f in factions["factions"]}
     npc_ids = {n["npc_id"] for n in npcs["npcs"]}
     quest_ids = {q["quest_id"] for q in quests["quests"]}
-    spawn_point_coords = {(sp["tile_x"], sp["tile_y"]) for sp in npcs["spawn_points"]}
+    spawn_point_coords = set()
+    for sp in npcs["spawn_points"]:
+        if "tile_x" in sp and "tile_y" in sp:
+            spawn_point_coords.add((sp["tile_x"], sp["tile_y"]))
+        else:
+            if "tile_x" not in sp:
+                errors.append(f"spawn_point {sp.get('spawn_id', '?')}: missing 'tile_x' field")
+            if "tile_y" not in sp:
+                errors.append(f"spawn_point {sp.get('spawn_id', '?')}: missing 'tile_y' field")
 
     print("=== Loaded files successfully ===")
     print(f"  items: {len(items['items'])} items")
@@ -64,8 +72,11 @@ def main():
         if "max_health" not in n:
             errors.append(f"npc {n['npc_id']}: missing 'max_health' field (P3-I05)")
         # faction references faction_ids (or is None)
-        if n["faction"] is not None and n["faction"] not in faction_ids:
-            errors.append(f"npc {n['npc_id']}: faction {n['faction']} not in factions.json")
+        if "faction" not in n:
+            errors.append(f"npc {n['npc_id']}: missing 'faction' field")
+        else:
+            if n["faction"] is not None and n["faction"] not in faction_ids:
+                errors.append(f"npc {n['npc_id']}: faction {n['faction']} not in factions.json")
         # npc_type must be valid enum
         valid_types = {"merchant", "quest_giver", "faction_leader", "recruit"}
         if n["npc_type"] not in valid_types:

@@ -49,13 +49,14 @@ class TestKeyboardShortcuts(unittest.TestCase):
         self.manager.handle_event(event)
         self.assertTrue(self.manager.input_state.open_building_panel)
 
-    def test_j_sets_open_skill_flag(self) -> None:
-        """Press J key -> input_state.open_skill_panel = True."""
+    def test_j_does_not_open_skill_panel(self) -> None:
+        """J is now the attack key (bound in the router via event.key); it no
+        longer sets open_skill_panel. TAB owns that flag."""
         event = pygame.event.Event(
             pygame.KEYDOWN, {"key": pygame.K_j, "scancode": 0, "unicode": "", "mod": 0}
         )
         self.manager.handle_event(event)
-        self.assertTrue(self.manager.input_state.open_skill_panel)
+        self.assertFalse(self.manager.input_state.open_skill_panel)
         # Ensure movement not set by J key
         self.assertFalse(self.manager.input_state.move_down)
 
@@ -112,13 +113,14 @@ class TestKeyboardShortcuts(unittest.TestCase):
         self.manager.handle_event(event)
         self.assertTrue(self.manager.input_state.open_diplomacy_panel)
 
-    def test_j_consumed_on_press_then_cleared(self) -> None:
-        """J key sets open_skill_panel once on key down, cleared on clear_frame."""
+    def test_tab_consumed_on_press_then_cleared(self) -> None:
+        """TAB key sets open_skill_panel once on key down, cleared on clear_frame
+        (TAB took the skill-panel flag over J in the B5 combat rebind)."""
         manager = InputManager()
 
-        # Press J
+        # Press TAB
         down = pygame.event.Event(
-            pygame.KEYDOWN, {"key": pygame.K_j, "scancode": 0, "unicode": "", "mod": 0}
+            pygame.KEYDOWN, {"key": pygame.K_TAB, "scancode": 0, "unicode": "", "mod": 0}
         )
         manager.handle_event(down)
         self.assertTrue(manager.input_state.open_skill_panel)
