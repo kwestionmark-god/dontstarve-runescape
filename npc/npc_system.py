@@ -55,7 +55,6 @@ class NPCSystem:
         "npcs",
         "tile_map",
         "_patrol_targets",
-        "_recruitment_system",
         "game",
     )
 
@@ -239,31 +238,6 @@ class NPCSystem:
     ) -> bool:
         """Check if any active NPC is within radius of a world position."""
         return len(self.get_nearby_npcs(world_x, world_y, radius)) > 0
-
-    def set_recruitment_system(self, recruitment_system: "RecruitmentSystem") -> None:
-        """
-        Register a reference to the RecruitmentSystem.
-
-        Allows NPCSystem to delegate behavior ticks to the recruitment system.
-
-        Args:
-            recruitment_system: The RecruitmentSystem instance.
-        """
-        self._recruitment_system = recruitment_system
-
-    def tick_recruits(self, dt: float) -> None:
-        """
-        Delegate to the RecruitmentSystem's tick method.
-
-        This allows recruitment system to update NPC behavior states
-        (guard combat, trader trade, assistant follow/gather/heal)
-        independently of NPC movement.
-
-        Args:
-            dt: Delta time in seconds.
-        """
-        if self._recruitment_system is not None:
-            self._recruitment_system.tick(dt)
 
     def tick_faction_npcs(self, dt: float) -> None:
         """

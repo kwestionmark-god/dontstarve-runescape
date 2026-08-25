@@ -121,15 +121,6 @@ class PlayerGear:
             bonus += self.armor.defence_bonus
         return bonus
 
-    def get_speed_modifier(self) -> float:
-        """Sum of speed modifiers from equipped weapon and armor."""
-        mod = 0.0
-        if self.weapon:
-            mod += self.weapon.speed_bonus
-        if self.armor:
-            mod += self.armor.speed_bonus
-        return mod
-
     def equip(self, gear_item: GearItem) -> bool:
         """
         Equip a gear item into the appropriate slot.
