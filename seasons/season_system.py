@@ -98,7 +98,7 @@ class SeasonSystem:
             except Exception:
                 pass  # Don't let callback errors break the season cycle
 
-    def get_survival_modifiers(self, biome_id: str | None = None) -> dict[str, float]:
+    def get_survival_modifiers(self) -> dict[str, float]:
         """Return survival modifiers for the current season."""
         if self.survival_modifiers:
             return self.survival_modifiers.get(self.current_season, {})
