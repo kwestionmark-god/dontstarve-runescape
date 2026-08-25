@@ -5,11 +5,11 @@ Screen-space particles for rain/snow/storm; capped count for performance.
 """
 
 from __future__ import annotations
+import pygame
 import random
 from typing import Any
 
 MAX_PARTICLES = 500
-DEFAULT_PARTICLE_SPAWN_RATE = 10  # particles per second
 
 
 class Particle:
@@ -36,6 +36,9 @@ class ParticleSystem:
         self.current_weather: str = "clear"
         self._spawn_rate = 0  # Initialized to match "clear" weather
         self._rng = random.Random(42)
+        # Defaults; overwritten with the real surface size on first draw().
+        self.screen_w = 1280
+        self.screen_h = 720
 
     def sync(self, weather: str) -> None:
         """Update particle settings based on current weather."""
@@ -68,7 +71,7 @@ class ParticleSystem:
             p.y += p.vy * dt
             p.life += dt
             # Remove if off-screen or expired
-            if p.y > 1000 or p.life > 10.0:
+            if p.y > self.screen_h or p.life > 10.0:
                 p.life = 10.0  # Mark for removal
 
         # Compact — remove expired (life >= 10.0)
@@ -77,20 +80,20 @@ class ParticleSystem:
     def _spawn_particle(self) -> None:
         """Spawn a new particle based on current weather type."""
         if self.current_weather in ("rain", "storm"):
-            x = self._rng.uniform(0, 1280)
+            x = self._rng.uniform(0, self.screen_w)
             y = -10
             vy = self._rng.uniform(300, 600)
             vx = -50 if self.current_weather == "storm" else -20
             size = 2
         elif self.current_weather == "snow":
-            x = self._rng.uniform(0, 1280)
+            x = self._rng.uniform(0, self.screen_w)
             y = -10
             vy = self._rng.uniform(40, 100)
             vx = self._rng.uniform(-30, 30)
             size = 3
         elif self.current_weather == "fog":
-            x = self._rng.uniform(0, 1280)
-            y = self._rng.uniform(0, 720)
+            x = self._rng.uniform(0, self.screen_w)
+            y = self._rng.uniform(0, self.screen_h)
             vx = self._rng.uniform(-5, 5)
             vy = self._rng.uniform(-5, 5)
             size = 40
@@ -102,8 +105,8 @@ class ParticleSystem:
 
     def draw(self, screen: Any) -> None:
         """Draw all particles on the screen surface."""
-        import pygame
-
+        if screen is not None:
+            self.screen_w, self.screen_h = screen.get_size()
         if not self.particles:
             return
 

@@ -11,6 +11,7 @@ Tests:
 """
 
 import pytest
+from types import SimpleNamespace
 from render.particle_system import ParticleSystem
 
 
@@ -299,3 +300,36 @@ class TestParticleSystemIntegration:
 
         ps.sync("clear")
         assert ps._spawn_rate == 0
+
+
+class TestParticleSystemSurfaceAdaptation:
+    """#20: particle spawn/off-screen bounds follow the real surface size."""
+
+    def test_screen_dims_update_from_surface(self):
+        """draw() records the surface size for spawn bounds."""
+        ps = ParticleSystem()
+        ps.screen_w, ps.screen_h = 0, 0
+        fake_screen = SimpleNamespace(get_size=lambda: (1024, 600))
+        ps.draw(fake_screen)
+        assert ps.screen_w == 1024
+        assert ps.screen_h == 600
+
+    def test_draw_none_is_safe(self):
+        """draw(None) must not raise (preserves prior None-safety)."""
+        ps = ParticleSystem()
+        ps.draw(None)  # no particles -> returns cleanly
+
+    def test_rain_spawns_within_adaptive_width(self):
+        """Rain particles stay within the captured screen width."""
+        ps = ParticleSystem()
+        ps.sync("rain")
+        # Non-default width; keep default height so particles aren't
+        # height-culled within a single update (vy reaches 600px/s).
+        ps.screen_w, ps.screen_h = 320, 720
+        ps.update(1.0)
+        assert ps.particles
+        for p in ps.particles:
+            # Spawned within [0, screen_w]; one frame of leftward wind
+            # (<=50px/s) can only pull x a little below 0.
+            assert -50 <= p.x <= 320
+            assert p.y > -10
