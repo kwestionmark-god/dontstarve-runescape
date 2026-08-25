@@ -585,14 +585,17 @@ class CombatSystem:
         if self.faction_system is not None and monster.monster_id:
             faction_id = self.faction_system.get_faction_for_monster(monster.monster_id)
             if faction_id is not None:
-                self.faction_system.update_standing(faction_id, -0.10)
+                # Defeating a faction-associated monster improves relations: these
+                # monsters respawn, so hunting them removes a rival/threat the
+                # faction also deals with (see tmp/LIVE-ISSUES #8).
+                self.faction_system.update_standing(faction_id, 0.1)
                 if self.game is not None and self.game.player is not None:
                     action_sys = self.game.player.action_system if hasattr(self.game.player, "action_system") else None
                     if action_sys is not None:
                         faction_name = faction_id.replace("_", " ")
                         action_sys.add_notification(
-                            f"Killing {monster.name} worsened relations with {faction_name}.",
-                            (255, 150, 100),
+                            f"Killing {monster.name} improved relations with {faction_name}.",
+                            (120, 220, 120),
                         )
 
     # ── Monster Registration ────────────────────────────────────────
