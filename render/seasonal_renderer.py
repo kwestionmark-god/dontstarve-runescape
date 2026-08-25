@@ -7,6 +7,7 @@ TileRenderer and SpriteRenderer.
 """
 
 from __future__ import annotations
+import pygame
 from typing import Any
 
 
@@ -101,8 +102,6 @@ class SeasonalRenderer:
             alpha: Overlay alpha (0–255).
             color: Overlay RGB color.
         """
-        import pygame
-
         overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         overlay.fill((*color, alpha))
         screen.blit(overlay, (0, 0))

@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import math
+import time
 
 import pygame
 from typing import TYPE_CHECKING
@@ -859,9 +860,6 @@ class SpriteRenderer:
         camera : Camera
             The orbital camera.
         """
-        import math
-        import time
-
         world_x = fire.world_x
         world_y = fire.world_y
 
@@ -911,7 +909,6 @@ class SpriteRenderer:
             if fog_a > 0:
                 # Scale down glow alpha with fog density
                 effective_glow_alpha = int(alpha * (1 - fog_a / 255))
-                glow_surf.fill((0, 0, 0, 0))  # Clear for fresh draw
             else:
                 effective_glow_alpha = alpha
             

@@ -14,6 +14,7 @@ import math
 import random
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
+from data import load_json
 from npc.npc import NPC, NPCSpawnPoint
 from npc.npc_types import create_npc_from_dict
 
@@ -79,8 +80,6 @@ class NPCSystem:
         Parses the "spawn_points" array and creates NPCSpawnPoint
         instances. Called once during __init__.
         """
-        from data import load_json
-
         data = load_json("npcs.json")
         spawn_data = data.get("spawn_points", [])
         self.spawn_points = [NPCSpawnPoint.from_dict(s) for s in spawn_data]
@@ -98,8 +97,6 @@ class NPCSystem:
         5. Place NPCs matching the spawn point's npc_types.
         """
         # 1. Load all NPC definitions from npcs.json
-        from data import load_json
-
         data = load_json("npcs.json")
         npc_definitions = data.get("npcs", [])
 

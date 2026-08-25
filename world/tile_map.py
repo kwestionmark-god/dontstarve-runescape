@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Tuple
 
+from config import SHADING_STRENGTH
+
 if TYPE_CHECKING:
     from world.biome import Biome
     from world.resource_node import ResourceNode
@@ -299,7 +301,6 @@ class TileMap:
 
         # Normalize light response: slopes facing the light (NW) brighten,
         # slopes facing away (SE) darken. Clamp to [-SHADING_STRENGTH, +SHADING_STRENGTH] range.
-        from config import SHADING_STRENGTH
         brightness = 1.0 + max(-SHADING_STRENGTH, min(SHADING_STRENGTH, light_dot * SHADING_STRENGTH * 2.0))
 
         return (brightness, min(slope_mag / 2.0, 1.0))
