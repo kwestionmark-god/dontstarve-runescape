@@ -80,6 +80,23 @@ class SaveSystem:
         except Exception:
             return None
 
+    @staticmethod
+    def _restore_merchant_stock(npc, saved_inventory: list) -> None:
+        """
+        Restore stock levels on a merchant's inventory.
+
+        Matches each saved entry to a live slot by ``trade_item_id`` rather
+        than by array index, so stock lands on the correct slot even when the
+        live inventory order differs from the saved order.
+        """
+        for slot_data in saved_inventory:
+            trade_id = slot_data.get("trade_item_id")
+            stock = slot_data.get("stock_quantity", 10)
+            for slot in npc.inventory:
+                if getattr(slot, "trade_item_id", None) == trade_id:
+                    slot.stock_quantity = stock
+                    break
+
     def load_into_game(self, save_data: Dict[str, Any], game: "Game") -> None:
         """
         Restore save data into an existing Game instance.
@@ -315,13 +332,10 @@ class SaveSystem:
                         if npc.npc_id == mdata.get("npc_id"):
                             if isinstance(npc, MerchantNPC):
                                 npc.gold = mdata.get("gold", npc.gold)
-                                # Restore inventory stock levels
-                                saved_inv = mdata.get("inventory", [])
-                                for si, slot in enumerate(npc.inventory):
-                                    if si < len(saved_inv):
-                                        slot_data = saved_inv[si]
-                                        stock = slot_data.get("stock_quantity", 10)
-                                        slot.stock_quantity = stock
+                                # Restore stock by matching trade_item_id (not by index)
+                                # so stock lands on the right slot even if the live
+                                # inventory order changed after the save.
+                                self._restore_merchant_stock(npc, mdata.get("inventory", []))
 
         # 8.8 Restore recruitment behavioral state (P3-S23)
         if "recruitment_state" in save_data and save_data["recruitment_state"] and game.recruitment_system:
