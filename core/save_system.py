@@ -136,6 +136,10 @@ class SaveSystem:
             game.survival.environmental_pressure = surv.get(
                 "environmental_pressure", game.survival.environmental_pressure
             )
+            # is_dead is intentionally not restored: death is soft-by-design
+            # (_on_player_death respawns the player with partial HP, then saves
+            # with is_dead=False), so a saved game always represents an alive
+            # player. Respawn-alive on reload is intended (see tmp/LIVE-ISSUES #4).
             game.survival.is_dead = False
 
         # 3. Restore inventory
