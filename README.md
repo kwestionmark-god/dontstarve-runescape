@@ -87,7 +87,7 @@ The test suite is designed to run **without a display** (no Pygame window):
 python -m pytest -q
 ```
 
-> At the time of writing, the suite reports **545 passed**
+> At the time of writing, the suite reports **683 passed**
 > (`python -m pytest -q`). It runs headless in this environment: it passes both
 > with and without `SDL_VIDEODRIVER=dummy`. Most tests import pure-logic
 > modules that never touch a display; five UI/input test files instantiate
