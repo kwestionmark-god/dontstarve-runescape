@@ -9,6 +9,7 @@ for player HP tracking and with SkillManager for stat lookups.
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -157,7 +158,6 @@ class CombatSystem:
         Returns:
             List of monsters within range.
         """
-        import math
         result = []
         for monster in self.monsters:
             dx = monster.world_x - world_x
@@ -536,7 +536,6 @@ class CombatSystem:
         """Calculate distance to the selected target."""
         if not self.selected_target:
             return float("inf")
-        import math
         dx = self.selected_target.world_x - self.player.world_x
         dy = self.selected_target.world_y - self.player.world_y
         return math.sqrt(dx * dx + dy * dy)
@@ -555,7 +554,6 @@ class CombatSystem:
         # Drop loot
         loot_lost = False
         for drop in monster.loot_table:
-            import random
             if random.random() < drop["chance"]:
                 if not self.player.inventory.add_item(drop["item_id"], 1):
                     loot_lost = True
@@ -647,9 +645,6 @@ class CombatSystem:
             rng_seed: Seed for the random number generator (ensures reproducibility).
             biome_id: Biome identifier used for the monster's biome label.
         """
-        import math
-        import random
-
         if not biome_monster_data:
             return
 
@@ -661,7 +656,7 @@ class CombatSystem:
 
         for mid in selected:
             m_def = biome_monster_data[mid]
-            angle = rng.uniform(0, 2 * 3.14159)
+            angle = rng.uniform(0, 2 * math.pi)
             dist = rng.uniform(64, spawn_radius_px)
             mx = spawn_world_x + math.cos(angle) * dist
             my = spawn_world_y + math.sin(angle) * dist
@@ -704,7 +699,6 @@ class CombatSystem:
                     and self.building_system is not None
                 ):
                     # Monsters occasionally attack nearby structures
-                    import random
                     if random.random() < 0.02:  # ~2% chance per frame during attack
                         destroyed = self.building_system.monster_attack_structure(
                             monster.attack, monster.world_x, monster.world_y,
@@ -727,7 +721,6 @@ class CombatSystem:
                     for fire in fires:
                         if fire.heat_output > 1.0:  # Strong fires deter monsters
                             # Move monster away from fire
-                            import math
                             dx = monster.world_x - fire.world_x
                             dy = monster.world_y - fire.world_y
                             dist = math.sqrt(dx * dx + dy * dy)
