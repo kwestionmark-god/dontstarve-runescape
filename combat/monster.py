@@ -91,7 +91,8 @@ class Monster:
     def from_def(cls, monster_id: str, biome: str,
                  world_x: float, world_y: float,
                  loot_table: List[Dict[str, Any]] | None = None,
-                 special: str = "") -> "Monster":
+                 special: str = "",
+                 monster_def: Dict[str, Any] | None = None) -> "Monster":
         """
         Create a Monster from a definition dict.
 
@@ -102,33 +103,59 @@ class Monster:
             world_y: Spawn Y position.
             loot_table: Optional loot table override.
             special: Optional special behavior tag.
+            monster_def: Optional per-monster definition (from data/monsters.json).
+                Combat stats and AI ranges are read from it, falling back to the
+                built-in table for any key it does not specify.
 
         Returns:
             A fully initialized Monster instance.
         """
-        base = _MONSTER_HP_TABLE.get(monster_id, {
+        # Base stats: JSON definition wins, then the built-in table, then defaults.
+        monster_def = monster_def or {}
+        base = dict(_MONSTER_HP_TABLE.get(monster_id, {
             "hp": 10, "attack": 3, "defence": 2,
             "speed": 60, "xp": 15,
-        })
-        return cls(
+        }))
+        if monster_def:
+            for key in ("hp", "attack", "defence", "speed", "xp_reward"):
+                if key in monster_def:
+                    base[key] = monster_def[key]
+
+        aggression = monster_def.get("aggression_range")
+        flee = monster_def.get("flee_range")
+        cooldown = monster_def.get("attack_cooldown")
+        effective_special = monster_def.get("special", special)
+        effective_loot = loot_table if loot_table is not None else (monster_def or {}).get("loot_table", [])
+
+        instance = cls(
             monster_id=monster_id,
-            name=monster_id.replace("_", " ").title(),
+            name=monster_def.get("name", monster_id.replace("_", " ").title()),
             biome=biome,
             world_x=world_x,
             world_y=world_y,
-            hp=base["hp"],
-            max_hp=base["hp"],
-            attack=base["attack"],
-            defence=base["defence"],
-            speed=base["speed"],
-            aggression_range=150.0,  # Can be overridden per-def
-            flee_range=300.0,
-            attack_cooldown=base.get("attack_cooldown", 1.5),
-            xp_reward=base["xp"],
-            loot_table=loot_table or [],
-            sprite_key=f"monster/{monster_id}",
-            special=special,
+            hp=int(base["hp"]),
+            max_hp=int(base["hp"]),
+            attack=int(base["attack"]),
+            defence=int(base["defence"]),
+            speed=float(base["speed"]),
+            aggression_range=float(aggression) if aggression is not None else 150.0,
+            flee_range=float(flee) if flee is not None else 300.0,
+            attack_cooldown=float(cooldown) if cooldown is not None else float(base.get("attack_cooldown", 1.5)),
+            xp_reward=float(base.get("xp_reward", base.get("xp"))),
+            loot_table=effective_loot,
+            sprite_key=monster_def.get("sprite_key", f"monster/{monster_id}"),
+            is_hostile=bool(monster_def.get("is_hostile", True)) if monster_def else True,
+            special=effective_special,
         )
+        # Persist the unmodified base stats so reset_special() can restore
+        # poison/ranged/aerial modifiers to their original values.
+        instance._base_stats = {
+            "hp": int(base["hp"]),
+            "attack": int(base["attack"]),
+            "defence": int(base["defence"]),
+            "speed": float(base["speed"]),
+        }
+        return instance
 
     def take_damage(self, damage: int) -> None:
         """
@@ -314,8 +341,8 @@ class Monster:
         """
         if self.special == "poison":
             self._poison_applied = False
-            # Restore base attack
-            base = _MONSTER_HP_TABLE.get(self.monster_id, {})
+            # Restore base attack from the stats loaded at spawn.
+            base = getattr(self, "_base_stats", {})
             if base:
                 self.attack = base.get("attack", self.attack)
         elif self.special == "aerial":

@@ -666,23 +666,14 @@ class CombatSystem:
             mx = spawn_world_x + math.cos(angle) * dist
             my = spawn_world_y + math.sin(angle) * dist
 
-            loot_table = m_def.get("loot_table", [])
-
             from combat.monster import Monster
             monster = Monster.from_def(
                 monster_id=mid,
                 biome=biome_id,
                 world_x=mx,
                 world_y=my,
-                loot_table=loot_table,
-                special=m_def.get("special", ""),
+                monster_def=m_def,
             )
-
-            # Override aggression/flee ranges from def
-            if "aggression_range" in m_def:
-                monster.aggression_range = m_def["aggression_range"]
-            if "flee_range" in m_def:
-                monster.flee_range = m_def["flee_range"]
 
             self.register_monster(monster)
 
