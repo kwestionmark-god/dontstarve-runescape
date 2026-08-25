@@ -273,8 +273,6 @@ class Game:
             tx, ty = self.player.get_tile_position()
             tile = self.world.get_tile(tx, ty)
             self._sprite_renderer.render_player(screen, self.player, self.camera, tile.elevation if tile else 0)
-        if self.hud is not None:
-            self.hud.render(screen)
         if self._sprite_renderer is not None and self.combat_system is not None and self.camera is not None:
             for monster in self.combat_system.monsters:
                 if monster.is_alive():
@@ -329,6 +327,10 @@ class Game:
             self._recruit_panel.render(screen)
         elif self.state == GameState.DIPLOMACY_PANEL and self._diplomacy_panel is not None:
             self._diplomacy_panel.render(screen)
+        # HUD is drawn last so its bars/overlays are never occluded by the
+        # entity sprites, the seasonal overlay, or an open panel above.
+        if self.hud is not None:
+            self.hud.render(screen)
 
     def _render_build_ghost(self, screen: pygame.Surface) -> None:
         """Draw a translucent marker at the tile under the build cursor."""
