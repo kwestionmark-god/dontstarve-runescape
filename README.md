@@ -511,33 +511,44 @@ research notes (`tmp/LIVE-ISSUES.md` and `tmp/exploration-log.md`).
 
 ### Still live
 
-- 🟡 **[crafting] Foraging recipes grant woodcutting XP.** `crafting_system.py:330`
-  defaults to `"woodcutting"` when a recipe's `skill_affects_yield` is `None`; the
-  general-crafting recipes in `data/recipes.json` are all `None`, so foraging
-  (e.g. grass_rope, paper) awards woodcutting XP.
+The items below were re-verified against live code on 2026-08-25. Anything fixed this
+cycle was moved to [Fixed this cycle](#fixed-this-cycle); only the genuinely-unresolved
+items remain here.
+
 - 🟡 **[seasons] Weather multipliers are rolled but never applied.** `weather_system.py`
   `get_effects()` (movement/visibility/outdoor-crafting/spawn multipliers) is only
   consumed by the test suite. Weather cycles and drives particles + the HUD icon,
-  but no gameplay system applies the multipliers.
-- 🟡 **[seasons] Seasonal resources can be permanently unobtainable.** `resource_placer.py`
-  gates seasonal resources at generation time and the world is generated once at
-  spring (`season_system.py:59`), so resources whose `seasons_available` excludes
-  spring (`mithril_vein`, `star_metal`, `dragonbone`, …) never spawn.
-- 🟡 **[combat] Loot is silently dropped when the inventory is full.** `combat_system.py`
-  ignores `Inventory.add_item`'s return on kill (`_monster_died`), so dropped items
-  vanish with no message — same class for crafted output (`crafting_system.py:417`).
-- 🟡 **[save] Merchant stock is restored by array index, ignoring `trade_item_id`.**
-  `core/save_system.py` maps saved slots onto a merchant's inventory by position
-  (:320), so a changed item order sends stock to the wrong slots.
-- 🟡 **[render] HUD is drawn before gameplay sprites.** `core/game.py` renders the HUD
-  after the player but before monsters/NPCs/structures/particles, so it is painted
-  over; it should render last.
-- 🟡 **[seasons] Seasonal renderer covers only 3 of 6 biomes** — mountains/coastal/swamp
-  never shift by season (`render/seasonal_renderer.py:14`).
-- 🟡 **[cooking] Cooking skill math is never applied.** `skills/cooking/cooking.py` methods
-  have no callers (see [Known limitations](#known-limitations)).
+  but no gameplay system applies the multipliers. (Deferred — author decision; see
+  `tmp/LIVE-ISSUES.md` #15.)
+- 🟡 **[cooking] Cooking skill math is never applied.** `skills/cooking/cooking.py` is
+  instantiated (`core/bootstrap.py:229`) but none of its math methods
+  (`calculate_nutrition`, `get_spoilage_modifier`, `get_success_rate_bonus`, …) have
+  callers (see [Known limitations](#known-limitations)).
 - 🟡 **`reset_special` doesn't restore the `ranged` attack-range mutation** — permanent
-  ~95px attack-range drift on ranged monsters (`monster.py:303`).
+  ~95px attack-range drift on ranged monsters (`monster.py:303`). `reset_special` is
+  wired (`monster.py:243`) but does not restore the ranged mutation.
+
+### Fixed this cycle (2026-08-25)
+
+Re-verified against live code; fixed as noted. Retained here for history — see
+`tmp/LIVE-ISSUES.md` for the full, actively-maintained ledger.
+
+- 🟢 **[seasons] Seasonal resources can be permanently unobtainable** (#1). — **RESOLVED**
+  `world_gen.generate()` now registers a one-time `on_season_changed` callback that
+  re-runs `ResourcePlacer.place()` additively on season change. `26a4eae`.
+- 🟢 **[crafting] Foraging recipes grant woodcutting XP** (#7). — **RESOLVED**
+  `craft()` now routes generic-craft XP to the recipe's processing-chain skill instead
+  of hard-defaulting to `woodcutting`. `7332d5c`.
+- 🟢 **[combat] Loot is silently dropped when the inventory is full** (#2). — **RESOLVED**
+  `_monster_died` checks `add_item(...)` and reports "Inventory full — some loot was lost."
+  `7332d5c`.
+- 🟢 **[save] Merchant stock restored by array index** (#3). — **RESOLVED**
+  `_restore_merchant_stock` matches slots on `trade_item_id` rather than position. `70d9ce6`.
+- 🟢 **[render] HUD drawn before gameplay sprites** (#5). — **RESOLVED**
+  `core/game.py` now renders `self.hud.render(screen)` last. `c7ba09e`.
+- 🟢 **[seasons] Seasonal renderer covers only 3 of 6 biomes** — **RESOLVED** in live code:
+  all six biomes (`forest, plains, desert, mountains, coastal, swamp`) now have full
+  4-season palettes (`render/seasonal_renderer.py`).
 
 ### Resolved (historical)
 
