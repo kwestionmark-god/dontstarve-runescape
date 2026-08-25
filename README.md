@@ -506,8 +506,9 @@ structures, world). Trees and depletable resources support
 The following are curated from the subsystem documentation pass. Severity is
 the documentation author's assessment; "confirmed" means the code path was
 traced. Each cites `file:line`. Already-fixed items are retained for history.
-A fuller, actively-maintained ledger of live and resolved findings lives in the
-research notes (`tmp/LIVE-ISSUES.md` and `tmp/exploration-log.md`).
+A fuller, actively-maintained ledger of live and resolved findings lives in
+`tmp/LIVE-ISSUES.md` (the per-subsystem exploration traces have been
+consolidated into it and `tmp/README-draft.md`).
 
 ### Still live
 
