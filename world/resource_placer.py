@@ -48,17 +48,7 @@ class ResourcePlacer:
     # Clustering bonus: same-biome adjacent resources get a slight density boost
     CLUSTER_BONUS = 0.02
 
-    # Category multipliers — must cover all categories in resources.json
-    DEFAULT_CATEGORY_MULTIPLIERS: dict[str, dict[str, float]] = field(
-        default_factory=lambda: {
-            "spring": {"herbs": 1.2, "water": 1.1, "wood": 1.0, "stone": 1.0, "ore": 0.9, "special": 1.0},
-            "summer": {"herbs": 1.0, "water": 0.8, "wood": 1.1, "stone": 1.0, "ore": 1.0, "special": 1.0},
-            "autumn": {"herbs": 1.3, "water": 1.0, "wood": 0.9, "stone": 1.1, "ore": 1.0, "special": 1.0},
-            "winter": {"herbs": 0.5, "water": 0.6, "wood": 0.7, "stone": 1.0, "ore": 0.8, "special": 0.5},
-        },
-        repr=False,
-    )
-
+ 
     def place(self, tile_map: TileMap) -> None:
         """
         Place all resource nodes on the tile map.
@@ -135,37 +125,6 @@ class ResourcePlacer:
             return self.season_system.is_resource_available(resource.resource_id)
         except Exception:
             return True
-
-    def _compute_density(
-        self, resource: ResourceNode, tile: object, biome_id: str,
-    ) -> float:
-        """
-        Compute the effective placement density for a resource on a tile.
-
-        Density = base effective_density × seasonal_multiplier × clustering_bonus
-
-        Args:
-            resource: The ResourceNode being considered.
-            tile: The Tile being considered for placement.
-            biome_id: The biome ID of the tile.
-
-        Returns:
-            Adjusted density (0.0–1.0+).
-        """
-        density = resource.effective_density
-
-        # Seasonal multiplier
-        if self.season_system is not None:
-            try:
-                density *= self.season_system.get_resource_multiplier(resource.category)
-            except Exception:
-                pass
-
-        # Clustering bonus: if an adjacent tile already has this same resource,
-        # add a small density boost to encourage natural clusters.
-        density += self._get_clustering_bonus(tile, resource.resource_id)
-
-        return density
 
     def _get_clustering_bonus(
         self, tile: object, resource_id: str, tile_map: "TileMap",
