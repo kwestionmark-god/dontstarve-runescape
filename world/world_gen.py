@@ -56,11 +56,53 @@ def generate(seed: int, biome_registry: BiomeRegistry, season_system: object | N
     moisture_map = _generate_moisture_map(seed)
     tile_map = _build_tile_grid(elevation_map, moisture_map, biome_registry)
     ResourcePlacer(rng=random.Random(seed), season_system=season_system).place(tile_map)
+    # Seasonal gating would otherwise leave in-season-only resources unplaced:
+    # the world is generated once in spring, so winter/summer/autumn resources
+    # are excluded at placement time and never appear. Re-run placement on each
+    # season rollover so newly-in-season resources are added (existing nodes are
+    # preserved), then let the spawn-point search ignore the extra resources.
+    _wire_seasonal_replacement(tile_map, seed, season_system)
     spawn_x, spawn_y = _find_spawn_point(tile_map, seed)
     tile_map.spawn_x = spawn_x
     tile_map.spawn_y = spawn_y
 
     return tile_map
+
+
+def _wire_seasonal_replacement(
+    tile_map: "TileMap", seed: int, season_system: object | None
+) -> None:
+    """Re-run resource placement when the season changes.
+
+    The world is generated once in spring, at which point ``ResourcePlacer``
+    only places resources available that season. Season-gated resources
+    (e.g. winter's mithril_vein/ghost_iron_deposit/star_metal/ancient_rune,
+    summer's celestial_crystal/amber_deposit, autumn+winter's dragonbone/
+    void_essence) would otherwise never be placed and be permanently
+    unobtainable. Re-running placement on each season rollover ADDS the
+    newly-in-season resources onto the existing map; already-placed nodes are
+    preserved, so the original spring-inclusive set (void_crystal, silk_nest,
+    elder_wood, obsidian_vein) stays reachable.
+
+    Args:
+        tile_map: The generated map to place onto.
+        seed: Deterministic seed for the re-placement RNG.
+        season_system: Optional SeasonSystem; the callback is a no-op if absent.
+    """
+    if season_system is None or getattr(season_system, "_resource_placer_wired", False):
+        return
+    season_system._resource_placer_wired = True
+
+    def _replace_on_season_change(_new_season: str, _previous_season: str) -> None:
+        try:
+            ResourcePlacer(
+                rng=random.Random(seed), season_system=season_system
+            ).place(tile_map)
+        except Exception:
+            # A failed placement must not disrupt the season cycle.
+            return
+
+    season_system.on_season_changed(_replace_on_season_change)
 
 
 def _generate_elevation_map(seed: int) -> list[list[float]]:
