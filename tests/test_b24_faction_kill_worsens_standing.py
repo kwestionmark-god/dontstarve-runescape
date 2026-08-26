@@ -1,10 +1,11 @@
 """
-tests/test_b24_faction_kill_improves_standing.py — LIVE-ISSUES #8.
+tests/test_b24_faction_kill_worsens_standing.py — LIVE-ISSUES #8 (corrected polarity).
 
-Killing a faction-associated monster must IMPROVE relations with that faction.
-These monsters respawn, so hunting them removes a rival/threat the faction also
-deals with; defeating them improves standing (and the on-screen feedback), rather
-than worsening it.
+Killing a faction-associated monster must WORSEN relations with that faction.
+Associated types (via hostile_monster_types → get_faction_for_monster) are
+treated as faction-linked; killing them is a hostile act. Improving standing
+for wild kills in territory is a separate future path and is not implemented
+here.
 """
 
 import unittest
@@ -52,7 +53,7 @@ class TestFactionKillStanding(unittest.TestCase):
         self.assertEqual(combat.faction_system.get_faction_for_monster("goblin"), "goblins")
         self.assertIsNone(combat.faction_system.get_faction_for_monster("rabbit"))
 
-    def test_killing_faction_monster_improves_standing(self):
+    def test_killing_faction_monster_worsens_standing(self):
         combat, _, notifications = self._build()
         self.assertAlmostEqual(combat.faction_system.get_standing("goblins"), 0.5)
 
@@ -61,11 +62,11 @@ class TestFactionKillStanding(unittest.TestCase):
         combat.selected_target = monster
         combat._monster_died(monster)
 
-        # Defeating the monster improves relations above neutral.
-        self.assertGreater(combat.faction_system.get_standing("goblins"), 0.5)
-        # Positive, on-screen feedback that names the faction.
+        # Defeating an associated monster worsens relations below neutral.
+        self.assertLess(combat.faction_system.get_standing("goblins"), 0.5)
+        # Negative, on-screen feedback that names the faction.
         msgs = [m for m, _ in notifications]
-        self.assertTrue(any("improved relations" in m.lower() for m in msgs), msgs)
+        self.assertTrue(any("worsened relations" in m.lower() for m in msgs), msgs)
         self.assertTrue(any("goblins" in m.lower() for m in msgs), msgs)
 
     def test_killing_non_faction_monster_untouched(self):
