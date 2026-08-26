@@ -41,6 +41,10 @@ class InputRouter:
             self._handle_mouse_move(game, event.pos[0], event.pos[1])
         elif event.type == pygame.MOUSEBUTTONDOWN:
             self._handle_mouse_button_down(game, event)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self._handle_mouse_up(game)
+        elif event.type == pygame.MOUSEWHEEL:
+            self._handle_wheel(game, event)
 
     def _handle_keydown(
         self,
@@ -432,12 +436,6 @@ class InputRouter:
             game._build_cursor = (mx, my)
 
     def _handle_mouse_button_down(self, game: "Game", event) -> None:
-        # Scroll wheel
-        if event.button in (4, 5):
-            direction = 1 if event.button == 5 else -1
-            self._handle_scroll(game, event, direction)
-            return
-
         # Placement mode (a PLAYING sub-state) takes precedence: left-click
         # places the pending structure (hotbar clicks still use items),
         # right-click cancels.
@@ -520,30 +518,28 @@ class InputRouter:
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "gear", result)
 
-    def _handle_scroll(self, game: "Game", event, direction: int) -> None:
-        if game.state == GameState.INVENTORY_OPEN and game._inventory_panel is not None:
-            game._inventory_panel._scroll_offset = max(
-                0, game._inventory_panel._scroll_offset + direction
-            )
-        elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
-            game._crafting_panel._scroll_offset = max(
-                0, game._crafting_panel._scroll_offset + direction
-            )
-        elif game.state == GameState.TRADE_PANEL and game._trade_panel is not None:
-            game._trade_panel._scroll_offset = max(
-                0, game._trade_panel._scroll_offset + direction
-            )
-        elif game.state == GameState.QUEST_PANEL and game._quest_panel is not None:
-            game._quest_panel._scroll_offset = max(
-                0, game._quest_panel._scroll_offset + direction
-            )
-        elif game.state == GameState.RECRUIT_PANEL and game._recruit_panel is not None:
-            if direction < 0 and game._recruit_panel._scroll_offset > 0:
-                game._recruit_panel._scroll_offset += direction
-            elif direction > 0:
-                game._recruit_panel._scroll_offset += direction
-        elif game.state == GameState.DIPLOMACY_PANEL and game._diplomacy_panel is not None:
-            pass
+    def _handle_wheel(self, game: "Game", event) -> None:
+        """
+        Mouse-wheel delivery.
+
+        While a panel is open the panel owns the wheel: the delta is delivered
+        to it (clamped by the base) and the pending camera-zoom one-shots are
+        cancelled. When no panel is open the wheel zooms the camera via the
+        zoom_in/zoom_out flags the InputManager set for this event.
+        """
+        active_panel = self._get_active_panel(game)
+        if active_panel is not None and hasattr(active_panel, "handle_wheel"):
+            active_panel.handle_wheel(event.y)
+            if self._input_manager is not None:
+                st = self._input_manager.input_state
+                st.zoom_in = False
+                st.zoom_out = False
+
+    def _handle_mouse_up(self, game: "Game") -> None:
+        """Forward mouse-button-up to the active panel (ends a scrollbar drag)."""
+        active_panel = self._get_active_panel(game)
+        if active_panel is not None and hasattr(active_panel, "handle_mouse_up"):
+            active_panel.handle_mouse_up()
 
     def _get_active_panel(self, game: "Game") -> object | None:
         panel_map = {

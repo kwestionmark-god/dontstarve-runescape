@@ -45,6 +45,11 @@ class _FontRegistry:
         return font
 
 
+# Sentinel returned by _scrollbar_hit when the click lands on the thumb
+# (as opposed to an int page-delta for a track click).
+SCROLLBAR_DRAG = object()
+
+
 class PanelWindow:
     """
     Bounded, scrollable, keyboard-navigable panel window.
@@ -156,6 +161,11 @@ class PanelWindow:
         self._hovered: str = ""
         self._scroll_offset: int = 0
         self._selected_index: int = -1
+        # Scrollbar interaction (Phase 2)
+        self._thumb_rect: Optional[Rect] = None
+        self._scrollbar_dragging: bool = False
+        self._drag_start_y: int = 0
+        self._drag_start_offset: int = 0
         # Cache of interactive (Rect, payload) tuples built during draw_contents
         self._interactive_rects: list = []
 
@@ -342,7 +352,13 @@ class PanelWindow:
             if _rect.collidepoint(mx, my):
                 self._hovered = "content"
                 break
+        if self._scrollbar_dragging:
+            self._drag_scrollbar(my)
         self.on_mouse_move(mx, my)
+
+    def handle_mouse_up(self) -> None:
+        """End a scrollbar drag. Called by the router on MOUSEBUTTONUP."""
+        self._scrollbar_dragging = False
 
     def handle_key(self, key: int) -> Optional[tuple]:
         """
@@ -377,21 +393,63 @@ class PanelWindow:
         """
         if self.show_close and self._close_rect.collidepoint(x, y):
             return ("close",)
-        page = self._scrollbar_hit(x, y)
-        if page is not None:
-            self.scroll_by(page)
+        hit = self._scrollbar_hit(x, y)
+        if hit is SCROLLBAR_DRAG:
+            self._start_scroll_drag(y)
+            return None
+        if isinstance(hit, int):
+            self.scroll_by(hit)
             return None
         return self.on_click(x, y, button)
 
-    # ── Scrollbar interaction (Phase 1: passive; Phase 2 makes it live) ──
+    # ── Scrollbar interaction (click-to-page + thumb drag) ───────────────
+    def _page_delta(self) -> int:
+        """Scroll one page — the number of visible units."""
+        visible, _ = self.scroll_viewport()
+        return max(1, visible)
+
     def _scrollbar_hit(self, x: int, y: int):
         """
-        Return a scroll delta for a scrollbar click/drag, else ``None``.
+        Classify a point against the scrollbar:
 
-        Phase 1 returns ``None`` (the thumb is drawn but not yet interactive);
-        Phase 2 populates ``thumb_rect`` and implements click-to-page / drag.
+        * ``SCROLLBAR_DRAG`` if it lands on the thumb;
+        * an int page delta for a click in the track above/below the thumb;
+        * ``None`` if it is outside the scrollbar strip.
         """
+        strip = self._scrollbar_strip
+        if strip is None:
+            return None
+        if not (strip.x <= x <= strip.x + strip.width
+                and strip.y <= y <= strip.y + strip.height):
+            return None
+        thumb = self._thumb_rect
+        if thumb is not None and thumb.x <= x <= thumb.x + thumb.width \
+                and thumb.y <= y <= thumb.y + thumb.height:
+            return SCROLLBAR_DRAG
+        if thumb is not None:
+            if y < thumb.y:
+                return -self._page_delta()
+            if y > thumb.y + thumb.height:
+                return self._page_delta()
         return None
+
+    def _start_scroll_drag(self, y: int) -> None:
+        """Begin dragging the thumb from the given screen-y."""
+        self._scrollbar_dragging = True
+        self._drag_start_y = y
+        self._drag_start_offset = self._scroll_offset
+
+    def _drag_scrollbar(self, y: int) -> None:
+        """Reposition the offset from the thumb's vertical position."""
+        strip = self._scrollbar_strip
+        thumb = self._thumb_rect
+        if strip is None or thumb is None:
+            return
+        travel = strip.height - thumb.height
+        if travel <= 0:
+            return
+        frac = max(0.0, min(1.0, (y - strip.y) / travel))
+        self._scroll_offset = self._clamp_offset(round(frac * self.max_offset))
 
     # ── Panel hooks (defaults: no-op) ────────────────────────────────────
     def draw_contents(self, screen: Surface, content_rect: Rect) -> None:
@@ -473,10 +531,8 @@ class PanelWindow:
 
     def _draw_scrollbar(self, screen: Surface) -> None:
         """
-        Draw the scrollbar background and a thumb sized by the visible ratio.
-
-        Phase 1 only: the thumb is decorative. Phase 2 stores ``thumb_rect``
-        and makes click-to-page / drag work.
+        Draw the scrollbar background and a thumb sized/positioned by the
+        visible/total ratio, remembering ``thumb_rect`` for click/drag hits.
         """
         strip = self._scrollbar_strip
         if strip is None:
@@ -490,5 +546,5 @@ class PanelWindow:
         max_offset = self.max_offset
         thumb_ratio = self._scroll_offset / max_offset if max_offset > 0 else 0
         thumb_y = strip.y + int(thumb_ratio * (strip.height - thumb_h))
-        pygame.draw.rect(screen, self.SCROLLBAR_THUMB,
-                         (strip.x, thumb_y, strip.width, thumb_h))
+        self._thumb_rect = pygame.Rect(strip.x, thumb_y, strip.width, thumb_h)
+        pygame.draw.rect(screen, self.SCROLLBAR_THUMB, self._thumb_rect)
