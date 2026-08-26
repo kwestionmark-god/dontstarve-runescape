@@ -52,14 +52,18 @@ plan so it isn't an accident.
 
 ## 3. Decision log
 
-- **#8 (resolved):** defeating a faction-associated monster **improves** relations. Monsters
-  respawn, so hunting them removes a rival/threat the faction also deals with.
-  Implemented in `combat/combat_system.py::_monster_died` (`update_standing(faction, 0.1)` +
-  "improved relations" message). Test: `tests/test_b24_faction_kill_improves_standing.py`.
-- **Caveat (the "criminal" rule):** `hostile_monster_types` is ambiguous by name. It
-  currently doubles as the tamable/associate set. If we introduce *explicitly
-  faction-owned* monsters, those should be the **exception**: killing one worsens relations.
-  Track ownership explicitly so the two concepts don't collide. See Phase 3.
+- **#8 (corrected):** defeating a faction-associated monster **worsens** relations.
+  Associated types (via `hostile_monster_types` → `get_faction_for_monster`) are treated
+  as faction-linked; killing them is a hostile act. Implemented in
+  `combat/combat_system.py::_monster_died` (`update_standing(faction, -0.10)` +
+  "worsened relations" message). Test:
+  `tests/test_b24_faction_kill_worsens_standing.py`.
+  (Earlier commit b7c7113 inverted this to improve; that polarity was wrong for
+  owned/associated semantics and has been restored.)
+- **Caveat / future path:** improving relations for *wild* kills inside faction territory
+  is a separate idea and is **not** implemented yet (no territory check on kill). When
+  explicit `faction_owned` flags land, those also worsen standing — same baseline as the
+  current associated map, just more explicit. See Phase 3.
 
 ---
 
@@ -117,11 +121,12 @@ Objective: make ownership legible at a glance — a **cosmetic** change first.
 - Sprite/paint overlay: tint or draw a small faction glyph on faction-owned monsters
   (`faction_owned: true`). Keep it additive over existing monster rendering — don't touch the
   base sprite.
-- Keep the kill-relationship rule: owning faction kills **worsen** standing (opposite of the
-  #8 baseline). Route this through the same `_monster_died` branch, keyed on
-  `faction_owned` so it's explicit and future-proof.
-- Acceptance: owned monsters show the marker; killing one decreases standing; a tamable,
-  non-owned associate still increases standing.
+- Kill-relationship rule: owned (and current associated) kills **worsen** standing. Route
+  explicit `faction_owned` through the same `_monster_died` branch so the rule is keyed
+  on the flag rather than only the type map.
+- Optional later: *wild* kills inside faction territory could *improve* standing — that is
+  a distinct check (territory + non-owned) and is not part of this phase.
+- Acceptance: owned monsters show the marker; killing one decreases standing.
 - Tests: render-path assertion (marker present) + `_monster_died` standing assertion.
 
 ### Phase 4 — Integration & persistence
