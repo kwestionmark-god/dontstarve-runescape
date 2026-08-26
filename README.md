@@ -525,9 +525,7 @@ items remain here.
   instantiated (`core/bootstrap.py:229`) but none of its math methods
   (`calculate_nutrition`, `get_spoilage_modifier`, `get_success_rate_bonus`, …) have
   callers (see [Known limitations](#known-limitations)).
-- 🟡 **`reset_special` doesn't restore the `ranged` attack-range mutation** — permanent
-  ~95px attack-range drift on ranged monsters (`monster.py:303`). `reset_special` is
-  wired (`monster.py:243`) but does not restore the ranged mutation.
+  Available to wire up — see `tmp/IMPLEMENTATION-PLAN.md` §P1.
 
 ### Fixed this cycle (2026-08-25)
 
