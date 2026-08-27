@@ -1,8 +1,9 @@
 """
-skill_panel.py — Skill list + stat allocation UI.
+skill_panel.py — Skill list + stat allocation UI (PanelWindow subclass).
 
-Shows all 3 active skills, their levels, XP progress, and unspent stat points.
-Allows stat allocation via click buttons.
+Shows all skills with XP progress and stat allocation.
+Subclasses PanelWindow for unified chrome, viewport clipping, scrollbar,
+keyboard navigation with visible selection, and mouse-wheel scrolling.
 """
 
 from __future__ import annotations
@@ -10,39 +11,20 @@ from __future__ import annotations
 import pygame
 from typing import TYPE_CHECKING
 
+from ui.panel_window import PanelWindow
+
 if TYPE_CHECKING:
     from typing import Dict, List, Optional
 
     from skills.skill_manager import SkillManager
 
 
-class SkillPanel:
+class SkillPanel(PanelWindow):
     """
     Skill panel: Shows all skills with XP progress and stat allocation.
-
-    Layout:
-    ┌──────────────────────────────────────────────┐
-    │  ┌─ Woodcutting ─────────────────────────┐   │
-    │  │ Level: 5    XP: 1,250 / 3,347        │   │
-    │  │ Progress: ████████░░░░░░░░░░░░░░ 37% │   │
-    │  │ Unspent Points: 15                    │   │
-    │  │  Success Rate: [████░░] 3 pts [ + ]  │   │
-    │  │  Harvest Boost: [██░░░░] 2 pts [ + ] │   │
-    │  │  Stamina: [██████░░░░] 5 pts [ + ]   │   │
-    │  └───────────────────────────────────────┘   │
-    │  Wildcard Points: 0    [ESC/Tab to close]    │
-    └──────────────────────────────────────────────┘
     """
 
-    PANEL_X = 150
-    PANEL_Y = 50
-    PANEL_WIDTH = 500
-    CARD_HEIGHT = 120
-    CARD_GAP = 10
-
-    BG_COLOR = (30, 30, 40)
-    BORDER_COLOR = (100, 100, 120)
-    CARD_BG = (40, 40, 50)
+    # Color palette (shared with base where possible)
     PROGRESS_COLOR = (100, 180, 100)
     BUTTON_COLOR = (80, 120, 80)
     BUTTON_HOVER = (100, 150, 100)
@@ -61,35 +43,42 @@ class SkillPanel:
     WILD_CARD_ACTIVE = (180, 180, 120)
 
     def __init__(self) -> None:
+        super().__init__(
+            title="Skills",
+            x=150,
+            y=50,
+            width=500,
+            height=580,
+            title_height=26,
+            footer_height=22,
+            has_scrollbar=True,
+            show_close=True,
+            selection_mode="list",
+            row_gap=4,
+        )
         self.skill_manager: "SkillManager | None" = None
-        self.font_small = pygame.font.SysFont("monospace", 11)
-        self.font = pygame.font.SysFont("monospace", 13)
-        self.font_bold = pygame.font.SysFont("monospace", 14, bold=True)
-        self.visible = False
-        self._button_rects: List[tuple[pygame.Rect, str, str]] = []
-        self._skill_buttons: List[tuple[pygame.Rect, str, str, bool]] = []  # (rect, label, sub_stat, is_minus)
-        self._hovered_btn: str = ""
-        self._use_wildcard: bool = False  # Toggle for wildcard allocation
-        self._selected_skill_row: int = -1
+        self._use_wildcard: bool = False
+        # Runtime button rects: (rect, skill_id, sub_stat, is_minus)
+        self._skill_buttons: list[tuple[pygame.Rect, str, str, bool]] = []
 
     def set_skill_manager(self, skill_manager: "SkillManager") -> None:
         """Set the skill manager reference."""
         self.skill_manager = skill_manager
 
-    def handle_mouse_move(self, mx: int, my: int) -> None:
-        """Track which button the mouse is hovering over and sync selection."""
-        self._hovered_btn = ""
-        # Use _skill_buttons if populated, fall back to _button_rects for compatibility
-        buttons = self._skill_buttons if self._skill_buttons else self._button_rects
-        for i, item in enumerate(buttons):
-            rect = item[0]
-            if rect.collidepoint(mx, my):
-                label = item[1]
-                self._hovered_btn = label
-                if len(item) == 4:
-                    self._selected_skill_row = i
-                return
-        # Don't reset selection when not hovering
+    def scroll_viewport(self):
+        """Return (visible_px, total_px) for scrollbar sizing."""
+        visible = max(1, self.content_rect.height)
+        total = max(visible, self._content_total_px)
+        return visible, total
+
+    def select_count(self) -> int:
+        """Number of selectable items (all buttons across all skills)."""
+        return len(self._skill_buttons)
+
+    def on_select(self, index: int) -> None:
+        """Highlight the selected button."""
+        # Base draws selection highlight via draw_selected_row; we just track index.
+        pass
 
     def _format_xp(self, xp: float) -> str:
         """Format XP with commas."""
@@ -135,37 +124,21 @@ class SkillPanel:
         # Draw border
         pygame.draw.rect(screen, (100, 100, 120), (x, y, width, height), 1)
 
-    def render(self, screen: pygame.Surface) -> None:
-        """
-        Render the skill panel.
+    # ── PanelWindow hooks ────────────────────────────────────────────────
 
-        Args:
-            screen: The display surface.
-        """
-        if not self.visible or self.skill_manager is None:
+    def draw_contents(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
+        """Draw skill cards inside the clipped viewport."""
+        self._interactive_rects.clear()
+        self._skill_buttons.clear()
+
+        if self.skill_manager is None:
+            self._content_total_px = 0
             return
 
         snapshot = self.skill_manager.get_snapshot()
-        self._button_rects = []
-        self._skill_buttons = []
-
-        panel_x = self.PANEL_X
-        panel_y = self.PANEL_Y
-
-        # Panel background (tall enough for all 6 skills)
-        panel_full_height = 500
-        pygame.draw.rect(screen, self.BG_COLOR, (panel_x, panel_y, self.PANEL_WIDTH, panel_full_height))
-        pygame.draw.rect(screen, self.BORDER_COLOR, (panel_x, panel_y, self.PANEL_WIDTH, panel_full_height), 2)
-
-        # Create clipping rect for panel content to prevent overflow
-        panel_clip = pygame.Rect(panel_x, panel_y, self.PANEL_WIDTH, panel_full_height)
-
-        # Title
-        title = self.font_bold.render("Skills", True, (200, 200, 220))
-        title_x = panel_x + (self.PANEL_WIDTH - title.get_width()) // 2
-        screen.blit(title, (title_x, panel_y + 8))
-
-        y_offset = panel_y + 35
+        left = content_rect.x + 10
+        gap = self.row_gap
+        y = content_rect.y + self._scroll_offset
 
         for skill_id, data in snapshot.items():
             level = data["level"]
@@ -178,21 +151,21 @@ class SkillPanel:
             name = skill_id.replace("_", " ").title()
             header = f"{name} (Lvl {level})"
             header_surf = self.font_bold.render(header, True, (200, 180, 120))
-            screen.blit(header_surf, (panel_x + 10, y_offset))
+            screen.blit(header_surf, (left, y))
 
             # XP progress
             xp_str = f"{self._format_xp(xp)}"
             next_xp = self.skill_manager.get_xp_for_level(level + 1) if level < 99 else None
             if next_xp is not None:
                 xp_str += f" / {self._format_xp(next_xp)}"
-            xp_surf = self.font.render(xp_str, True, (180, 180, 200))
-            screen.blit(xp_surf, (panel_x + 180, y_offset))
+            xp_surf = self.font_normal.render(xp_str, True, (180, 180, 200))
+            screen.blit(xp_surf, (left + 170, y))
 
             # Progress bar
             bar_w = 200
             bar_h = 8
-            bar_x = panel_x + 10
-            bar_y = y_offset + 22
+            bar_x = left
+            bar_y = y + 22
             self._draw_progress_bar(screen, bar_x, bar_y, bar_w, bar_h, xp_progress)
 
             # Progress text
@@ -203,13 +176,13 @@ class SkillPanel:
 
             # Unspent points
             pts_str = f"Points: {stat_points}"
-            pts_surf = self.font.render(pts_str, True, (150, 150, 170))
-            pts_x = panel_x + 10
-            pts_y = y_offset + 40
+            pts_surf = self.font_normal.render(pts_str, True, (150, 150, 170))
+            pts_x = left
+            pts_y = y + 40
             screen.blit(pts_surf, (pts_x, pts_y))
 
             # Sub-stat bars and allocate buttons
-            sy = y_offset + 55
+            sy = y + 55
             if skill_id == "intelligence":
                 # ── Intelligence-specific rendering ──
                 sub_stat_colors = {
@@ -254,47 +227,47 @@ class SkillPanel:
                     # Impact text — truncate to fit panel width
                     impact_text = impact_map.get(sub_stat, "")
                     if impact_text:
-                        max_chars = max(1, (panel_clip.width - pts_x - 10) // max(1, self.font_small.size("A")[0]))
+                        max_chars = max(1, (content_rect.width - pts_x - 10) // max(1, self.font_small.size("A")[0]))
                         if len(impact_text) > max_chars:
                             impact_text = impact_text[:max_chars - 1] + "…"
                         impact_surf = self.font_small.render(impact_text, True, (160, 160, 180))
                         screen.blit(impact_surf, (pts_x, bar_y + bar_h + 2))
 
                     # Plus and Minus buttons side by side
-                    plus_btn_x = panel_x + self.PANEL_WIDTH - 50
+                    plus_btn_x = content_rect.x + content_rect.width - 50
                     minus_btn_x = plus_btn_x - btn_w - 2
                     btn_y = sy - 2
 
                     # Plus button
                     plus_rect = pygame.Rect(plus_btn_x, btn_y, btn_w, btn_h)
-                    is_hovered = self._hovered_btn == f"{skill_id}_{sub_stat}_plus"
-                    plus_color = self.BUTTON_HOVER if is_hovered else self.BUTTON_COLOR
+                    is_selected = self._is_button_selected(skill_id, sub_stat, False)
+                    plus_color = self.BUTTON_HOVER if is_selected else self.BUTTON_COLOR
                     pygame.draw.rect(screen, plus_color, plus_rect)
-                    pygame.draw.rect(screen, self.BORDER_COLOR, plus_rect, 1)
+                    pygame.draw.rect(screen, self.COLOR_BORDER, plus_rect, 1)
                     plus_text = self.font_small.render("+", True, (255, 255, 255))
                     pt_x = plus_btn_x + (btn_w - plus_text.get_width()) // 2
                     pt_y = btn_y + (btn_h - plus_text.get_height()) // 2
                     screen.blit(plus_text, (pt_x, pt_y))
-                    self._button_rects.append((plus_rect, skill_id, sub_stat))
+                    self._interactive_rects.append((plus_rect, f"{skill_id}:{sub_stat}:1"))
                     self._skill_buttons.append((plus_rect, skill_id, sub_stat, False))
 
                     # Minus button
                     minus_rect = pygame.Rect(minus_btn_x, btn_y, btn_w, btn_h)
-                    is_minus_hovered = self._hovered_btn == f"{skill_id}_{sub_stat}_minus"
-                    minus_color = self.MINUS_BTN_HOVER if is_minus_hovered else self.MINUS_BTN_COLOR
+                    is_minus_selected = self._is_button_selected(skill_id, sub_stat, True)
+                    minus_color = self.MINUS_BTN_HOVER if is_minus_selected else self.MINUS_BTN_COLOR
                     pygame.draw.rect(screen, minus_color, minus_rect)
-                    pygame.draw.rect(screen, self.BORDER_COLOR, minus_rect, 1)
+                    pygame.draw.rect(screen, self.COLOR_BORDER, minus_rect, 1)
                     minus_text = self.font_small.render("\u2212", True, (255, 255, 255))
                     mt_x = minus_btn_x + (btn_w - minus_text.get_width()) // 2
                     mt_y = btn_y + (btn_h - minus_text.get_height()) // 2
                     screen.blit(minus_text, (mt_x, mt_y))
-                    self._button_rects.append((minus_rect, skill_id, f"_{sub_stat}"))
+                    self._interactive_rects.append((minus_rect, f"{skill_id}:{sub_stat}:-1"))
                     self._skill_buttons.append((minus_rect, skill_id, sub_stat, True))
 
                     sy += 48
 
                 # Wildcard toggle button and summary line
-                wc_btn_x = panel_x + 10
+                wc_btn_x = left
                 wc_btn_y = sy + 5
                 wc_btn_w = 50
                 wc_btn_h = 18
@@ -308,12 +281,12 @@ class SkillPanel:
                     screen.blit(glow_surf, glow_rect.topleft)
                     pygame.draw.rect(screen, (220, 220, 180), glow_rect, 1)
                 pygame.draw.rect(screen, wc_color, wc_rect)
-                pygame.draw.rect(screen, self.BORDER_COLOR, wc_rect, 1)
+                pygame.draw.rect(screen, self.COLOR_BORDER, wc_rect, 1)
                 wc_text = self.font_small.render("[WC]", True, (255, 255, 255))
                 wc_tx = wc_btn_x + (wc_btn_w - wc_text.get_width()) // 2
                 wc_ty = wc_btn_y + (wc_btn_h - wc_text.get_height()) // 2
                 screen.blit(wc_text, (wc_tx, wc_ty))
-                self._button_rects.append((wc_rect, "toggle_wildcard", ""))
+                self._interactive_rects.append((wc_rect, "toggle_wildcard"))
                 self._skill_buttons.append((wc_rect, "toggle_wildcard", "", False))
 
                 # Summary line: "Total: X / Y points"
@@ -331,104 +304,91 @@ class SkillPanel:
                     screen.blit(label_surf, (pts_x, sy))
 
                     # Allocate button
-                    btn_x = panel_x + self.PANEL_WIDTH - 50
+                    btn_x = content_rect.x + content_rect.width - 50
                     btn_y = sy - 2
                     btn_w = 35
                     btn_h = 14
                     btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
-                    self._button_rects.append((btn_rect, skill_id, sub_stat))
-                    self._skill_buttons.append((btn_rect, skill_id, sub_stat, False))
-                    color = self.BUTTON_COLOR if stat_points > 0 else (60, 60, 60)
+                    is_selected = self._is_button_selected(skill_id, sub_stat, False)
+                    color = self.BUTTON_HOVER if is_selected else (self.BUTTON_COLOR if stat_points > 0 else (60, 60, 60))
                     pygame.draw.rect(screen, color, btn_rect)
-                    pygame.draw.rect(screen, self.BORDER_COLOR, btn_rect, 1)
+                    pygame.draw.rect(screen, self.COLOR_BORDER, btn_rect, 1)
                     btn_text = self.font_small.render("+", True, (255, 255, 255))
                     btn_tx = btn_x + (btn_w - btn_text.get_width()) // 2
                     btn_ty = btn_y + (btn_h - btn_text.get_height()) // 2
                     screen.blit(btn_text, (btn_tx, btn_ty))
+                    self._interactive_rects.append((btn_rect, f"{skill_id}:{sub_stat}:1"))
+                    self._skill_buttons.append((btn_rect, skill_id, sub_stat, False))
 
                     sy += 16
 
-            y_offset += self.CARD_HEIGHT + self.CARD_GAP
+            y += 120 + gap  # CARD_HEIGHT + CARD_GAP
 
         # Wildcard points
         wc_str = f"Wildcard Points: {self.skill_manager.wildcard_points}"
-        wc_surf = self.font.render(wc_str, True, (200, 200, 150))
-        wc_x = panel_x + (self.PANEL_WIDTH - wc_surf.get_width()) // 2
-        wc_y = y_offset + 5
+        wc_surf = self.font_normal.render(wc_str, True, (200, 200, 150))
+        wc_x = content_rect.x + (content_rect.width - wc_surf.get_width()) // 2
+        wc_y = y + 5
         screen.blit(wc_surf, (wc_x, wc_y))
 
-        # Close hint
+        # Footer hint
         hint = self.font_small.render("Press ESC or Tab to close", True, (150, 150, 170))
-        hint_x = panel_x + (self.PANEL_WIDTH - hint.get_width()) // 2
-        hint_y = panel_y + panel_full_height - 20
+        hint_x = content_rect.x + (content_rect.width - hint.get_width()) // 2
+        hint_y = content_rect.y + content_rect.height - 20
         screen.blit(hint, (hint_x, hint_y))
 
-    def handle_key(self, key: int) -> tuple[str, ...] | None:
-        """
-        Keyboard navigation for the skill panel.
+        self._content_total_px = y - content_rect.y + 30
 
-        Arrow keys / WASD: navigate skill buttons
-        Enter: return (label, sub_stat, 1) for + button, (label, sub_stat, -1) for - button
-        + key: direct allocation (+1)
-        - key: direct deallocation (-1)
+    def _is_button_selected(self, skill_id: str, sub_stat: str, is_minus: bool) -> bool:
+        """Check if a specific button is the currently selected one."""
+        for i, (_, sid, sstat, iminus) in enumerate(self._skill_buttons):
+            if sid == skill_id and sstat == sub_stat and iminus == is_minus:
+                return i == self._selected_index
+        return False
 
-        Returns None for navigation only; action tuple on Enter or +/- keys.
-        """
-        if key in (pygame.K_w, pygame.K_UP):
-            self._selected_skill_row = max(-1, self._selected_skill_row - 1)
-        elif key in (pygame.K_s, pygame.K_DOWN):
-            self._selected_skill_row = min(len(self._skill_buttons) - 1, self._selected_skill_row + 1)
-        elif key in (pygame.K_a, pygame.K_LEFT):
-            self._selected_skill_row = max(-1, self._selected_skill_row - 1)
-        elif key in (pygame.K_d, pygame.K_RIGHT):
-            self._selected_skill_row = min(len(self._skill_buttons) - 1, self._selected_skill_row + 1)
-        elif key == pygame.K_RETURN:
-            if 0 <= self._selected_skill_row < len(self._skill_buttons):
-                _, label, sub_stat, is_minus = self._skill_buttons[self._selected_skill_row]
+    def on_key(self, key: int):
+        """Handle panel-specific keys: Enter to activate, +/- for direct alloc."""
+        if key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            if 0 <= self._selected_index < len(self._skill_buttons):
+                _, label, sub_stat, is_minus = self._skill_buttons[self._selected_index]
                 if label == "toggle_wildcard":
                     return ("toggle_wildcard",)
                 if is_minus:
                     return (label, sub_stat, -1)
                 return (label, sub_stat, 1)
         elif key == pygame.K_PLUS or key == pygame.K_KP_PLUS:
-            # Direct allocation on currently selected button
-            if 0 <= self._selected_skill_row < len(self._skill_buttons):
-                _, label, sub_stat, is_minus = self._skill_buttons[self._selected_skill_row]
+            if 0 <= self._selected_index < len(self._skill_buttons):
+                _, label, sub_stat, is_minus = self._skill_buttons[self._selected_index]
                 if label != "toggle_wildcard" and not is_minus:
                     return (label, sub_stat, 1)
         elif key == pygame.K_MINUS or key == pygame.K_KP_MINUS:
-            # Direct deallocation on currently selected button
-            if 0 <= self._selected_skill_row < len(self._skill_buttons):
-                _, label, sub_stat, is_minus = self._skill_buttons[self._selected_skill_row]
+            if 0 <= self._selected_index < len(self._skill_buttons):
+                _, label, sub_stat, is_minus = self._skill_buttons[self._selected_index]
                 if label != "toggle_wildcard" and is_minus:
                     return (label, sub_stat, -1)
         return None
 
-    def handle_click(self, x: int, y: int) -> tuple[str, ...] | None:
-        """
-        Handle a click on an allocate button.
-
-        Args:
-            x: Click X coordinate.
-            y: Click Y coordinate.
-
-        Returns:
-            Action tuple:
-                - ("toggle_wildcard",) for wildcard toggle click
-                - (skill_id, sub_stat, -1) for deallocation (minus button)
-                - (skill_id, sub_stat, 1) for allocation (plus button)
-                - None otherwise.
-        """
-        for btn_rect, label, sub_stat in self._button_rects:
-            if btn_rect.collidepoint(x, y):
-                # Wildcard toggle button
-                if label == "toggle_wildcard":
+    def on_click(self, x: int, y: int, button: int = 1):
+        """Handle clicks on skill buttons."""
+        for rect, payload in self._interactive_rects:
+            if rect.collidepoint(x, y):
+                if payload == "toggle_wildcard":
                     return ("toggle_wildcard",)
-
-                # Minus button: sub_stat starts with underscore
-                if sub_stat.startswith("_"):
-                    return (label, sub_stat[1:], -1)
-
-                # Plus button
-                return (label, sub_stat, 1)
+                # Parse payload: "skill_id:sub_stat:delta"
+                try:
+                    skill_id, sub_stat, delta_str = payload.split(":")
+                    delta = int(delta_str)
+                    return (skill_id, sub_stat, delta)
+                except ValueError:
+                    pass
         return None
+
+    def on_mouse_move(self, mx: int, my: int) -> None:
+        """Sync selection index on hover over buttons."""
+        # Base already tracks hover; we just sync selection for visual feedback
+        for i, (rect, _payload) in enumerate(self._interactive_rects):
+            if rect.collidepoint(mx, my):
+                self.select(i)
+                return
+        # Not hovering over any button: clear selection
+        self.select(-1)

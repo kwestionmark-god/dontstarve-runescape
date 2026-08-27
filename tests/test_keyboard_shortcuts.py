@@ -265,12 +265,14 @@ class TestPanelKeyboardNavigation(unittest.TestCase):
     def test_inventory_panel_handle_key_returns_use_on_select(self) -> None:
         """InventoryPanel handle_key with Enter should return ('use', item_id) when item selected."""
         from ui.inventory_panel import InventoryPanel
-        panel = InventoryPanel()
-        # Simulate having an item rect
         import pygame
+        panel = InventoryPanel()
+        panel.visible = True
+        # Simulate having an item rect
         rect = pygame.Rect(0, 0, 48, 48)
         panel._item_rects = [(rect, "test_item")]
-        panel._selected_item_index = 0
+        panel._interactive_rects = [(rect, "item:test_item")]
+        panel._selected_index = 0
         result = panel.handle_key(pygame.K_RETURN)
         self.assertEqual(result, ("use", "test_item"))
 
@@ -388,8 +390,10 @@ class TestInventoryPanelClickButtons(unittest.TestCase):
         self.panel.visible = True
         self.item_rect = pygame.Rect(0, 30, 48, 48)
         self.panel._item_rects = [(self.item_rect, "iron_ore")]
+        self.panel._interactive_rects = [(self.item_rect, "item:iron_ore")]
         self.gear_rect = pygame.Rect(0, 0, 48, 28)
         self.panel._gear_slot_rects = [(self.gear_rect, "W")]
+        self.panel._interactive_rects.append((self.gear_rect, "gear:W"))
 
     def test_left_click_returns_use(self) -> None:
         """Left-click (button 1) on an item returns ('use', item_id)."""
@@ -450,7 +454,8 @@ class TestInventoryPanelKeyboardDrop(unittest.TestCase):
         self.panel.visible = True
         rect = pygame.Rect(0, 0, 48, 48)
         self.panel._item_rects = [(rect, "iron_ore")]
-        self.panel._selected_item_index = 0
+        self.panel._interactive_rects = [(rect, "item:iron_ore")]
+        self.panel._selected_index = 0
 
     def test_delete_returns_drop(self) -> None:
         """Delete key returns ('drop', item_id)."""

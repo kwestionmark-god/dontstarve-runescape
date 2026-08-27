@@ -217,11 +217,11 @@ class NPCFlows:
             self._close_recruit_panel()
 
     def handle_diplomacy_action(self, action) -> None:
-        """Handle diplomacy panel action tuples."""
+        """Handle diplomacy panel action tuples (single canonical path)."""
         game = self._game
 
         if action[0] == "negotiate":
-            self._execute_negotiation()
+            self.execute_negotiation()
         elif action[0] in ("cancel", "close"):
             self._close_diplomacy_panel()
 
@@ -285,7 +285,16 @@ class NPCFlows:
             )
 
     def execute_negotiation(self) -> None:
-        """Execute faction negotiation."""
+        """
+        Canonical faction negotiation — one path for both keyboard and mouse.
+
+        Applies the risked relationship delta (``faction_system.negotiate``)
+        and records quest progress (``quest_system.record_negotiation``). This
+        replaces the former double-fire, where a single Enter/Space triggered
+        both ``handle_faction_negotiate_keyboard`` and ``execute_negotiation``
+        (and where the mouse "Negotiate" button referenced a nonexistent
+        ``_execute_negotiation``).
+        """
         game = self._game
 
         if game.player is None or game.player.action_system is None:
@@ -293,10 +302,16 @@ class NPCFlows:
         if game._diplomacy_panel is None or game._diplomacy_panel._faction_info is None:
             return
         faction_id = game._diplomacy_panel._faction_info.faction_id
+        if game.faction_system is not None and game.player is not None:
+            result = game.faction_system.negotiate(game.player, faction_id)
+            if game.player.action_system is not None:
+                game.player.action_system.add_notification(
+                    result.get("message", "Negotiation attempted."),
+                    (100, 255, 100) if result.get("success") else (180, 100, 100),
+                )
         if game.quest_system is not None:
             game.quest_system.record_negotiation(faction_id)
-        game.player.action_system.add_notification(f"Diplomacy recorded for {faction_id}.", game.SUCCESS_COLOR)
-        self._close_diplomacy_panel()
+        self.close_diplomacy_panel()
 
     # ── Close methods (migrated from panel_dispatcher.py) ─────────────
 
@@ -436,25 +451,4 @@ class NPCFlows:
         # Close quest panel after keyboard accept
         if game._quest_panel is not None:
             game._quest_panel.visible = False
-            game.set_state(GameState.PLAYING)
-
-    def handle_faction_negotiate_keyboard(self) -> None:
-        """Handle Enter/Space in diplomacy panel: initiate negotiation."""
-        game = self._game
-
-        if game._diplomacy_panel is None or game._diplomacy_panel._faction_info is None:
-            return
-
-        if game.faction_system is not None and game.player is not None:
-            faction_id = game._diplomacy_panel._faction_info.faction_id
-            result = game.faction_system.negotiate(game.player, faction_id)
-            if game.player.action_system:
-                game.player.action_system.add_notification(
-                    result.message,
-                    (100, 255, 100) if result.success else (180, 100, 100),
-                )
-
-        # Close diplomacy panel after keyboard negotiation
-        if game._diplomacy_panel is not None:
-            game._diplomacy_panel.visible = False
             game.set_state(GameState.PLAYING)

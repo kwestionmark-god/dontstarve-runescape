@@ -29,15 +29,15 @@ class TestSkillPanelWildcardToggle(unittest.TestCase):
         self.assertFalse(panel._use_wildcard)
 
         # Simulate a click on the wildcard toggle button
-        # We need to populate _button_rects with a WC button first
+        # We need to populate _interactive_rects with a WC button first
         wc_rect = pygame.Rect(10, 10, 50, 18)
-        panel._button_rects.append((wc_rect, "toggle_wildcard", ""))
+        panel._interactive_rects.append((wc_rect, "toggle_wildcard"))
 
         result = panel.handle_click(35, 19)
         self.assertEqual(result, ("toggle_wildcard",))
         # handle_click doesn't toggle — game.py does the toggle
         # But we verify the button rect is correctly identified
-        self.assertTrue(panel._button_rects[0][0].collidepoint(35, 19))
+        self.assertTrue(panel._interactive_rects[0][0].collidepoint(35, 19))
 
         # Now test the actual toggle logic via the dispatcher
         from skills.skill_manager import SkillManager
@@ -167,36 +167,38 @@ class TestSkillPanelMouseMove(unittest.TestCase):
     """Test mouse move hover tracking on SkillPanel."""
 
     def test_handle_mouse_move_tracks_hover(self):
-        """Mouse move updates _hovered_btn correctly."""
+        """Mouse move updates selection correctly (via on_mouse_move)."""
         import pygame
         from ui.skill_panel import SkillPanel
 
         pygame.init()
         panel = SkillPanel()
 
-        # Create some button rects
-        rect1 = pygame.Rect(100, 50, 35, 14)
-        rect2 = pygame.Rect(100, 70, 35, 14)
-        panel._button_rects = [
-            (rect1, "woodcutting", "success_rate"),
-            (rect2, "mining", "success_rate"),
+        # Create some interactive rects (screen coordinates matching panel content area)
+        rect1 = pygame.Rect(360, 126, 35, 14)  # content_rect.x + 10, content_rect.y + 50
+        rect2 = pygame.Rect(360, 146, 35, 14)  # content_rect.y + 70
+        panel._interactive_rects = [
+            (rect1, "woodcutting:success_rate:1"),
+            (rect2, "mining:success_rate:1"),
+        ]
+        # Mock _skill_buttons for select_count() to return > 0
+        panel._skill_buttons = [
+            (rect1, "woodcutting", "success_rate", False),
+            (rect2, "mining", "success_rate", False),
         ]
 
-        # Initially no hover
-        panel.handle_mouse_move(0, 0)
-        self.assertEqual(panel._hovered_btn, "")
+        # Initially no selection
+        self.assertEqual(panel._selected_index, -1)
 
-        # Hover over first button
-        panel.handle_mouse_move(117, 57)
-        self.assertEqual(panel._hovered_btn, "woodcutting")
+        # on_mouse_move receives screen coordinates (content-relative in practice)
+        panel.on_mouse_move(370, 133)
+        self.assertEqual(panel._selected_index, 0)
 
-        # Hover over second button
-        panel.handle_mouse_move(117, 77)
-        self.assertEqual(panel._hovered_btn, "mining")
+        panel.on_mouse_move(370, 153)
+        self.assertEqual(panel._selected_index, 1)
 
-        # Hover outside buttons
-        panel.handle_mouse_move(50, 50)
-        self.assertEqual(panel._hovered_btn, "")
+        panel.on_mouse_move(100, 100)
+        self.assertEqual(panel._selected_index, -1)
 
         pygame.quit()
 
@@ -313,7 +315,7 @@ class TestSkillPanelHandleClick(unittest.TestCase):
         panel = SkillPanel()
 
         rect = pygame.Rect(100, 50, 35, 14)
-        panel._button_rects = [(rect, "intelligence", "commerce")]
+        panel._interactive_rects = [(rect, "intelligence:commerce:1")]
 
         result = panel.handle_click(117, 57)
         self.assertEqual(result, ("intelligence", "commerce", 1))
@@ -329,7 +331,7 @@ class TestSkillPanelHandleClick(unittest.TestCase):
         panel = SkillPanel()
 
         rect = pygame.Rect(82, 50, 16, 14)
-        panel._button_rects = [(rect, "intelligence", "_commerce")]
+        panel._interactive_rects = [(rect, "intelligence:commerce:-1")]
 
         result = panel.handle_click(90, 57)
         self.assertEqual(result, ("intelligence", "commerce", -1))
@@ -345,7 +347,7 @@ class TestSkillPanelHandleClick(unittest.TestCase):
         panel = SkillPanel()
 
         rect = pygame.Rect(10, 10, 50, 18)
-        panel._button_rects = [(rect, "toggle_wildcard", "")]
+        panel._interactive_rects = [(rect, "toggle_wildcard")]
 
         result = panel.handle_click(35, 19)
         self.assertEqual(result, ("toggle_wildcard",))
@@ -361,7 +363,7 @@ class TestSkillPanelHandleClick(unittest.TestCase):
         panel = SkillPanel()
 
         rect = pygame.Rect(100, 50, 35, 14)
-        panel._button_rects = [(rect, "intelligence", "commerce")]
+        panel._interactive_rects = [(rect, "intelligence:commerce:1")]
 
         result = panel.handle_click(10, 10)
         self.assertIsNone(result)

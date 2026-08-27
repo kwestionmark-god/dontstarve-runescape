@@ -68,18 +68,20 @@ def test_panel_displays_calculated_hp_not_base_hp():
     construction.calculate_structure_hp.return_value = sentinel
 
     fake_bs = types.SimpleNamespace(construction=construction)
-    skill_manager = mock.MagicMock()
 
     panel = BuildingPanel.__new__(BuildingPanel)
     panel.x = 0
-    panel.panel_width = 400
     panel._struct_font = _make_font()
+    panel._cached_crafting_level = 0  # for can_place_structure
+    panel._structure_rects = []  # initialize for _is_structure_selected
 
     rendered = []
     panel._hint_font = _make_font(records=rendered)
 
     surface = pygame.Surface((400, 400))
-    panel._render_structure_entry(surface, struct_def, 0, fake_bs, skill_manager)
+    # New signature: (screen, struct_def, entry_rect, building_system)
+    entry_rect = pygame.Rect(10, 0, 380, 45)
+    panel._render_structure_entry(surface, struct_def, entry_rect, fake_bs)
 
     # (a) the calculator is called once, with the passed struct_def — BARE
     #     assertion (wrapping it in `assert` would swallow the failure).

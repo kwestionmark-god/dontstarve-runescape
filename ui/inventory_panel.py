@@ -1,16 +1,19 @@
 """
-inventory_panel.py — Inventory display panel.
+inventory_panel.py — Inventory display panel (PanelWindow subclass).
 
 Shows the player inventory in a 5×4 grid with gear slots.
 Item cells render actual item sprites from the sprite renderer.
 Left-click on an item uses/equips it; right-click drops it.
+Subclasses PanelWindow for unified chrome, viewport clipping, scrollbar,
+keyboard navigation with visible selection, and mouse-wheel scrolling.
 """
 
 from __future__ import annotations
 
 import pygame
-from core.state import GameState, PANEL_STATES
 from typing import TYPE_CHECKING
+
+from ui.panel_window import PanelWindow
 
 if TYPE_CHECKING:
     from typing import Dict, List, Optional
@@ -19,27 +22,16 @@ if TYPE_CHECKING:
     from render.sprite_renderer import SpriteRenderer
 
 
-class InventoryPanel:
+class InventoryPanel(PanelWindow):
     """
     Inventory panel: 5×4 grid showing player items + gear slots.
-
-    Layout:
-    ┌──────────────────────────────────────────┐
-    │ [W: ][A: ] Gear slots (weapon, armor)    │
-    │ [ ][item][ ][item][ ]                   │
-    │ [item][ ][ ][ ][item]                   │
-    │ [ ][ ][item][ ][ ]                      │
-    │ [ ][ ][ ][item][ ]                      │
-    └──────────────────────────────────────────┘
-    Press ESC or I to close.
     """
 
     GRID_COLS = 5
     GRID_ROWS = 4
     CELL_SIZE = 48
     GAP = 4
-    PANEL_X = 200
-    PANEL_Y = 100
+    GEAR_ROW_HEIGHT = 36
 
     BG_COLOR = (30, 30, 40)
     BORDER_COLOR = (100, 100, 120)
@@ -47,18 +39,27 @@ class InventoryPanel:
     CELL_HIGHLIGHT = (70, 70, 90)
     CELL_SELECTED = (90, 90, 120)
     SELECTED_BORDER = (180, 180, 220)
-    GEAR_ROW_HEIGHT = 36
 
     def __init__(self, sprite_renderer: "SpriteRenderer | None" = None) -> None:
+        super().__init__(
+            title="Inventory",
+            x=200,
+            y=100,
+            width=5 * (48 + 4) - 4 + 20,  # grid width + padding
+            height=36 + 4 * (48 + 4) - 4 + 60,  # gear row + grid + title/footer
+            title_height=26,
+            footer_height=22,
+            has_scrollbar=False,  # inventory grid fits in panel
+            show_close=True,
+            selection_mode="grid",
+            grid_cols=5,
+            row_gap=4,
+        )
         self.inventory: "Inventory | None" = None
         self.sprite_renderer: "SpriteRenderer | None" = sprite_renderer
-        self.font_small = pygame.font.SysFont("monospace", 12)
-        self.font_bold = pygame.font.SysFont("monospace", 14, bold=True)
-        self.visible = False
-        # Cache clickable rects so handle_click doesn't need to recompute layout
-        self._gear_slot_rects: List[tuple[pygame.Rect, str]] = []
-        self._item_rects: List[tuple[pygame.Rect, str]] = []  # (rect, item_id)
-        self._selected_item_index: int = -1
+        # Runtime rects for click handling
+        self._gear_slot_rects: list[tuple[pygame.Rect, str]] = []
+        self._item_rects: list[tuple[pygame.Rect, str]] = []  # (rect, item_id)
 
     def set_inventory(self, inventory: "Inventory") -> None:
         """Set the inventory reference."""
@@ -68,50 +69,55 @@ class InventoryPanel:
         """Set the sprite renderer for rendering item icons."""
         self.sprite_renderer = sprite_renderer
 
-    def render(self, screen: pygame.Surface) -> None:
-        """
-        Render the inventory panel with gear slots and item sprites.
+    def scroll_viewport(self):
+        """Return (visible_px, total_px) for scrollbar sizing."""
+        visible = max(1, self.content_rect.height)
+        total = max(visible, self._content_total_px)
+        return visible, total
 
-        Args:
-            screen: The display surface.
-        """
-        if not self.visible or self.inventory is None:
+    def select_count(self) -> int:
+        """Number of selectable items (only non-empty item cells)."""
+        return len(self._item_rects)
+
+    def on_select(self, index: int) -> None:
+        """Highlight the selected item."""
+        pass
+
+    # ── PanelWindow hooks ────────────────────────────────────────────────
+
+    def draw_contents(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
+        """Draw inventory grid inside the clipped viewport."""
+        self._interactive_rects.clear()
+        self._gear_slot_rects.clear()
+        self._item_rects.clear()
+
+        if self.inventory is None:
+            self._content_total_px = 0
             return
 
         snapshot = self.inventory.get_snapshot()
 
-        self._item_rects = []
-
         # Count non-empty items and keep selection in range
         num_items = sum(1 for s in snapshot if s is not None)
-        if self._selected_item_index < 0 and num_items > 0:
-            self._selected_item_index = 0
-        elif self._selected_item_index >= num_items:
-            self._selected_item_index = -1
+        if self._selected_index < 0 and num_items > 0:
+            self._selected_index = 0
+        elif self._selected_index >= num_items:
+            self._selected_index = -1
 
-        panel_width = self.GRID_COLS * (self.CELL_SIZE + self.GAP) - self.GAP
-        panel_height = self.GEAR_ROW_HEIGHT + self.GRID_ROWS * (self.CELL_SIZE + self.GAP) - self.GAP + 40
-        panel_x = self.PANEL_X
-        panel_y = self.PANEL_Y
+        left = content_rect.x + 10
+        gap = self.row_gap
+        y = content_rect.y + self._scroll_offset
 
-        # Panel background
-        pygame.draw.rect(screen, self.BG_COLOR, (panel_x, panel_y, panel_width, panel_height))
-        pygame.draw.rect(screen, self.BORDER_COLOR, (panel_x, panel_y, panel_width, panel_height), 2)
-
-        # Title
-        title = self.font_bold.render("Inventory", True, (200, 200, 220))
-        title_x = panel_x + (panel_width - title.get_width()) // 2
-        title_y = panel_y + 8
-        screen.blit(title, (title_x, title_y))
+        # Title is drawn by base class
 
         # ── Gear slots row ─────────────────────────────────────────
-        gear_y = panel_y + 30
+        gear_y = y
         gear_labels = ["W", "A"]  # Weapon, Armor
-        self._gear_slot_rects = []
         for i, label in enumerate(gear_labels):
-            gear_x = panel_x + i * (self.CELL_SIZE + self.GAP)
+            gear_x = left + i * (self.CELL_SIZE + self.GAP)
             slot_rect = pygame.Rect(gear_x, gear_y, self.CELL_SIZE, 28)
             self._gear_slot_rects.append((slot_rect, label))
+            self._interactive_rects.append((slot_rect, f"gear:{label}"))
             # Gear slot background
             pygame.draw.rect(screen, (60, 50, 70), (gear_x, gear_y, self.CELL_SIZE, 28))
             pygame.draw.rect(screen, (120, 100, 160), (gear_x, gear_y, self.CELL_SIZE, 28), 1)
@@ -122,12 +128,13 @@ class InventoryPanel:
 
         # ── Inventory grid ─────────────────────────────────────────
         grid_start_y = gear_y + 34
+        grid_w = self.GRID_COLS * (self.CELL_SIZE + self.GAP) - self.GAP
 
         for i, slot_data in enumerate(snapshot):
             row = i // self.GRID_COLS
             col = i % self.GRID_COLS
 
-            cell_x = panel_x + col * (self.CELL_SIZE + self.GAP)
+            cell_x = left + col * (self.CELL_SIZE + self.GAP)
             cell_y = grid_start_y + row * (self.CELL_SIZE + self.GAP)
 
             # Cell background
@@ -138,12 +145,12 @@ class InventoryPanel:
                 item_id = slot_data["item_id"]
                 item_rect = pygame.Rect(cell_x, cell_y, self.CELL_SIZE, self.CELL_SIZE)
                 self._item_rects.append((item_rect, item_id))
+                self._interactive_rects.append((item_rect, f"item:{item_id}"))
 
                 # Render item sprite (scaled to fit cell)
                 if self.sprite_renderer is not None:
                     sprite = self.sprite_renderer._get_sprite(slot_data.get("sprite_key", item_id))
                     if sprite is not None:
-                        # Scale sprite to fit within cell with small margin
                         margin = 6
                         avail_w = self.CELL_SIZE - margin * 2
                         avail_h = self.CELL_SIZE - margin * 2
@@ -169,25 +176,14 @@ class InventoryPanel:
                     pygame.draw.rect(screen, (100, 180, 100), (cell_x, cell_y, self.CELL_SIZE, self.CELL_SIZE), 2)
 
                 # Selected item highlight (visible selection state)
-                if i == self._selected_item_index:
+                item_idx = len(self._item_rects) - 1
+                if item_idx == self._selected_index:
                     pygame.draw.rect(screen, self.CELL_SELECTED, (cell_x + 2, cell_y + 2, self.CELL_SIZE - 4, self.CELL_SIZE - 4), 1)
                     pygame.draw.rect(screen, self.SELECTED_BORDER, (cell_x + 1, cell_y + 1, self.CELL_SIZE - 2, self.CELL_SIZE - 2), 2)
 
-        # Close hint
-        hint = self.font_small.render("Press ESC or C to close", True, (150, 150, 170))
-        hint_x = panel_x + (panel_width - hint.get_width()) // 2
-        hint_y = panel_y + panel_height + 10
-        screen.blit(hint, (hint_x, hint_y))
+        self._content_total_px = grid_start_y + self.GRID_ROWS * (self.CELL_SIZE + self.GAP) - self.GAP - content_rect.y + 20
 
-    def handle_mouse_move(self, mx: int, my: int) -> None:
-        """Sync selection index on hover over item cells."""
-        for i, (rect, _item_id) in enumerate(self._item_rects):
-            if rect.collidepoint(mx, my):
-                self._selected_item_index = i
-                return
-        # If not hovering any item, don't reset selection — keep it until navigation
-
-    def handle_key(self, key: int) -> tuple[str, str] | None:
+    def on_key(self, key: int) -> tuple[str, str] | None:
         """
         Keyboard navigation for the inventory grid.
 
@@ -197,26 +193,18 @@ class InventoryPanel:
 
         Returns None for navigation only; action tuple on action keys.
         """
-        # Map key codes for movement
-        if key in (pygame.K_w, pygame.K_UP):
-            self._selected_item_index = max(-1, self._selected_item_index - self.GRID_COLS)
-        elif key in (pygame.K_s, pygame.K_DOWN):
-            self._selected_item_index = min(len(self._item_rects) - 1, self._selected_item_index + self.GRID_COLS)
-        elif key in (pygame.K_a, pygame.K_LEFT):
-            self._selected_item_index = max(-1, self._selected_item_index - 1)
-        elif key in (pygame.K_d, pygame.K_RIGHT):
-            self._selected_item_index = min(len(self._item_rects) - 1, self._selected_item_index + 1)
-        elif key == pygame.K_RETURN:
-            if 0 <= self._selected_item_index < len(self._item_rects):
-                _, item_id = self._item_rects[self._selected_item_index]
+        # Grid navigation handled by base class via selection_mode="grid"
+        if key == pygame.K_RETURN:
+            if 0 <= self._selected_index < len(self._item_rects):
+                _, item_id = self._item_rects[self._selected_index]
                 return ("use", item_id)
         elif key in (pygame.K_DELETE, pygame.K_BACKSPACE):
-            if 0 <= self._selected_item_index < len(self._item_rects):
-                _, item_id = self._item_rects[self._selected_item_index]
+            if 0 <= self._selected_index < len(self._item_rects):
+                _, item_id = self._item_rects[self._selected_index]
                 return ("drop", item_id)
         return None
 
-    def handle_click(self, x: int, y: int, button: int = 1) -> tuple[str, str] | None:
+    def on_click(self, x: int, y: int, button: int = 1) -> tuple[str, str] | None:
         """
         Handle a click on the inventory panel.
 
@@ -234,18 +222,16 @@ class InventoryPanel:
         if not self.visible:
             return None
 
-        # Check gear slot clicks (both buttons)
-        for slot_rect, label in self._gear_slot_rects:
-            if slot_rect.collidepoint(x, y):
-                return ("gear", label)
-
-        # Check item cell clicks
-        for rect, item_id in self._item_rects:
+        for rect, payload in self._interactive_rects:
             if rect.collidepoint(x, y):
-                if button in (2, 3):
-                    return ("drop", item_id)
-                return ("use", item_id)
-
+                if payload.startswith("gear:"):
+                    _, label = payload.split(":", 1)
+                    return ("gear", label)
+                elif payload.startswith("item:"):
+                    _, item_id = payload.split(":", 1)
+                    if button in (2, 3):
+                        return ("drop", item_id)
+                    return ("use", item_id)
         return None
 
     def get_item_at(self, x: int, y: int) -> str | None:

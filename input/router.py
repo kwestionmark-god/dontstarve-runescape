@@ -175,9 +175,9 @@ class InputRouter:
         if is_state.quest_accept_pressed and game.state == GameState.QUEST_PANEL:
             is_state.quest_accept_pressed = False
             self._npc_flows.handle_quest_accept_keyboard()
-        if is_state.faction_negotiate_pressed and game.state == GameState.DIPLOMACY_PANEL:
-            is_state.faction_negotiate_pressed = False
-            self._npc_flows.handle_faction_negotiate_keyboard()
+
+        # Diplomacy negotiate is handled by the panel's unified on_key ->
+        # dispatch path below (single canonical negotiate, no double-fire).
 
         if game.state in PANEL_STATES:
             active_panel = self._get_active_panel(game)
