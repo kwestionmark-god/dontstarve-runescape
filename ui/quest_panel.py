@@ -53,21 +53,29 @@ class QuestPanel(PanelWindow):
         ("accept_quest", quest_id) — attempt to accept quest
     """
 
-    # Panel geometry
+    # Panel geometry (passed to base __init__)
     PANEL_WIDTH = 460
     PANEL_HEIGHT = 580
 
-    # Content area
+    # Content area constants (for layout within content_rect)
     CONTENT_MAX_HEIGHT = 340
     MAX_VISIBLE_QUESTS = 4
     QUEST_ROW_HEIGHT = 72
     QUEST_ROW_GAP = 4
 
+    # Tab bar constants
+    TAB_Y = 70
+    TAB_HEIGHT = 22
+    TAB_WIDTH = 120
+    TAB_GAP = 2
+
     # Status bar
     STATUS_HEIGHT = 25
+    STATUS_Y = 540
 
     # Footer hint
     FOOTER_HEIGHT = 15
+    FOOTER_Y = 560
 
     # Color palette (matches TradePanel)
     BG_COLOR = (30, 30, 40)
@@ -257,60 +265,62 @@ class QuestPanel(PanelWindow):
             self._content_total_px = 0
             return
 
-        panel_x = content_rect.x
-        panel_y = content_rect.y - self._scroll_offset
-        content_x = self.CONTENT_X
-        content_y = self.CONTENT_Y
-        content_w = self.CONTENT_WIDTH
+        # Use content_rect for all positioning
+        left = content_rect.x + 10
+        right = content_rect.x + content_rect.width - 10
+        content_w = content_rect.width - 20
+        top = content_rect.y
+        bottom = content_rect.y + content_rect.height
 
-        # Title
-        title_text = "Quest Journal"
-        title_surf = self.font_bold.render(title_text, True, self.TEXT_COLOR)
-        screen.blit(title_surf, (panel_x + 10, self.PANEL_Y + 5))
+        # Title (drawn by base class chrome, but we can add extra title here if needed)
+        # The base class draws the title in the title bar
 
-        # Tabs
+        # Tabs - positioned relative to content_rect
         tabs = [("Available", "available"), ("Active", "active"), ("Completed", "completed")]
-        tab_x_start = self.TAB_X_START
+        tab_x_start = left + (content_w - (3 * self.TAB_WIDTH + 2 * self.TAB_GAP)) // 2
+        tab_y = self.TAB_Y  # Absolute Y since tabs are in title area
         for label, tab_id in tabs:
             x = tab_x_start + tabs.index((label, tab_id)) * (self.TAB_WIDTH + self.TAB_GAP)
             is_active = self._tab == tab_id
             tab_color = self.TAB_ACTIVE if is_active else self.TAB_INACTIVE
-            tab_rect = pygame.Rect(x, self.TAB_Y, self.TAB_WIDTH, self.TAB_HEIGHT)
+            tab_rect = pygame.Rect(x, tab_y, self.TAB_WIDTH, self.TAB_HEIGHT)
             pygame.draw.rect(screen, tab_color, tab_rect)
             pygame.draw.rect(screen, self.BORDER_COLOR, tab_rect, 1)
             label_surf = self.font_small.render(label, True, self.TEXT_COLOR)
             lx = x + (self.TAB_WIDTH - label_surf.get_width()) // 2
-            ly = self.TAB_Y + (self.TAB_HEIGHT - label_surf.get_height()) // 2
+            ly = tab_y + (self.TAB_HEIGHT - label_surf.get_height()) // 2
             screen.blit(label_surf, (lx, ly))
             self._tab_rects.append((tab_rect, tab_id))
             self._interactive_rects.append((tab_rect, f"tab:{tab_id}"))
 
-        # Content area background
+        # Content area background - use content_rect for scrollable area
+        content_area_y = self.CONTENT_Y  # Absolute Y for content start
+        content_area_h = self.CONTENT_MAX_HEIGHT
         pygame.draw.rect(
             screen, self.CONTENT_BG,
-            (content_x, content_y, content_w, self.CONTENT_MAX_HEIGHT),
+            (left, content_area_y, content_w, content_area_h),
         )
 
         # Render tab-specific content
         if self._tab == "available":
-            self._render_available_tab(screen, content_x, content_y, content_w)
+            self._render_available_tab(screen, left, content_area_y, content_w)
         elif self._tab == "active":
-            self._render_active_tab(screen, content_x, content_y, content_w)
+            self._render_active_tab(screen, left, content_area_y, content_w)
         elif self._tab == "completed":
-            self._render_completed_tab(screen, content_x, content_y, content_w)
+            self._render_completed_tab(screen, left, content_area_y, content_w)
 
         # Status bar
-        self._render_status_bar(screen, content_rect)
+        self._render_status_bar(screen)
 
         # Footer hint
         hint = self.font_small.render("Press ESC or U to close", True, self.TEXT_DIM)
-        hint_x = content_rect.x + (content_rect.width - hint.get_width()) // 2
-        hint_y = content_rect.y + content_rect.height - 20
+        hint_x = self.rect.x + (self.rect.width - hint.get_width()) // 2
+        hint_y = self.FOOTER_Y
         screen.blit(hint, (hint_x, hint_y))
 
-        self._content_total_px = content_rect.height + 50
+        self._content_total_px = content_area_h + 50
 
-    def _render_available_tab(self, screen: pygame.Surface, content_x: int, content_y: int, content_w: int) -> None:
+    def _render_available_tab(self, screen: pygame.Surface, left: int, top: int, content_w: int) -> None:
         """Render available quests with Accept buttons, filtered by NPC if scoped."""
         if self._player_ref is None:
             return
@@ -325,23 +335,23 @@ class QuestPanel(PanelWindow):
                 self._set_status(f"{self._giver_npc.name} has no available quests.", self.WARN_COLOR)
             return
 
-        self._render_quest_list(screen, quests, content_x, content_y, content_w, is_available=True)
+        self._render_quest_list(screen, quests, left, top, content_w, is_available=True)
 
-    def _render_active_tab(self, screen: pygame.Surface, content_x: int, content_y: int, content_w: int) -> None:
+    def _render_active_tab(self, screen: pygame.Surface, left: int, top: int, content_w: int) -> None:
         """Render active quests with condition progress bars."""
         quests = self.quest_system.get_active_quests()
         if not quests:
             return
-        self._render_quest_list(screen, quests, content_x, content_y, content_w, is_available=False)
+        self._render_quest_list(screen, quests, left, top, content_w, is_available=False)
 
-    def _render_completed_tab(self, screen: pygame.Surface, content_x: int, content_y: int, content_w: int) -> None:
+    def _render_completed_tab(self, screen: pygame.Surface, left: int, top: int, content_w: int) -> None:
         """Render completed quests (no progress, just name + reward info)."""
         quests = self.quest_system.get_completed_quests()
         if not quests:
             return
-        self._render_quest_list(screen, quests, content_x, content_y, content_w, is_available=False)
+        self._render_quest_list(screen, quests, left, top, content_w, is_available=False)
 
-    def _render_quest_list(self, screen: pygame.Surface, quests: list, content_x: int, content_y: int, content_w: int, is_available: bool = False) -> None:
+    def _render_quest_list(self, screen: pygame.Surface, quests: list, left: int, top: int, content_w: int, is_available: bool = False) -> None:
         """Render a list of quests with scrolling."""
         # Clamp scroll offset
         max_offset = max(0, len(quests) - self.MAX_VISIBLE_QUESTS)
@@ -351,7 +361,7 @@ class QuestPanel(PanelWindow):
         visible_quests = quests[self._scroll_offset:self._scroll_offset + self.MAX_VISIBLE_QUESTS]
 
         for i, quest in enumerate(visible_quests):
-            row_y = content_y + i * (self.QUEST_ROW_HEIGHT + self.QUEST_ROW_GAP)
+            row_y = top + i * (self.QUEST_ROW_HEIGHT + self.QUEST_ROW_GAP)
 
             # Determine quest_id and quest_def
             if is_available:
@@ -367,13 +377,13 @@ class QuestPanel(PanelWindow):
             row_color = self.ROW_SELECTED if is_selected else self.ROW_BG
             pygame.draw.rect(
                 screen, row_color,
-                (content_x, row_y, content_w, self.QUEST_ROW_HEIGHT),
+                (left, row_y, content_w, self.QUEST_ROW_HEIGHT),
             )
 
             # Quest name
             name = quest_def.name if quest_def else quest_id
             name_surf = self.font_bold.render(name, True, self.TEXT_COLOR)
-            screen.blit(name_surf, (content_x + 4, row_y + 2))
+            screen.blit(name_surf, (left + 4, row_y + 2))
 
             # Description (truncated to fit)
             desc = quest_def.description if quest_def else ""
@@ -386,7 +396,7 @@ class QuestPanel(PanelWindow):
                     desc_surf = self.font_small.render(desc_short, True, self.TEXT_DIM)
 
             if desc_surf:
-                screen.blit(desc_surf, (content_x + 4, row_y + 16))
+                screen.blit(desc_surf, (left + 4, row_y + 16))
 
             # Conditions
             conditions_start_y = row_y + 30
@@ -396,7 +406,7 @@ class QuestPanel(PanelWindow):
 
             cond_y = conditions_start_y
             for cond in conditions:
-                cond_y = self._render_condition_bar(screen, cond, cond_y, indent=10)
+                cond_y = self._render_condition_bar(screen, cond, cond_y, left, content_w)
                 cond_y += self.CONDITION_GAP
 
             # Requirements line (for available quests)
@@ -407,7 +417,7 @@ class QuestPanel(PanelWindow):
                 intel = quest_def.min_total_intelligence
                 req_text = f"Requirements: Persuasion {pers}, Commerce {comm}, Intelligence {intel}"
                 req_surf = self.font_small.render(req_text, True, self.TEXT_DIM)
-                screen.blit(req_surf, (content_x + 4, req_y))
+                screen.blit(req_surf, (left + 4, req_y))
 
             # Accept button (for available quests)
             if is_available and quest_def:
@@ -417,7 +427,7 @@ class QuestPanel(PanelWindow):
                     btn_color = self.ACCEPT_BTN if eligible else self.ACCEPT_BTN_DISABLED
                     btn_w = 60
                     btn_h = 14
-                    btn_x = content_x + content_w - btn_w - 4
+                    btn_x = left + content_w - btn_w - 4
                     btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
                     pygame.draw.rect(screen, btn_color, btn_rect)
                     pygame.draw.rect(screen, self.BORDER_COLOR, btn_rect, 1)
@@ -429,19 +439,16 @@ class QuestPanel(PanelWindow):
                     self._interactive_rects.append((btn_rect, f"accept_{quest_id}"))
 
             # Store quest rect for click detection
-            quest_rect = pygame.Rect(content_x, row_y, content_w, self.QUEST_ROW_HEIGHT)
+            quest_rect = pygame.Rect(left, row_y, content_w, self.QUEST_ROW_HEIGHT)
             self._quest_rects.append((quest_rect, quest_id))
             self._interactive_rects.append((quest_rect, f"quest:{quest_id}"))
 
     def _render_condition_bar(
-        self, screen: pygame.Surface, condition, y: int, indent: int = 10,
+        self, screen: pygame.Surface, condition, y: int, left: int, content_w: int,
     ) -> int:
         """Render a single condition progress bar. Returns the y position after the bar."""
-        content_x = self.CONTENT_X
-        content_w = self.CONTENT_WIDTH
-
         bar_w = int(content_w * 0.6)
-        bar_x = content_x + indent
+        bar_x = left + 10
         bar_y = y + 2
         bar_h = 10
         border_h = bar_h + 2
@@ -493,19 +500,19 @@ class QuestPanel(PanelWindow):
         result = self.quest_system.check_quest_eligibility(self._player_ref, quest_def)
         return result.eligible
 
-    def _render_status_bar(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
+    def _render_status_bar(self, screen: pygame.Surface) -> None:
         """Render the status message bar."""
         status_y = self.STATUS_Y
-        status_w = self.CONTENT_WIDTH
+        status_w = self.rect.width - 20
 
         pygame.draw.rect(
             screen, self.CONTENT_BG,
-            (self.CONTENT_X, status_y, status_w, self.STATUS_HEIGHT),
+            (self.rect.x + 10, status_y, status_w, self.STATUS_HEIGHT),
         )
 
         if self._status_message:
             status_surf = self.font_normal.render(self._status_message, True, self._status_color)
-            sx = self.CONTENT_X + 10
+            sx = self.rect.x + 20
             sy = status_y + (self.STATUS_HEIGHT - status_surf.get_height()) // 2
             screen.blit(status_surf, (sx, sy))
 
@@ -581,14 +588,7 @@ class QuestPanel(PanelWindow):
 
         Routes clicks to the appropriate action based on which rect was hit.
         """
-        # Check close button first
-        close_rect = pygame.Rect(
-            self.CLOSE_X, self.CLOSE_Y,
-            self.CLOSE_SIZE, self.CLOSE_SIZE,
-        )
-        if close_rect.collidepoint(x, y):
-            return ("close",)
-
+        # Check close button first (base class handles this, but we check tabs/buttons first)
         # Check tab clicks
         for tab_rect, tab_id in self._tab_rects:
             if tab_rect.collidepoint(x, y):
@@ -621,15 +621,6 @@ class QuestPanel(PanelWindow):
     def on_mouse_move(self, mx: int, my: int) -> None:
         """Track hovered tab, hover states for Accept buttons, and quest selection."""
         self._hovered_tab = ""
-
-        # Close button
-        close_rect = pygame.Rect(
-            self.CLOSE_X, self.CLOSE_Y,
-            self.CLOSE_SIZE, self.CLOSE_SIZE,
-        )
-        if close_rect.collidepoint(mx, my):
-            self._hovered_tab = "close"
-            return
 
         # Tab buttons
         for tab_rect, tab_id in self._tab_rects:
