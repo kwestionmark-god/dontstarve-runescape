@@ -427,10 +427,37 @@ panels re-read live state every `render()`. `ui/hud.py` is the one always-visibl
 overlay (hunger/HP/faction/stamina bars, gold, notifications, hotbar, damage
 flash, season/weather).
 
-**State-gated overlays.** Entering a panel state freezes most world-update
-logic (`PANEL_STATES`); survival/hunger and autosave continue so HUD bars keep
-draining. Panels render into a flat screen coordinate space and cache their
-interactive rectangles during `render()` for cheap `Rect.collidepoint` tests.
+**Unified panel contract.** All nine panels subclass `ui.panel_window.PanelWindow`,
+a single reusable base class that provides:
+
+- **Chrome & viewport** — translucent background + double-line border, title,
+  optional close button; a clipped content viewport (`screen.set_clip`)
+  guarantees rows never paint past the window.
+- **Scrollbar** — thumb sized/positioned by `visible/total` ratio; clickable,
+  draggable, plus page-up/page-down and mouse-wheel scrolling.
+- **Keyboard navigation** — a single, uniformly-drawn focus highlight driven by
+  WASD/arrow keys, clamped to the (possibly scrolled) content. `selection_mode`
+  supports both list (`step=1`) and grid (`step=cols`) layouts.
+- **Text wrapping** — `wrap_text(text, max_width)` word-wraps to the viewport
+  width so body text never runs off the right edge.
+- **Font registry** — shared `SysFont` cache (title/normal/small/bold) so
+  panels don't instantiate their own fonts.
+
+Concrete panels implement only `draw_contents(screen, content_rect)` and a
+few small hooks (`scroll_viewport`, `select_count`, `on_key`, `on_click`,
+`on_mouse_move`). The render contract is uniform:
+
+```
+draw_chrome()
+screen.set_clip(content_rect)
+draw_contents(screen, content_rect)
+screen.set_clip(None)
+draw_scrollbar()
+```
+
+This replaces the former divergent `BuildingPanel.render(self, screen, bs, sm)`
+and `GearPanel.render(self, screen, pg, inv, gm)` signatures with the
+standard `render(screen)` call.
 
 ### 12. data / tests / tools / assets
 
