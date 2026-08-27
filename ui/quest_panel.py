@@ -1,11 +1,11 @@
 """
-quest_panel.py — Quest Journal UI panel.
+quest_panel.py — Quest Journal UI panel (PanelWindow subclass).
 
 Displays available, active, and completed quests with condition progress bars,
-Accept buttons, and status messages. Integrates with QuestSystem (P3-S9)
-and does not duplicate quest business logic.
-
-Phase 3, Step 9: Quest Panel UI.
+Accept buttons, and status messages. Integrates with QuestSystem and does not
+duplicate quest business logic.
+Subclasses PanelWindow for unified chrome, viewport clipping, scrollbar,
+keyboard navigation with visible selection, and mouse-wheel scrolling.
 """
 
 from __future__ import annotations
@@ -16,21 +16,23 @@ import os
 import pygame
 from typing import TYPE_CHECKING
 
+from ui.panel_window import PanelWindow
+
 if TYPE_CHECKING:
     from npc.quest_system import QuestSystem, QuestProgress, QuestDefinition
     from npc.npc_types import QuestGiverNPC
     from core.player import Player
 
 
-class QuestPanel:
+class QuestPanel(PanelWindow):
     """
     Quest Journal panel: Available / Active / Completed quest display.
 
-    Layout (exact pixels):
+    Layout:
     ┌────────────────────────────────────────────────────────────────────┐
-    │  Quest Journal                                       [X]           │  y=45-65
+    │  Quest Journal                                       [X]           │
     ├────────────────────────────────────────────────────────────────────┤
-    │   [Available]  [Active]  [Completed]                            │  y=70-92
+    │   [Available]  [Active]  [Completed]                            │
     ├────────────────────────────────────────────────────────────────────┤
     │  ┌──────────────────────────────────────────────────────────────┐│
     │  │  Timber Collection                                           ││
@@ -39,14 +41,11 @@ class QuestPanel:
     │  │  Requirements: Persuasion 1, Commerce 0, Intelligence 1     ││
     │  │                                              [Accept]        ││
     │  └──────────────────────────────────────────────────────────────┘│
-    │  ┌──────────────────────────────────────────────────────────────┐│
-    │  │  (scrollable content, up to 4 rows)                        ││
-    │  └──────────────────────────────────────────────────────────────┘│
+    │  (scrollable content, up to 4 rows)                              │
+    │  Scrollbar                                                       │
     │                                                                  │
-    │  Scrollbar (y=435-445)                                          │
-    │                                                                  │
-    │  Status: Selected: Timber Collection — 4/5 oak logs             ││  y=540-565
-    │  Press ESC or Y to close                                        ││  y=560-575
+    │  Status: Selected: Timber Collection — 4/5 oak logs             │
+    │  Press ESC or U to close                                         │
     └────────────────────────────────────────────────────────────────────┘
 
     Returns action tuples from handle_click:
@@ -55,42 +54,19 @@ class QuestPanel:
     """
 
     # Panel geometry
-    PANEL_X = 250
-    PANEL_Y = 30
     PANEL_WIDTH = 460
     PANEL_HEIGHT = 580
 
-    # Title bar
-    TITLE_Y = 45
-    TITLE_HEIGHT = 20
-
-    # Close button
-    CLOSE_X = PANEL_X + PANEL_WIDTH - 28
-    CLOSE_Y = PANEL_Y + 5
-    CLOSE_SIZE = 22
-
-    # Tab bar
-    TAB_Y = 70
-    TAB_HEIGHT = 22
-    TAB_WIDTH = 120
-    TAB_GAP = 2
-    TAB_X_START = PANEL_X + (PANEL_WIDTH - (3 * TAB_WIDTH + 2 * TAB_GAP)) // 2
-
-    # Content area (scrollable, 340px usable)
-    CONTENT_X = PANEL_X + 10
-    CONTENT_Y = 95
-    CONTENT_WIDTH = PANEL_WIDTH - 20
+    # Content area
     CONTENT_MAX_HEIGHT = 340
     MAX_VISIBLE_QUESTS = 4
     QUEST_ROW_HEIGHT = 72
     QUEST_ROW_GAP = 4
 
     # Status bar
-    STATUS_Y = 540
     STATUS_HEIGHT = 25
 
     # Footer hint
-    FOOTER_Y = 560
     FOOTER_HEIGHT = 15
 
     # Color palette (matches TradePanel)
@@ -118,8 +94,19 @@ class QuestPanel:
     CONDITION_GAP = 1
 
     def __init__(self) -> None:
-        """Initialize the quest panel with default state and fonts."""
-        # Visibility
+        super().__init__(
+            title="Quest Journal",
+            x=250,
+            y=30,
+            width=460,
+            height=580,
+            title_height=26,
+            footer_height=40,  # status bar + footer hint
+            has_scrollbar=True,
+            show_close=True,
+            selection_mode="list",
+            row_gap=4,
+        )
         self.visible: bool = False
 
         # Wiring
@@ -133,7 +120,7 @@ class QuestPanel:
         # Scroll
         self._scroll_offset: int = 0
 
-        # Selected quest within visible rows (for potential expand/details view)
+        # Selected quest
         self._selected_quest_id: str | None = None
         self._selected_quest_index: int = -1
 
@@ -146,18 +133,13 @@ class QuestPanel:
         self._button_rects: list[tuple[pygame.Rect, str]] = []
         self._quest_rects: list[tuple[pygame.Rect, str]] = []  # (rect, quest_id)
 
-        # Fonts
-        self.font_title = pygame.font.SysFont("monospace", 14, bold=True)
-        self.font_normal = pygame.font.SysFont("monospace", 11)
-        self.font_small = pygame.font.SysFont("monospace", 10)
-        self.font_bold = pygame.font.SysFont("monospace", 12, bold=True)
+        # NPC scope (for QuestGiverNPC sessions)
+        self._giver_npc: "QuestGiverNPC | None" = None
+        self._giver_npc_id: str = ""
 
         # Item name lookup cache
         self._item_names: dict[str, str] = {}
-
-        # NPC scope (for QuestGiverNPC sessions)
-        self._giver_npc: "QuestGiverNPC | None" = None  # QuestGiverNPC reference for scoping
-        self._giver_npc_id: str = ""  # NPC ID for tracking
+        self._load_item_names()
 
     # ── Wiring ────────────────────────────────────────────────────────
 
@@ -246,159 +228,91 @@ class QuestPanel:
         if color is not None:
             self._status_color = color
 
-    # ── Rendering ─────────────────────────────────────────────────────
+    # ── PanelWindow hooks ─────────────────────────────────────────────
 
-    def render(self, screen: pygame.Surface) -> None:
-        """
-        Render the complete quest panel.
+    def scroll_viewport(self):
+        """Return (visible_px, total_px) for scrollbar sizing."""
+        visible = max(1, self.content_rect.height)
+        total = max(visible, self._content_total_px)
+        return visible, total
 
-        Args:
-            screen: The display surface.
-        """
-        if not self.visible:
-            return
+    def select_count(self) -> int:
+        """Number of selectable quests in current tab."""
+        quests = self._get_current_quests()
+        return len(quests)
 
-        panel_x = self.PANEL_X
-        panel_y = self.PANEL_Y
-        panel_w = self.PANEL_WIDTH
-        panel_h = self.PANEL_HEIGHT
+    def on_select(self, index: int) -> None:
+        """Highlight the selected quest."""
+        pass
 
-        # Panel background — OSRS-style double-line border
-        pygame.draw.rect(screen, self.BORDER_COLOR, (panel_x, panel_y, panel_w, panel_h), 2)
-        pygame.draw.rect(screen, (160, 160, 180), (panel_x + 3, panel_y + 3, panel_w - 6, panel_h - 6), 1)
-        bg_surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-        bg_surf.fill((*self.BG_COLOR, 240))
-        screen.blit(bg_surf, (panel_x, panel_y))
+    def draw_contents(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
+        """Draw quest panel content inside the clipped viewport."""
+        self._interactive_rects.clear()
+        self._tab_rects.clear()
+        self._button_rects.clear()
+        self._quest_rects.clear()
 
         if self.quest_system is None:
-            self._render_not_connected(screen)
-        else:
-            self._render_title(screen)
-            self._render_close_button(screen)
-            self._render_tabs(screen)
-            self._render_content(screen)
-            self._render_status_bar(screen)
-            self._render_close_hint(screen)
+            self._render_not_connected(screen, content_rect)
+            self._content_total_px = 0
+            return
 
-    def _render_title(self, screen: pygame.Surface) -> None:
-        """Render the panel title: 'Quest Journal'."""
+        panel_x = content_rect.x
+        panel_y = content_rect.y - self._scroll_offset
+        content_x = self.CONTENT_X
+        content_y = self.CONTENT_Y
+        content_w = self.CONTENT_WIDTH
+
+        # Title
         title_text = "Quest Journal"
-        title_surf = self.font_title.render(title_text, True, self.TEXT_COLOR)
-        title_x = self.PANEL_X + 10
-        title_y = self.TITLE_Y
-        screen.blit(title_surf, (title_x, title_y))
+        title_surf = self.font_bold.render(title_text, True, self.TEXT_COLOR)
+        screen.blit(title_surf, (panel_x + 10, self.PANEL_Y + 5))
 
-    def _render_close_button(self, screen: pygame.Surface) -> None:
-        """Render the close (X) button in the top-right corner."""
-        close_rect = pygame.Rect(
-            self.CLOSE_X, self.CLOSE_Y,
-            self.CLOSE_SIZE, self.CLOSE_SIZE,
-        )
-        hover_color = self.QTY_BTN_HOVER if self._hovered_tab == "close" else self.QTY_BTN
-        pygame.draw.rect(screen, hover_color, close_rect)
-        pygame.draw.rect(screen, self.BORDER_COLOR, close_rect, 1)
-
-        # Draw X
-        line_color = (255, 255, 255)
-        padding = 5
-        pygame.draw.line(
-            screen, line_color,
-            (self.CLOSE_X + padding, self.CLOSE_Y + padding),
-            (self.CLOSE_X + self.CLOSE_SIZE - padding, self.CLOSE_Y + self.CLOSE_SIZE - padding),
-            2,
-        )
-        pygame.draw.line(
-            screen, line_color,
-            (self.CLOSE_X + self.CLOSE_SIZE - padding, self.CLOSE_Y + padding),
-            (self.CLOSE_X + padding, self.CLOSE_Y + self.CLOSE_SIZE - padding),
-            2,
-        )
-
-        self._button_rects.append((close_rect, "close"))
-
-    def _render_tabs(self, screen: pygame.Surface) -> None:
-        """Render the Available / Active / Completed tab bar."""
+        # Tabs
         tabs = [("Available", "available"), ("Active", "active"), ("Completed", "completed")]
-        self._tab_rects = []
-
+        tab_x_start = self.TAB_X_START
         for label, tab_id in tabs:
-            x = self.TAB_X_START
-            # Offset for each tab
-            idx = tabs.index((label, tab_id))
-            x += idx * (self.TAB_WIDTH + self.TAB_GAP)
-
+            x = tab_x_start + tabs.index((label, tab_id)) * (self.TAB_WIDTH + self.TAB_GAP)
             is_active = self._tab == tab_id
             tab_color = self.TAB_ACTIVE if is_active else self.TAB_INACTIVE
-
             tab_rect = pygame.Rect(x, self.TAB_Y, self.TAB_WIDTH, self.TAB_HEIGHT)
             pygame.draw.rect(screen, tab_color, tab_rect)
             pygame.draw.rect(screen, self.BORDER_COLOR, tab_rect, 1)
-
             label_surf = self.font_small.render(label, True, self.TEXT_COLOR)
             lx = x + (self.TAB_WIDTH - label_surf.get_width()) // 2
             ly = self.TAB_Y + (self.TAB_HEIGHT - label_surf.get_height()) // 2
             screen.blit(label_surf, (lx, ly))
-
             self._tab_rects.append((tab_rect, tab_id))
+            self._interactive_rects.append((tab_rect, f"tab:{tab_id}"))
 
-    def _render_content(self, screen: pygame.Surface) -> None:
-        """Dispatch to tab-specific renderers."""
         # Content area background
         pygame.draw.rect(
             screen, self.CONTENT_BG,
-            (self.CONTENT_X, self.CONTENT_Y, self.CONTENT_WIDTH, self.CONTENT_MAX_HEIGHT),
+            (content_x, content_y, content_w, self.CONTENT_MAX_HEIGHT),
         )
 
+        # Render tab-specific content
         if self._tab == "available":
-            self._render_available_tab(screen)
+            self._render_available_tab(screen, content_x, content_y, content_w)
         elif self._tab == "active":
-            self._render_active_tab(screen)
+            self._render_active_tab(screen, content_x, content_y, content_w)
         elif self._tab == "completed":
-            self._render_completed_tab(screen)
+            self._render_completed_tab(screen, content_x, content_y, content_w)
 
-        # Draw scrollbar if needed
-        self._render_scrollbar(screen)
+        # Status bar
+        self._render_status_bar(screen, content_rect)
 
-    def _render_scrollbar(self, screen: pygame.Surface) -> None:
-        """Render a simple vertical scrollbar if content overflows."""
-        quests = self._get_current_quests()
-        if len(quests) <= self.MAX_VISIBLE_QUESTS:
-            return
+        # Footer hint
+        hint = self.font_small.render("Press ESC or U to close", True, self.TEXT_DIM)
+        hint_x = content_rect.x + (content_rect.width - hint.get_width()) // 2
+        hint_y = content_rect.y + content_rect.height - 20
+        screen.blit(hint, (hint_x, hint_y))
 
-        scroll_x = self.CONTENT_X + self.CONTENT_WIDTH - 8
-        scroll_y = self.CONTENT_Y
-        scroll_h = self.CONTENT_MAX_HEIGHT
-        scroll_w = 8
+        self._content_total_px = content_rect.height + 50
 
-        # Scrollbar background
-        pygame.draw.rect(screen, (30, 30, 35), (scroll_x, scroll_y, scroll_w, scroll_h))
-
-        # Calculate thumb height based on visible fraction
-        visible_ratio = self.MAX_VISIBLE_QUESTS / len(quests)
-        thumb_h = max(20, int(scroll_h * visible_ratio))
-
-        # Calculate thumb position
-        max_offset = max(0, len(quests) - self.MAX_VISIBLE_QUESTS)
-        thumb_ratio = self._scroll_offset / max_offset if max_offset > 0 else 0
-        thumb_y = scroll_y + int(thumb_ratio * (scroll_h - thumb_h))
-
-        pygame.draw.rect(screen, (80, 80, 100), (scroll_x, thumb_y, scroll_w, thumb_h))
-
-    def _get_current_quests(self) -> list:
-        """Return the quest list for the current tab."""
-        if self.quest_system is None:
-            return []
-        if self._tab == "available":
-            return self.quest_system.get_available_quests()
-        elif self._tab == "active":
-            return self.quest_system.get_active_quests()
-        elif self._tab == "completed":
-            return self.quest_system.get_completed_quests()
-        return []
-
-    def _render_available_tab(self, screen: pygame.Surface) -> None:
+    def _render_available_tab(self, screen: pygame.Surface, content_x: int, content_y: int, content_w: int) -> None:
         """Render available quests with Accept buttons, filtered by NPC if scoped."""
-        if self.quest_system is None or self._player_ref is None:
+        if self._player_ref is None:
             return
         if self._giver_npc is not None:
             quest_ids = self._giver_npc.available_quests
@@ -411,37 +325,24 @@ class QuestPanel:
                 self._set_status(f"{self._giver_npc.name} has no available quests.", self.WARN_COLOR)
             return
 
-        self._render_quest_list(screen, quests, is_available=True)
+        self._render_quest_list(screen, quests, content_x, content_y, content_w, is_available=True)
 
-    def _render_active_tab(self, screen: pygame.Surface) -> None:
+    def _render_active_tab(self, screen: pygame.Surface, content_x: int, content_y: int, content_w: int) -> None:
         """Render active quests with condition progress bars."""
-        if self.quest_system is None:
-            return
-
         quests = self.quest_system.get_active_quests()
         if not quests:
             return
+        self._render_quest_list(screen, quests, content_x, content_y, content_w, is_available=False)
 
-        self._render_quest_list(screen, quests, is_available=False)
-
-    def _render_completed_tab(self, screen: pygame.Surface) -> None:
+    def _render_completed_tab(self, screen: pygame.Surface, content_x: int, content_y: int, content_w: int) -> None:
         """Render completed quests (no progress, just name + reward info)."""
-        if self.quest_system is None:
-            return
-
         quests = self.quest_system.get_completed_quests()
         if not quests:
             return
+        self._render_quest_list(screen, quests, content_x, content_y, content_w, is_available=False)
 
-        self._render_quest_list(screen, quests, is_available=False)
-
-    def _render_quest_list(self, screen: pygame.Surface, quests: list, is_available: bool = False) -> None:
+    def _render_quest_list(self, screen: pygame.Surface, quests: list, content_x: int, content_y: int, content_w: int, is_available: bool = False) -> None:
         """Render a list of quests with scrolling."""
-        panel_x = self.PANEL_X
-        content_x = self.CONTENT_X
-        content_y = self.CONTENT_Y
-        content_w = self.CONTENT_WIDTH
-
         # Clamp scroll offset
         max_offset = max(0, len(quests) - self.MAX_VISIBLE_QUESTS)
         self._scroll_offset = min(self._scroll_offset, max_offset)
@@ -449,19 +350,15 @@ class QuestPanel:
 
         visible_quests = quests[self._scroll_offset:self._scroll_offset + self.MAX_VISIBLE_QUESTS]
 
-        self._quest_rects = []
-
         for i, quest in enumerate(visible_quests):
             row_y = content_y + i * (self.QUEST_ROW_HEIGHT + self.QUEST_ROW_GAP)
 
             # Determine quest_id and quest_def
             if is_available:
-                # quest is a QuestDefinition
                 quest_def = quest
                 quest_id = quest_def.quest_id
                 quest_progress = None
             else:
-                # quest is a QuestProgress
                 quest_progress = quest
                 quest_id = quest_progress.quest_id
                 quest_def = self.quest_system.quest_definitions.get(quest_id) if self.quest_system else None
@@ -529,10 +426,12 @@ class QuestPanel:
                     ty = btn_y + (btn_h - btn_text.get_height()) // 2
                     screen.blit(btn_text, (tx, ty))
                     self._button_rects.append((btn_rect, f"accept_{quest_id}"))
+                    self._interactive_rects.append((btn_rect, f"accept_{quest_id}"))
 
             # Store quest rect for click detection
             quest_rect = pygame.Rect(content_x, row_y, content_w, self.QUEST_ROW_HEIGHT)
             self._quest_rects.append((quest_rect, quest_id))
+            self._interactive_rects.append((quest_rect, f"quest:{quest_id}"))
 
     def _render_condition_bar(
         self, screen: pygame.Surface, condition, y: int, indent: int = 10,
@@ -594,7 +493,7 @@ class QuestPanel:
         result = self.quest_system.check_quest_eligibility(self._player_ref, quest_def)
         return result.eligible
 
-    def _render_status_bar(self, screen: pygame.Surface) -> None:
+    def _render_status_bar(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render the status message bar."""
         status_y = self.STATUS_Y
         status_w = self.CONTENT_WIDTH
@@ -610,58 +509,16 @@ class QuestPanel:
             sy = status_y + (self.STATUS_HEIGHT - status_surf.get_height()) // 2
             screen.blit(status_surf, (sx, sy))
 
-    def _render_close_hint(self, screen: pygame.Surface) -> None:
-        """Render 'Press ESC or Y to close' hint."""
-        hint = self.font_small.render("Press ESC or U to close", True, self.TEXT_DIM)
-        hint_x = self.PANEL_X + (self.PANEL_WIDTH - hint.get_width()) // 2
-        hint_y = self.FOOTER_Y
-        screen.blit(hint, (hint_x, hint_y))
-
-    def _render_not_connected(self, screen: pygame.Surface) -> None:
+    def _render_not_connected(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render fallback message when quest system is not initialized."""
-        panel_x = self.PANEL_X
-        panel_y = self.PANEL_Y
-
         msg = self.font_normal.render("Quest system not initialized.", True, (180, 180, 200))
-        mx = panel_x + (self.PANEL_WIDTH - msg.get_width()) // 2
-        my = panel_y + self.PANEL_HEIGHT // 2 - msg.get_height() // 2
+        mx = content_rect.x + (content_rect.width - msg.get_width()) // 2
+        my = content_rect.y + (content_rect.height - msg.get_height()) // 2
         screen.blit(msg, (mx, my))
 
     # ── Input handling ────────────────────────────────────────────────
 
-    def handle_mouse_move(self, mx: int, my: int) -> None:
-        """Track hovered tab, hover states for Accept buttons, and quest selection.
-
-        Args:
-            mx: Mouse X coordinate.
-            my: Mouse Y coordinate.
-        """
-        self._hovered_tab = ""
-
-        # Close button
-        close_rect = pygame.Rect(
-            self.CLOSE_X, self.CLOSE_Y,
-            self.CLOSE_SIZE, self.CLOSE_SIZE,
-        )
-        if close_rect.collidepoint(mx, my):
-            self._hovered_tab = "close"
-            return
-
-        # Tab buttons
-        for tab_rect, tab_id in self._tab_rects:
-            if tab_rect.collidepoint(mx, my):
-                self._hovered_tab = f"tab_{tab_id}"
-                return
-
-        # Quest rows
-        for idx, (quest_rect, quest_id) in enumerate(self._quest_rects):
-            if quest_rect.collidepoint(mx, my):
-                self._selected_quest_index = idx
-                self._selected_quest_id = quest_id
-                return
-        # Don't reset selection when not hovering quest rows
-
-    def handle_key(self, key: int) -> tuple[str, ...] | None:
+    def on_key(self, key: int) -> tuple[str, ...] | None:
         """
         Keyboard navigation for the quest panel.
 
@@ -704,34 +561,25 @@ class QuestPanel:
         self._scroll_offset = min(self._scroll_offset, max_offset)
 
         if key in (pygame.K_w, pygame.K_UP):
-            self._selected_quest_index = max(-1, self._selected_quest_index - 1)
+            self.select(max(-1, self._selected_index - 1))
+            self._selected_quest_index = self._selected_index
+            return None
         elif key in (pygame.K_s, pygame.K_DOWN):
-            self._selected_quest_index = min(len(quests) - 1, self._selected_quest_index + 1)
-        elif key in (pygame.K_a, pygame.K_LEFT):
-            self._selected_quest_index = max(-1, self._selected_quest_index - 1)
-        elif key in (pygame.K_d, pygame.K_RIGHT):
-            self._selected_quest_index = min(len(quests) - 1, self._selected_quest_index + 1)
+            self.select(min(len(quests) - 1, self._selected_index + 1))
+            self._selected_quest_index = self._selected_index
+            return None
         elif key == pygame.K_RETURN:
             if 0 <= self._selected_quest_index < len(quests):
                 quest = quests[self._selected_quest_index]
-                if hasattr(quest, 'quest_id'):
-                    return ("accept_quest", quest.quest_id)
                 return ("accept_quest", quest.quest_id)
 
         return None
 
-    def handle_click(self, x: int, y: int) -> tuple[str, ...] | None:
+    def on_click(self, x: int, y: int, button: int = 1) -> tuple[str, ...] | None:
         """
         Handle a mouse click on the quest panel.
 
         Routes clicks to the appropriate action based on which rect was hit.
-
-        Args:
-            x: Mouse X coordinate.
-            y: Mouse Y coordinate.
-
-        Returns:
-            Action tuple, or None if the click was not on an actionable element.
         """
         # Check close button first
         close_rect = pygame.Rect(
@@ -747,6 +595,7 @@ class QuestPanel:
                 self._tab = tab_id
                 self._scroll_offset = 0
                 self._selected_quest_id = None
+                self._selected_quest_index = -1
                 self._set_status("")
                 return None
 
@@ -768,3 +617,59 @@ class QuestPanel:
                 return None
 
         return None
+
+    def on_mouse_move(self, mx: int, my: int) -> None:
+        """Track hovered tab, hover states for Accept buttons, and quest selection."""
+        self._hovered_tab = ""
+
+        # Close button
+        close_rect = pygame.Rect(
+            self.CLOSE_X, self.CLOSE_Y,
+            self.CLOSE_SIZE, self.CLOSE_SIZE,
+        )
+        if close_rect.collidepoint(mx, my):
+            self._hovered_tab = "close"
+            return
+
+        # Tab buttons
+        for tab_rect, tab_id in self._tab_rects:
+            if tab_rect.collidepoint(mx, my):
+                self._hovered_tab = f"tab_{tab_id}"
+                return
+
+        # Quest rows
+        for idx, (quest_rect, quest_id) in enumerate(self._quest_rects):
+            if quest_rect.collidepoint(mx, my):
+                self._selected_quest_index = idx
+                self._selected_quest_id = quest_id
+                return
+
+    def _get_current_quests(self) -> list:
+        """Return the quest list for the current tab."""
+        if self.quest_system is None:
+            return []
+        if self._tab == "available":
+            return self.quest_system.get_available_quests()
+        elif self._tab == "active":
+            return self.quest_system.get_active_quests()
+        elif self._tab == "completed":
+            return self.quest_system.get_completed_quests()
+        return []
+
+    # ── Compatibility methods (for game.py) ──────────────────────────
+
+    def render(self, screen: pygame.Surface) -> None:
+        """Render the quest panel (compatibility wrapper)."""
+        super().render(screen)
+
+    def handle_mouse_move(self, mx: int, my: int) -> None:
+        """Track hovered tab, hover states for Accept buttons, and quest selection."""
+        self.on_mouse_move(mx, my)
+
+    def handle_click(self, x: int, y: int) -> tuple[str, ...] | None:
+        """Handle a click on the quest panel (compatibility wrapper)."""
+        return self.on_click(x, y)
+
+    def handle_key(self, key: int) -> tuple[str, ...] | None:
+        """Keyboard navigation (compatibility wrapper)."""
+        return self.on_key(key)
