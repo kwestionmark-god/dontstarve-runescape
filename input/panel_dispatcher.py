@@ -204,7 +204,8 @@ class PanelDispatcher:
             if food and food.spoilage_rate > 0:
                 game.inventory.set_spoilage(recipe.output_item, food.spoilage_rate)
         if game.player is not None and game.player.action_system is not None:
-            game.player.action_system.add_notification(result.message)
+            color = (100, 255, 100) if result.success else (255, 150, 100)
+            game.player.action_system.add_notification(result.message, color)
 
     def _handle_smelt_click(self, recipe_id: str) -> None:
         game = self._game

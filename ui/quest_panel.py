@@ -59,6 +59,7 @@ class QuestPanel(PanelWindow):
 
     # Content area constants (for layout within content_rect)
     CONTENT_MAX_HEIGHT = 340
+    CONTENT_Y = 95
     MAX_VISIBLE_QUESTS = 4
     QUEST_ROW_HEIGHT = 72
     QUEST_ROW_GAP = 4
