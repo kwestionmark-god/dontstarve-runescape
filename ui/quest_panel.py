@@ -59,24 +59,20 @@ class QuestPanel(PanelWindow):
 
     # Content area constants (for layout within content_rect)
     CONTENT_MAX_HEIGHT = 340
-    CONTENT_Y = 95
     MAX_VISIBLE_QUESTS = 4
     QUEST_ROW_HEIGHT = 72
     QUEST_ROW_GAP = 4
 
     # Tab bar constants
-    TAB_Y = 70
     TAB_HEIGHT = 22
     TAB_WIDTH = 120
     TAB_GAP = 2
 
     # Status bar
     STATUS_HEIGHT = 25
-    STATUS_Y = 540
 
     # Footer hint
     FOOTER_HEIGHT = 15
-    FOOTER_Y = 560
 
     # Color palette (matches TradePanel)
     BG_COLOR = (30, 30, 40)
@@ -266,20 +262,14 @@ class QuestPanel(PanelWindow):
             self._content_total_px = 0
             return
 
-        # Use content_rect for all positioning
         left = content_rect.x + 10
-        right = content_rect.x + content_rect.width - 10
         content_w = content_rect.width - 20
-        top = content_rect.y
-        bottom = content_rect.y + content_rect.height
-
-        # Title (drawn by base class chrome, but we can add extra title here if needed)
-        # The base class draws the title in the title bar
+        top = content_rect.y  # Use content_rect for all positioning
 
         # Tabs - positioned relative to content_rect
         tabs = [("Available", "available"), ("Active", "active"), ("Completed", "completed")]
         tab_x_start = left + (content_w - (3 * self.TAB_WIDTH + 2 * self.TAB_GAP)) // 2
-        tab_y = self.TAB_Y  # Absolute Y since tabs are in title area
+        tab_y = self.title_height + 10  # Just below title bar
         for label, tab_id in tabs:
             x = tab_x_start + tabs.index((label, tab_id)) * (self.TAB_WIDTH + self.TAB_GAP)
             is_active = self._tab == tab_id
@@ -294,32 +284,37 @@ class QuestPanel(PanelWindow):
             self._tab_rects.append((tab_rect, tab_id))
             self._interactive_rects.append((tab_rect, f"tab:{tab_id}"))
 
-        # Content area background - use content_rect for scrollable area
-        content_area_y = self.CONTENT_Y  # Absolute Y for content start
+        # Content area background - starts below tabs
+        content_area_y = tab_y + self.TAB_HEIGHT + 10
         content_area_h = self.CONTENT_MAX_HEIGHT
         pygame.draw.rect(
             screen, self.CONTENT_BG,
             (left, content_area_y, content_w, content_area_h),
         )
 
+        # Apply scroll offset to content area
+        draw_top = content_area_y - self._scroll_offset
+
         # Render tab-specific content
         if self._tab == "available":
-            self._render_available_tab(screen, left, content_area_y, content_w)
+            self._render_available_tab(screen, left, draw_top, content_w)
         elif self._tab == "active":
-            self._render_active_tab(screen, left, content_area_y, content_w)
+            self._render_active_tab(screen, left, draw_top, content_w)
         elif self._tab == "completed":
-            self._render_completed_tab(screen, left, content_area_y, content_w)
+            self._render_completed_tab(screen, left, draw_top, content_w)
 
-        # Status bar
+        # Status bar (fixed at bottom of panel)
         self._render_status_bar(screen)
 
         # Footer hint
         hint = self.font_small.render("Press ESC or U to close", True, self.TEXT_DIM)
         hint_x = self.rect.x + (self.rect.width - hint.get_width()) // 2
-        hint_y = self.FOOTER_Y
+        hint_y = self.rect.y + self.rect.height - self.FOOTER_HEIGHT - 5
         screen.blit(hint, (hint_x, hint_y))
 
-        self._content_total_px = content_area_h + 50
+        # Total content height for scrollbar
+        quests = self._get_current_quests()
+        self._content_total_px = max(content_area_h, len(quests) * (self.QUEST_ROW_HEIGHT + self.QUEST_ROW_GAP))
 
     def _render_available_tab(self, screen: pygame.Surface, left: int, top: int, content_w: int) -> None:
         """Render available quests with Accept buttons, filtered by NPC if scoped."""
@@ -503,7 +498,7 @@ class QuestPanel(PanelWindow):
 
     def _render_status_bar(self, screen: pygame.Surface) -> None:
         """Render the status message bar."""
-        status_y = self.STATUS_Y
+        status_y = self.rect.y + self.rect.height - self.FOOTER_HEIGHT - self.STATUS_HEIGHT - 5
         status_w = self.rect.width - 20
 
         pygame.draw.rect(
@@ -563,18 +558,24 @@ class QuestPanel(PanelWindow):
             self._set_status("")
             return None
 
-        # Quest navigation
+        # Quest navigation - use base class selection
         quests = self._get_current_quests()
         max_offset = max(0, len(quests) - self.MAX_VISIBLE_QUESTS)
         self._scroll_offset = min(self._scroll_offset, max_offset)
 
         if key in (pygame.K_w, pygame.K_UP):
+            # Move selection up
+            old_selected = self._selected_index
             self.select(max(-1, self._selected_index - 1))
-            self._selected_quest_index = self._selected_index
+            if self._selected_index != old_selected:
+                self._selected_quest_index = self._selected_index
             return None
         elif key in (pygame.K_s, pygame.K_DOWN):
+            # Move selection down
+            old_selected = self._selected_index
             self.select(min(len(quests) - 1, self._selected_index + 1))
-            self._selected_quest_index = self._selected_index
+            if self._selected_index != old_selected:
+                self._selected_quest_index = self._selected_index
             return None
         elif key == pygame.K_RETURN:
             if 0 <= self._selected_quest_index < len(quests):
@@ -613,6 +614,8 @@ class QuestPanel(PanelWindow):
             if quest_rect.collidepoint(x, y):
                 self._selected_quest_id = quest_id
                 self._selected_quest_index = idx
+                # Also update base class selection for visual highlight
+                self.select(idx)
                 # Update status message
                 self._set_status(f"Selected: {quest_id}")
                 return None
@@ -634,6 +637,7 @@ class QuestPanel(PanelWindow):
             if quest_rect.collidepoint(mx, my):
                 self._selected_quest_index = idx
                 self._selected_quest_id = quest_id
+                self.select(idx)
                 return
 
     def _get_current_quests(self) -> list:
