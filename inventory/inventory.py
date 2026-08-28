@@ -181,10 +181,9 @@ class Inventory:
             slot.quantity -= remove_amount
             remaining -= remove_amount
             if slot.quantity <= 0:
-                slot.item_id = None
-                slot.quantity = 0
-                slot.spoilage_remaining = None
-                slot.is_equipped = False
+                # Single empty representation: set slot to None
+                idx = self.slots.index(slot)
+                self.slots[idx] = None
             if remaining <= 0:
                 return True
 
