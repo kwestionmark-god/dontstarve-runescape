@@ -248,8 +248,6 @@ class ActionSystem:
 
         if action.action_type == ActionType.WOODCUTTING or action.action_type == ActionType.MINING:
             messages = self._complete_gathering(action)
-        elif action.action_type == ActionType.COOKING:
-            messages = self._complete_cooking(action)
 
         # Reset to idle
         action.state = ActionState.IDLE
@@ -325,13 +323,6 @@ class ActionSystem:
             messages.append("You fail to harvest the resource.")
             action.cooldown = 2.0
             return messages
-
-    def _complete_cooking(self, action: ActiveAction) -> List[str]:
-        """Process completion of a cooking action."""
-        messages: List[str] = []
-        # Cooking results are handled by the Game layer via CraftingSystem
-        messages.append("You cook the food.")
-        return messages
 
     def _find_equipped_tool(
         self, inventory: Inventory, tool_type: str,
