@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+# Tier-based density multiplier (module-level constant, shared by all ResourceNodes)
+TIER_DENSITY_MULTIPLIER: dict[int, float] = {1: 1.0, 2: 0.7, 3: 0.4, 4: 0.2}
+
+
 @dataclass
 class ResourceNode:
     """A harvestable resource on a tile."""
@@ -30,16 +34,10 @@ class ResourceNode:
     name: str = ""           # Human-readable name (e.g. "Oak Tree")
     seasons_available: list[str] = field(default_factory=list)  # Seasons this resource spawns in; empty = all seasons
 
-    # Tier-based density multiplier
-    TIER_DENSITY_MULTIPLIER: dict[int, float] = field(
-        default_factory=lambda: {1: 1.0, 2: 0.7, 3: 0.4, 4: 0.2},
-        repr=False,
-    )
-
     @property
     def effective_density(self) -> float:
         """Density adjusted by tier."""
-        return self.base_density * self.TIER_DENSITY_MULTIPLIER.get(self.tier, 1.0)
+        return self.base_density * TIER_DENSITY_MULTIPLIER.get(self.tier, 1.0)
 
     @property
     def is_depleted(self) -> bool:
