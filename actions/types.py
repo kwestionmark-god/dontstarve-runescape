@@ -41,5 +41,3 @@ class ActionState(Enum):
     """Lifecycle of a single action."""
     IDLE = auto()
     RUNNING = auto()
-    SUCCESS = auto()
-    FAILURE = auto()
