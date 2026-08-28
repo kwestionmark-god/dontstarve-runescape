@@ -213,6 +213,10 @@ class SurvivalSystem:
             tile: The current tile the player is standing on (may be None).
         """
         if tile is None or tile.biome is None:
+            # No biome = neutral pressure (1.0)
+            if self.environmental_pressure != 1.0:
+                self.environmental_pressure = 1.0
+                self._last_env_pressure = 1.0
             return
 
         new_pressure = tile.biome.environmental_pressure
