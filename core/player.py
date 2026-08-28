@@ -32,7 +32,7 @@ class Player:
 
     __slots__ = (
         "world_x", "world_y", "speed", "target_x", "target_y",
-        "moving", "is_moving", "action_system", "gear", "skill_manager",
+        "moving", "action_system", "gear", "skill_manager",
         "inventory", "recruited_npcs", "base_x", "base_y",
         "unlocked_recipes", "unlocked_gear",
     )
@@ -51,7 +51,6 @@ class Player:
         self.target_x = world_x
         self.target_y = world_y
         self.moving = False
-        self.is_moving = False  # True if currently in motion
         self.action_system: "ActionSystem | None" = None
         self.gear = None
         self.skill_manager: "SkillManager | None" = None
@@ -144,7 +143,6 @@ class Player:
             dt: Delta time in seconds.
         """
         if not self.moving:
-            self.is_moving = False
             return
 
         dx = self.target_x - self.world_x
@@ -153,7 +151,6 @@ class Player:
 
         if distance < 2.0:  # Reached target (2px tolerance)
             self.moving = False
-            self.is_moving = False
             return
 
         # Move toward target at full speed
@@ -167,8 +164,6 @@ class Player:
         max_y = MAP_HEIGHT * TILE_SIZE
         self.world_x = max(0.0, min(self.world_x, max_x))
         self.world_y = max(0.0, min(self.world_y, max_y))
-
-        self.is_moving = True
 
     def get_tile_position(self) -> Tuple[int, int]:
         """

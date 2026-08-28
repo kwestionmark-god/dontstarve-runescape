@@ -96,7 +96,7 @@ class SpriteRenderer:
         zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
 
         # Select sprite based on movement state
-        if getattr(player, "is_moving", False):
+        if getattr(player, "moving", False):
             sprite = self._load_player_sprite("walk_0")
         else:
             sprite = self._load_player_sprite("idle_0")
@@ -755,12 +755,17 @@ class SpriteRenderer:
             sprite_key = f"npcs/{npc.npc_type}"
         sprite = self._get_sprite(sprite_key)
 
+        # Radius of the drawn entity — used by the recruited-NPC outline below,
+        # so it must be initialized on BOTH the sprite and fallback branches.
+        radius = int(14 * zoom)
+
         if sprite is not None:
             # Scale sprite by zoom
             if zoom != 1.0:
                 scaled_w = max(4, int(sprite.get_width() * zoom))
                 scaled_h = max(4, int(sprite.get_height() * zoom))
                 sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
+            radius = max(sprite.get_width(), sprite.get_height()) // 2
 
             # Apply seasonal tint if available
             if self.seasonal_renderer is not None:
@@ -778,7 +783,6 @@ class SpriteRenderer:
         else:
             # Fallback: colored ellipse (scaled by zoom)
             color = self._NPC_COLOURS.get(npc.npc_type, (200, 200, 200))
-            radius = int(14 * zoom)
             ellipse_rect = pygame.Rect(screen_x - radius, screen_y - elevation_offset - radius, radius * 2, radius * 2)
             pygame.draw.ellipse(screen, color, ellipse_rect)
 
