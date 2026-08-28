@@ -7,6 +7,7 @@ World generation is deferred until the player initiates from the title screen.
 
 import sys
 import argparse
+import pygame
 
 from core.game import Game
 from core.game_loop import run
@@ -24,11 +25,11 @@ def main() -> None:
     args = parser.parse_args()
 
     game = Game(seed=args.seed)
-    run(game)
-
-    import pygame
-    pygame.quit()
-    sys.exit()
+    try:
+        run(game)
+    finally:
+        pygame.quit()
+        sys.exit()
 
 
 if __name__ == "__main__":
