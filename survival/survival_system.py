@@ -196,10 +196,14 @@ class SurvivalSystem:
 
     def get_hunger_percent(self) -> float:
         """Returns hunger/max_hunger as a 0–1 ratio."""
+        if self.max_hunger <= 0:
+            return 0.0
         return self.hunger / self.max_hunger
 
     def get_hp_percent(self) -> float:
         """Returns hp/max_hp as a 0–1 ratio."""
+        if self.max_hp <= 0:
+            return 0.0
         return self.hp / self.max_hp
 
     def update_from_tile(self, tile: "Tile | None") -> None:
