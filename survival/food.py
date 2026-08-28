@@ -22,16 +22,24 @@ if TYPE_CHECKING:
 
 @dataclass
 class FoodItem:
-    """Definition of a food item."""
+    """Definition of a food item (holds only food-specific data)."""
 
     item_id: str
     hunger_restoration: float
     hp_restoration: float    # Negative = damage (spoiled food)
     spoilage_rate: float     # Seconds until spoilage completes (0 = never spoils)
     is_raw: bool
-    max_stack_size: int
-    sprite_key: str
     cooking_base_item: str   # ID of raw food this is cooked from (empty if not cooked)
+
+    def get_stack_size(self, items_data: dict[str, dict]) -> int:
+        """Get max stack size from item data."""
+        item = items_data.get(self.item_id)
+        return item.get("stack_size", 10) if item else 10
+
+    def get_sprite_key(self, items_data: dict[str, dict]) -> str:
+        """Get sprite key from item data."""
+        item = items_data.get(self.item_id)
+        return item.get("sprite_key", "") if item else ""
 
 
 class FoodRegistry:
@@ -48,6 +56,7 @@ class FoodRegistry:
         Args:
             items_data: Parsed list of item dicts from items.json.
         """
+        self._items_data: Dict[str, dict] = {item["id"]: item for item in items_data}
         self._foods: Dict[str, FoodItem] = {}
         for data in items_data:
             if data.get("is_food", False):
@@ -57,8 +66,6 @@ class FoodRegistry:
                     hp_restoration=data.get("hp_restore", 0),
                     spoilage_rate=data.get("spoilage_seconds", 0),
                     is_raw=data.get("is_raw", False),
-                    max_stack_size=data.get("stack_size", 10),
-                    sprite_key=data["sprite_key"],
                     cooking_base_item=data.get("cooking_base_item", ""),
                 )
 
@@ -81,3 +88,13 @@ class FoodRegistry:
         if food is None:
             return ""
         return food.cooking_base_item
+
+    def get_stack_size(self, item_id: str) -> int:
+        """Get max stack size for an item (from item data)."""
+        item = self._items_data.get(item_id)
+        return item.get("stack_size", 10) if item else 10
+
+    def get_sprite_key(self, item_id: str) -> str:
+        """Get sprite key for an item (from item data)."""
+        item = self._items_data.get(item_id)
+        return item.get("sprite_key", "") if item else ""
