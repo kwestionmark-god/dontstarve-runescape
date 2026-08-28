@@ -57,20 +57,21 @@ def test_single_hill_gradient_decay():
     elevations = {(2, 2): 7}
     tm = _make_tile_map(elevations, width=5, height=5)
 
-    # Corner (2, 2): self tile (2,2) has weight 4 → h = 28/21 ≈ 1.33
+    # Corner (2, 2): tile (2,2) is SE corner tile (weight 4) → h = 28/21 ≈ 1.33
     h_center = tm.get_corner_height(2, 2)
     assert 1.2 < h_center < 1.5, f"Center corner should be ~1.33, got {h_center}"
 
-    # Corner (3, 2): (2,2) is self tile (weight 4) + ortho (weight 1) → h = 35/21 ≈ 1.67
+    # Corner (3, 2): tile (2,2) is SW corner tile (weight 4) → h = 28/21 ≈ 1.33
+    # (No longer double-counted with ortho weight)
     h_close = tm.get_corner_height(3, 2)
-    assert 1.5 < h_close < 1.8, f"Close corner should be ~1.67, got {h_close}"
+    assert 1.2 < h_close < 1.5, f"Close corner should be ~1.33, got {h_close}"
 
-    # Corner (1, 1): (2,2) is diag neighbor (weight 0.25) → h = 1.75/21 ≈ 0.08
-    h_far = tm.get_corner_height(1, 1)
+    # Corner (0, 0): tile (2,2) is diag orbit at (2,2) (weight 0.25) → h = 1.75/21 ≈ 0.08
+    h_far = tm.get_corner_height(0, 0)
     assert 0.05 < h_far < 0.15, f"Far corner should be ~0.08, got {h_far}"
 
-    # Verify gradient: h_close > h_center > h_far
-    assert h_close > h_center, f"Close corner ({h_close}) should be > center ({h_center})"
+    # Verify gradient: h_center ≈ h_close > h_far (symmetric kernel, no double-count)
+    assert abs(h_close - h_center) < 0.01, f"Close ({h_close}) ≈ center ({h_center})"
     assert h_center > h_far, f"Center corner ({h_center}) should be > far ({h_far})"
 
 

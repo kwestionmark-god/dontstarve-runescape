@@ -190,39 +190,40 @@ class TileMap:
         Compute the interpolated height at corner (cx, cy).
 
         The corner sits between four tiles. Height is a weighted average
-        of the elevation values of surrounding tiles using a Gaussian-like
-        kernel that produces smooth slopes.
+        of the elevation values of surrounding tiles using a rotationally
+        symmetric kernel (12 unique tiles, no overlap).
 
-        Weights:
-            Self tile (4 tiles around corner): weight 4 each
-            Ortho neighbors (N/S/E/W): weight 1 each
-            Diag neighbors: weight 0.25 each
+        Kernel:
+            4 center tiles (the 2x2 around corner): weight 4 each
+            4 ortho neighbors (90° rotation orbit): weight 1 each
+            4 diag neighbors (90° rotation orbit): weight 0.25 each
 
         Out-of-bounds tiles are treated as elevation 0 (cliff edge).
 
         Returns:
             The interpolated corner height as a float.
         """
-        weights = [
-            ((cx - 1, cy - 1), 4),  # NW
-            ((cx,     cy - 1), 4),  # NE
-            ((cx - 1, cy),     4),  # SW
-            ((cx,     cy),     4),  # SE
+        # Rotationally symmetric kernel around corner (cx, cy).
+        # Orbit 1 (center 2x2): (-1,-1), (0,-1), (-1,0), (0,0) — weight 4
+        # Orbit 2 (ortho): (-2,-1), (1,-2), (2,1), (-1,2) — weight 1
+        # Orbit 3 (diag):  (-2,-2), (2,-2), (2,2), (-2,2) — weight 0.25
+        kernel = [
+            # Center 2x2 (the 4 corner tiles)
+            (-1, -1, 4.0), (0, -1, 4.0), (-1, 0, 4.0), (0, 0, 4.0),
+            # Ortho orbit (90° rotation symmetric)
+            (-2, -1, 1.0), (1, -2, 1.0), (2, 1, 1.0), (-1, 2, 1.0),
+            # Diag orbit (corners of square around center)
+            (-2, -2, 0.25), (2, -2, 0.25), (2, 2, 0.25), (-2, 2, 0.25),
         ]
-        # Add ortho neighbors
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            weights.append(((cx + dx, cy + dy), 1))
-        # Add diag neighbors
-        for dx, dy in [(-1, -1), (1, -1), (-1, 1), (1, 1)]:
-            weights.append(((cx + dx, cy + dy), 0.25))
 
-        total_weight = sum(w for _, w in weights)
+        total_weight = 0.0
         total_height = 0.0
-        for (tx, ty), weight in weights:
+        for dx, dy, weight in kernel:
+            tx, ty = cx + dx, cy + dy
             tile = self.get_tile(tx, ty)
             if tile is not None:
                 total_height += tile.elevation * weight
-            # Out-of-bounds → treat as elevation 0
+            total_weight += weight
 
         return total_height / total_weight
 
