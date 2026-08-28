@@ -53,7 +53,13 @@ class ResourceNode:
 
     @property
     def remaining_depletions(self) -> int:
-        """How many more harvests are available."""
+        """How many more harvests are available.
+
+        Returns a large sentinel (999999) for infinite resources (depletion_count <= 0)
+        so callers don't misinterpret '0 remaining' as exhausted.
+        """
+        if self.depletion_count <= 0:
+            return 999999  # Infinite resource
         return max(0, self.depletion_count - self.current_depletions)
 
     def harvest(self) -> bool:
