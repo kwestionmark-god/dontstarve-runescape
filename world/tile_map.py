@@ -307,36 +307,3 @@ class TileMap:
         brightness = 1.0 + max(-SHADING_STRENGTH, min(SHADING_STRENGTH, light_dot * SHADING_STRENGTH * 2.0))
 
         return (brightness, min(slope_mag / 2.0, 1.0))
-
-    def has_structure_nearby(
-        self,
-        tx: int,
-        ty: int,
-        search_radius: int,
-        structure_resource_id: str,
-    ) -> bool:
-        """
-        Check if a structure resource node exists near the given tile.
-
-        Searches a square area of radius ``search_radius`` around
-        ``(tx, ty)`` for a resource node matching ``structure_resource_id``.
-
-        Args:
-            tx: Tile X coordinate.
-            ty: Tile Y coordinate.
-            search_radius: Number of tiles to search in each direction.
-            structure_resource_id: The resource_id to match (e.g. "campfire").
-
-        Returns:
-            True if a matching structure node is found within range.
-        """
-        for dx in range(-search_radius, search_radius + 1):
-            for dy in range(-search_radius, search_radius + 1):
-                nx, ny = tx + dx, ty + dy
-                tile = self.get_tile(nx, ny)
-                if tile is None:
-                    continue
-                node = tile.resource_node
-                if node is not None and node.resource_id == structure_resource_id:
-                    return True
-        return False
