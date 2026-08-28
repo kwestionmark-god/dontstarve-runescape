@@ -177,10 +177,9 @@ class ActionSystem:
                 skill_id = self._action_type_to_skill_id()
 
                 # Delegate XP + level-up notification to SkillManager
-                skill_manager.add_xp_with_notification(
-                    skill_id, result.xp,
-                    lambda msg: self.add_notification(msg, (255, 215, 0)),
-                )
+                level_up_messages = skill_manager.add_xp_with_notification(skill_id, result.xp)
+                for msg in level_up_messages:
+                    self.add_notification(msg, (255, 215, 0))
 
         # Show success message
         if result.message:

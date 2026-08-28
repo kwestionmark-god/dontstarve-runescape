@@ -7,8 +7,8 @@ from inventory.inventory import Inventory
 # process_completion unconditionally calls skill_manager.add_xp_with_notification(...)
 # AFTER the spoilage logic, so the mock MUST expose it (object() crashes with AttributeError).
 class FakeSkillManager:
-    def add_xp_with_notification(self, skill_id, xp, cb=None):
-        pass
+    def add_xp_with_notification(self, skill_id, xp):
+        return []
 
 class FakeFood:
     def __init__(self):

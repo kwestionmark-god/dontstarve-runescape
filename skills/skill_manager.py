@@ -193,25 +193,23 @@ class SkillManager:
         self,
         skill_id: str,
         xp_amount: float,
-        notification_callback: Callable[[str], None],
-    ) -> int | None:
+    ) -> list[str]:
         """
-        Add XP to a skill and show a level-up notification if applicable.
+        Add XP to a skill and return level-up notification messages.
 
         Args:
             skill_id: The skill to grant XP to.
             xp_amount: Amount of XP to add.
-            notification_callback: A callable(skill_name: str, level: int) -> None
-                that will be invoked on level-up with the formatted message.
 
         Returns:
-            New level if leveled up, None if no level-up occurred.
+            List of notification messages (empty if no level-up).
         """
         new_level = self.add_xp(skill_id, xp_amount)
+        messages: list[str] = []
         if new_level is not None:
             skill_name = skill_id.replace("_", " ").title()
-            notification_callback(f"{skill_name} level {new_level}!")
-        return new_level
+            messages.append(f"{skill_name} level {new_level}!")
+        return messages
 
     def get_xp_progress(self, skill_id: str) -> float:
         """
