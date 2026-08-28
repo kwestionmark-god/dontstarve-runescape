@@ -129,6 +129,7 @@ class Bootstrap:
 
         self.game.player.gear = PlayerGear()
         self.game.player.skill_manager = self.game.skill_manager
+        self.game.player.survival = self.game.survival
 
     def _build_crafting(self) -> None:
         """Initialize the crafting system with a unified RecipeRegistry."""

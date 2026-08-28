@@ -33,7 +33,7 @@ class Player:
     __slots__ = (
         "world_x", "world_y", "speed", "target_x", "target_y",
         "moving", "action_system", "gear", "skill_manager",
-        "inventory", "recruited_npcs", "base_x", "base_y",
+        "inventory", "survival", "recruited_npcs", "base_x", "base_y",
         "unlocked_recipes", "unlocked_gear",
     )
 
@@ -55,6 +55,7 @@ class Player:
         self.gear = None
         self.skill_manager: "SkillManager | None" = None
         self.inventory = None  # Wired by bootstrap after Inventory is built
+        self.survival = None  # Wired by bootstrap after SurvivalSystem is built
         self.recruited_npcs: list[str] = []
         self.base_x: "float | None" = None  # Base center X for recruit behavior tracking
         self.base_y: "float | None" = None  # Base center Y for recruit behavior tracking
@@ -214,8 +215,8 @@ class Player:
         Returns:
             True if the player died.
         """
-        if self.action_system is not None and self.action_system.survival is not None:
-            return self.action_system.survival.take_damage(amount)
+        if self.survival is not None:
+            return self.survival.take_damage(amount)
         return False
 
     def add_recruit(self, npc_id: str) -> None:
