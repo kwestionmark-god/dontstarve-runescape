@@ -72,7 +72,7 @@ class TestFix1GatheringSuccessRate:
         )
 
         assert system.active.state == ActionState.RUNNING
-        assert system.active.success_rate_bonus == -10.0
+        assert system.active.success_rate_bonus == 10.0
 
     def test_positive_stat_makes_gather_succeed_at_roll_50(self) -> None:
         """A +10 success_rate raises the threshold to 60, so a 50 roll succeeds.
@@ -106,7 +106,7 @@ class TestFix1GatheringSuccessRate:
         system.start_action(
             ActionType.WOODCUTTING, resource, sm, inventory,
         )
-        assert system.active.success_rate_bonus == 10.0
+        assert system.active.success_rate_bonus == -10.0
 
         with mock.patch("random.random", return_value=0.5):
             result = system._complete_action()

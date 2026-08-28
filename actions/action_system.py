@@ -97,9 +97,8 @@ class ActionSystem:
             action.yield_quantity = resource.yield_quantity
             action.stamina_cost = 3.0
             action.required_tool = resource.requires_tool
-            # Positive success_rate lowers the completion threshold (see
-            # _complete_gathering), so spend stat points to harvest more easily.
-            action.success_rate_bonus = -skill_manager.get_effective_stat(
+            # Store positive success_rate; subtracted from threshold in roll.
+            action.success_rate_bonus = skill_manager.get_effective_stat(
                 "woodcutting", "success_rate"
             ) * 1.0
             action.extra_resources_bonus = skill_manager.get_effective_stat(
@@ -114,7 +113,7 @@ class ActionSystem:
             action.yield_quantity = resource.yield_quantity
             action.stamina_cost = 3.0
             action.required_tool = resource.requires_tool
-            action.success_rate_bonus = -skill_manager.get_effective_stat(
+            action.success_rate_bonus = skill_manager.get_effective_stat(
                 "mining", "success_rate"
             ) * 1.0
             action.extra_resources_bonus = skill_manager.get_effective_stat(
@@ -281,9 +280,9 @@ class ActionSystem:
             return ActionResult(success=False, message="You are too exhausted. Rest for a moment.")
 
         # Roll success: base_chance + success_rate_stat
-        # Base chance is 50%, bonus is success_rate_stat * 1.0% per point
+        # Base chance is 50%, bonus adds to threshold (positive = easier)
         import random
-        success_threshold = 50.0 - action.success_rate_bonus
+        success_threshold = 50.0 + action.success_rate_bonus
         if random.random() * 100 < success_threshold:
             # Success
             if not resource.harvest():

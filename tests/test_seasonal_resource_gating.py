@@ -287,7 +287,7 @@ class TestHarvestSeasonGate:
         active.stamina_cost = 3.0
         active.yield_item = "mithril_ore"
         active.yield_quantity = 1
-        active.success_rate_bonus = -60  # Guaranteed success
+        active.success_rate_bonus = 60  # Guaranteed success
         active.extra_resources_bonus = 0
 
         action_system.active = active
@@ -336,7 +336,7 @@ class TestHarvestSeasonGate:
         active.stamina_cost = 3.0
         active.yield_item = "mithril_ore"
         active.yield_quantity = 1
-        active.success_rate_bonus = -60
+        active.success_rate_bonus = 60
         active.extra_resources_bonus = 0
 
         action_system.active = active
@@ -378,7 +378,7 @@ class TestHarvestSeasonGate:
         active.stamina_cost = 3.0
         active.yield_item = "mithril_ore"
         active.yield_quantity = 1
-        active.success_rate_bonus = -60
+        active.success_rate_bonus = 60
         active.extra_resources_bonus = 0
 
         action_system.active = active
