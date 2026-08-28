@@ -60,7 +60,10 @@ class Inventory:
 
     # ── Item Operations ────────────────────────────────────────────
 
-    def _try_add_stacking(self, item_id: str, quantity: int, dry_run: bool = False) -> tuple[bool, int]:
+    def _try_add_stacking(
+        self, item_id: str, quantity: int, dry_run: bool = False,
+        spoilage_seconds: float | None = None,
+    ) -> tuple[bool, int]:
         """
         Internal helper for adding items with stacking logic.
 
@@ -68,6 +71,7 @@ class Inventory:
             item_id: The item to add.
             quantity: Amount to add.
             dry_run: If True, only check if items would fit without mutating state.
+            spoilage_seconds: Spoilage timer for newly created stacks (None = no spoilage).
 
         Returns:
             (success: bool, remaining: int) — success if all items fit,
@@ -100,11 +104,15 @@ class Inventory:
             if not dry_run:
                 slot = self.slots[slot_idx]
                 if slot is None:
-                    slot = InventorySlot(item_id=item_id, quantity=take)
+                    slot = InventorySlot(
+                        item_id=item_id, quantity=take,
+                        spoilage_remaining=spoilage_seconds,
+                    )
                     self.slots[slot_idx] = slot
                 else:
                     slot.item_id = item_id
                     slot.quantity = take
+                    slot.spoilage_remaining = spoilage_seconds
             remaining -= take
 
         return True, 0
@@ -124,20 +132,28 @@ class Inventory:
         success, _ = self._try_add_stacking(item_id, quantity, dry_run=True)
         return success
 
-    def add_item(self, item_id: str, quantity: int) -> bool:
+    def add_item(
+        self, item_id: str, quantity: int, spoilage_seconds: float | None = None
+    ) -> bool:
         """
         Add items to inventory. Stacks into existing slots first,
         then uses empty slots, splitting across slots at the item's
         max stack size.
 
+        New stacks created during this operation receive the given
+        spoilage timer (if any). Existing stacks keep their current timer.
+
         Args:
             item_id: The item to add.
             quantity: Amount to add.
+            spoilage_seconds: Seconds until spoilage for new stacks (None = never spoils).
 
         Returns:
             True if all items were added, False if inventory is full.
         """
-        success, _ = self._try_add_stacking(item_id, quantity, dry_run=False)
+        success, _ = self._try_add_stacking(
+            item_id, quantity, dry_run=False, spoilage_seconds=spoilage_seconds
+        )
         return success
 
     def remove_item(self, item_id: str, quantity: int) -> bool:
@@ -329,10 +345,10 @@ class Inventory:
 
     def set_spoilage(self, item_id: str, seconds: float) -> bool:
         """
-        Set spoilage timer on all slots of an item type.
+        Set spoilage timer on slots of an item type that don't have one yet.
 
-        Called when an item is first added and has a non-zero
-        spoilage rate from the food registry.
+        Only applies to slots without an existing spoilage timer (new stacks
+        keep their fresh timer; existing stacks keep their remaining time).
 
         Args:
             item_id: The item to set spoilage on.
@@ -343,7 +359,7 @@ class Inventory:
         """
         updated = False
         for slot in self.slots:
-            if slot is not None and slot.item_id == item_id:
+            if slot is not None and slot.item_id == item_id and slot.spoilage_remaining is None:
                 slot.spoilage_remaining = seconds
                 updated = True
         return updated
