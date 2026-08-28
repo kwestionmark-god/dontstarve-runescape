@@ -60,6 +60,55 @@ class Inventory:
 
     # ── Item Operations ────────────────────────────────────────────
 
+    def _try_add_stacking(self, item_id: str, quantity: int, dry_run: bool = False) -> tuple[bool, int]:
+        """
+        Internal helper for adding items with stacking logic.
+
+        Args:
+            item_id: The item to add.
+            quantity: Amount to add.
+            dry_run: If True, only check if items would fit without mutating state.
+
+        Returns:
+            (success: bool, remaining: int) — success if all items fit,
+            remaining items that couldn't be placed.
+        """
+        if quantity <= 0:
+            return True, 0
+
+        remaining = quantity
+        max_stack = self._get_max_stack(item_id)
+
+        # First: stack into existing slots of the same item
+        for slot in self.slots:
+            if slot is not None and slot.item_id == item_id:
+                space = max_stack - slot.quantity
+                if space > 0:
+                    added = min(remaining, space)
+                    if not dry_run:
+                        slot.quantity += added
+                    remaining -= added
+                    if remaining <= 0:
+                        return True, 0
+
+        # Then: use empty slots, splitting the remainder at max_stack
+        while remaining > 0:
+            slot_idx = self._find_empty_slot()
+            if slot_idx is None:
+                return False, remaining
+            take = min(remaining, max_stack)
+            if not dry_run:
+                slot = self.slots[slot_idx]
+                if slot is None:
+                    slot = InventorySlot(item_id=item_id, quantity=take)
+                    self.slots[slot_idx] = slot
+                else:
+                    slot.item_id = item_id
+                    slot.quantity = take
+            remaining -= take
+
+        return True, 0
+
     def can_add(self, item_id: str, quantity: int) -> bool:
         """
         Return True if `quantity` copies of `item_id` would fit, stacking into
@@ -72,36 +121,14 @@ class Inventory:
         Returns:
             True if every copy would fit, False if the inventory is full.
         """
-        if quantity <= 0:
-            return True
-
-        remaining = quantity
-        max_stack = self._get_max_stack(item_id)
-        empty_slots = 0
-        for slot in self.slots:
-            if slot is None:
-                empty_slots += 1
-                continue
-            if slot.item_id is None and slot.quantity == 0:
-                # Slot freed by remove_item — add_item reuses these too.
-                empty_slots += 1
-                continue
-            if slot.item_id == item_id:
-                space = max_stack - slot.quantity
-                if space > 0:
-                    remaining -= min(remaining, space)
-                    if remaining <= 0:
-                        return True
-        if remaining > 0:
-            # add_item dumps the whole remainder into a single empty slot, so a
-            # lone empty slot is enough.
-            return empty_slots > 0
-        return True
+        success, _ = self._try_add_stacking(item_id, quantity, dry_run=True)
+        return success
 
     def add_item(self, item_id: str, quantity: int) -> bool:
         """
         Add items to inventory. Stacks into existing slots first,
-        then uses empty slots.
+        then uses empty slots, splitting across slots at the item's
+        max stack size.
 
         Args:
             item_id: The item to add.
@@ -110,42 +137,8 @@ class Inventory:
         Returns:
             True if all items were added, False if inventory is full.
         """
-        if quantity <= 0:
-            return True
-
-        remaining = quantity
-
-        # First: stack into existing slots of the same item
-        max_stack = self._get_max_stack(item_id)
-        for slot in self.slots:
-            if slot is not None and slot.item_id == item_id:
-                space = max_stack - slot.quantity
-                if space > 0:
-                    added = min(remaining, space)
-                    slot.quantity += added
-                    remaining -= added
-                    if remaining <= 0:
-                        return True
-
-        # Then: use empty slots. A slot may already exist but be empty
-        # (item_id None / quantity 0, e.g. after remove_item) — reuse it rather
-        # than spinning forever, since _find_empty_slot treats such slots as free.
-        while remaining > 0:
-            slot_idx = self._find_empty_slot()
-            if slot_idx is None:
-                # Inventory full — return items back
-                return False
-            slot = self.slots[slot_idx]
-            if slot is None:
-                slot = InventorySlot(item_id=item_id, quantity=remaining)
-                self.slots[slot_idx] = slot
-            else:
-                slot.item_id = item_id
-                slot.quantity = remaining
-            # add_item dumps the whole remainder into a single slot.
-            remaining = 0
-
-        return True
+        success, _ = self._try_add_stacking(item_id, quantity, dry_run=False)
+        return success
 
     def remove_item(self, item_id: str, quantity: int) -> bool:
         """
