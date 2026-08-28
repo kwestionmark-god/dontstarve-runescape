@@ -79,6 +79,7 @@ class CombatSystem:
         "player_attack_cooldown",
         "combat_log",
         "_npc_attack_cooldowns",
+        "_player_death_handler",
     )
 
     def __init__(
@@ -350,6 +351,15 @@ class CombatSystem:
 
         return damage
 
+    def set_player_death_handler(self, handler) -> None:
+        """
+        Public API for bootstrap to wire the death callback.
+
+        Args:
+            handler: Callable to invoke on player death (no arguments).
+        """
+        self._player_death_handler = handler
+
     def _on_player_death(self) -> None:
         """
         Handle player soft death.
@@ -362,6 +372,10 @@ class CombatSystem:
         5. Clear monsters and deselect target
         6. Save after death
         """
+        # Also call the registered handler if set (for survival starvation death)
+        if hasattr(self, '_player_death_handler') and self._player_death_handler is not None:
+            self._player_death_handler()
+
         # XP penalty
         if self.player.skill_manager is not None:
             total_xp = sum(s.xp for s in self.player.skill_manager.skills.values())

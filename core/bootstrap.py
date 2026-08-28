@@ -61,8 +61,8 @@ class Bootstrap:
         # Route starvation death through the shared soft-death handler once
         # combat exists. Combat-triggered death still goes via take_damage's
         # return value; only starvation needed a bridge.
-        if self.game.survival is not None:
-            self.game.survival.on_death = self.game.combat_system._on_player_death
+        if self.game.survival is not None and self.game.combat_system is not None:
+            self.game.combat_system.set_player_death_handler(self.game.survival.on_death)
         self._spawn_initial_monsters()
         self._build_renderers()
         self._wire_phase4()
@@ -92,6 +92,12 @@ class Bootstrap:
         from inventory.inventory import Inventory
 
         self.game.inventory = Inventory()
+
+        # Wire the shared inventory into the player so player-facing
+        # subsystems (combat loot, trade, quest rewards, recruitment) that
+        # read `player.inventory` resolve to the same object the game owns.
+        if self.game.player is not None:
+            self.game.player.inventory = self.game.inventory
 
         # Register stack sizes from items data
         items_data = load_json_list("items.json", "items")
