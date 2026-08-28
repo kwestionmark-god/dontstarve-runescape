@@ -91,6 +91,9 @@ class Inventory:
                     added = min(remaining, space)
                     if not dry_run:
                         slot.quantity += added
+                        # Apply spoilage to existing stack when adding fresh items
+                        if spoilage_seconds is not None:
+                            slot.spoilage_remaining = spoilage_seconds
                     remaining -= added
                     if remaining <= 0:
                         return True, 0

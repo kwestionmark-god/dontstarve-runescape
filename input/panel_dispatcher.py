@@ -184,6 +184,14 @@ class PanelDispatcher:
         recipe = game.crafting.get_recipe(item_id)
         if recipe is None:
             return
+
+        # Determine spoilage for perishable food output
+        spoilage_seconds: float | None = None
+        if game.food_registry is not None and recipe.is_food and recipe.output_item is not None:
+            food = game.food_registry.get(recipe.output_item)
+            if food is not None and food.spoilage_rate > 0:
+                spoilage_seconds = food.spoilage_rate
+
         structures = game.building_system.get_all_structures() if game.building_system else []
         player_x = game.player.world_x if game.player else 0.0
         player_y = game.player.world_y if game.player else 0.0
@@ -191,21 +199,21 @@ class PanelDispatcher:
             has_campfire = game._fire_interaction.check_nearby_campfire()
             result = game.crafting.cook(item_id, game.inventory, game.skill_manager,
                 has_campfire, structures=structures, player_pos=(player_x, player_y),
-                quest_system=getattr(game, "quest_system", None))
+                quest_system=getattr(game, "quest_system", None),
+                spoilage_seconds=spoilage_seconds)
         else:
             result = game.crafting.craft(item_id, game.inventory, game.skill_manager,
                 structures=structures, player_pos=(player_x, player_y),
-                quest_system=getattr(game, "quest_system", None))
+                quest_system=getattr(game, "quest_system", None),
+                spoilage_seconds=spoilage_seconds)
+        # Report ALL outcomes (including failures like "Missing materials" or
+        # "Your inventory is full") instead of silently dropping the message.
         if not result.success:
+            if game.player is not None and game.player.action_system is not None:
+                game.player.action_system.add_notification(result.message, (255, 150, 100))
             return
-        if (game.food_registry is not None and recipe.is_food and
-            recipe.output_item is not None):
-            food = game.food_registry.get(recipe.output_item)
-            if food and food.spoilage_rate > 0:
-                game.inventory.set_spoilage(recipe.output_item, food.spoilage_rate)
         if game.player is not None and game.player.action_system is not None:
-            color = (100, 255, 100) if result.success else (255, 150, 100)
-            game.player.action_system.add_notification(result.message, color)
+            game.player.action_system.add_notification(result.message, (100, 255, 100))
 
     def _handle_smelt_click(self, recipe_id: str) -> None:
         game = self._game

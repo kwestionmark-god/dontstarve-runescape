@@ -160,18 +160,18 @@ class ActionSystem:
 
         # Successful result with yield
         if result.item_id and result.quantity > 0:
-            # Add yield to inventory
-            if not inventory.add_item(result.item_id, result.quantity):
+            # Determine spoilage for perishable food
+            spoilage_seconds: float | None = None
+            if food_registry is not None:
+                food = food_registry.get(result.item_id)
+                if food is not None and food.spoilage_rate > 0:
+                    spoilage_seconds = food.spoilage_rate
+
+            # Add yield to inventory (spoilage applied to new stacks only)
+            if not inventory.add_item(result.item_id, result.quantity, spoilage_seconds=spoilage_seconds):
                 self.add_notification("Inventory is full!", (255, 100, 100))
             else:
                 self.add_notification(f"+{result.quantity} {result.item_id}", (100, 255, 100))
-
-                # Perishable food harvested via gathering now spoils
-                # (previously only crafted/cooked food did).
-                if food_registry is not None:
-                    food = food_registry.get(result.item_id)
-                    if food is not None and food.spoilage_rate > 0:
-                        inventory.set_spoilage(result.item_id, food.spoilage_rate)
 
                 # Determine skill from active resource
                 skill_id = self._action_type_to_skill_id()

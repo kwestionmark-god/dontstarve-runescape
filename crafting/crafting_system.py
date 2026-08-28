@@ -295,6 +295,7 @@ class CraftingSystem:
         structures: list | None = None,
         player_pos: tuple[float, float] | None = None,
         quest_system: Optional[object] = None,
+        spoilage_seconds: float | None = None,
     ) -> CraftResult:
         """
         Execute a craft: validate, consume materials, produce output.
@@ -307,6 +308,7 @@ class CraftingSystem:
             player_pos: Optional (player_x, player_y) in pixels for station checks.
             quest_system: Optional quest system; on success its record_craft()
                 is called so "craft N of X" quest objectives can advance.
+            spoilage_seconds: Optional spoilage timer for the output item (if perishable).
 
         Returns:
             CraftResult with success/failure info.
@@ -338,8 +340,8 @@ class CraftingSystem:
         for item_id, quantity in recipe.input_items:
             inventory.remove_item(item_id, quantity)
 
-        # Produce output
-        inventory.add_item(recipe.output_item, recipe.output_quantity)
+        # Produce output (spoilage applied to new stacks only)
+        inventory.add_item(recipe.output_item, recipe.output_quantity, spoilage_seconds=spoilage_seconds)
 
         # Grant XP to the relevant skill based on recipe. Fall back to the
         # skill implied by the processing chain when the recipe does not set
@@ -373,6 +375,7 @@ class CraftingSystem:
         structures: list | None = None,
         player_pos: tuple[float, float] | None = None,
         quest_system: Optional[object] = None,
+        spoilage_seconds: float | None = None,
     ) -> CraftResult:
         """
         Execute a cooking recipe with success/failure based on Cooking skill.
@@ -393,6 +396,7 @@ class CraftingSystem:
             player_pos: Optional (player_x, player_y) in pixels for station checks.
             quest_system: Optional quest system; on success its record_craft()
                 is called so "craft N of X" quest objectives can advance.
+            spoilage_seconds: Optional spoilage timer for the output item (if perishable).
 
         Returns:
             CraftResult with success/failure info.
@@ -439,7 +443,7 @@ class CraftingSystem:
             # Success — consume materials and produce output
             for item_id, quantity in recipe.input_items:
                 inventory.remove_item(item_id, quantity)
-            inventory.add_item(recipe.output_item, recipe.output_quantity)
+            inventory.add_item(recipe.output_item, recipe.output_quantity, spoilage_seconds=spoilage_seconds)
 
             # Grant XP to Cooking skill
             xp_gained = recipe.xp_reward
