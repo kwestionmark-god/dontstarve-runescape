@@ -1,8 +1,8 @@
 # Runtime dependencies for Don't Starve RuneScape.
 # Install with: pip install -r requirements.txt
 #
-# `noise` is required by world/world_gen.py (simplex-noise terrain). It is not
-# a stdlib package and is not declared anywhere else, so it must be listed here
-# or a fresh checkout will crash at world generation.
+# `noise` is required by world/world_gen.py (Perlin noise terrain via pnoise2).
+# It is not a stdlib package and is not declared anywhere else, so it must be
+# listed here or a fresh checkout will crash at world generation.
 noise==1.2.2
 pygame==2.6.1

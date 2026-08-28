@@ -1,11 +1,11 @@
 """
 world_gen.py — Procedural generation engine.
 
-Generates the entire world map at game start using simplex noise
+Generates the entire world map at game start using Perlin noise
 for terrain elevation and biome assignment.
 
 Flow:
-1. Generate elevation map (simplex noise)
+1. Generate elevation map (Perlin noise via noise.pnoise2)
 2. Generate moisture map (independent noise layer)
 3. Classify biomes per tile (elevation + moisture thresholds)
 4. Place resource nodes via ResourcePlacer (density-based, season-gated)
@@ -107,7 +107,7 @@ def _wire_seasonal_replacement(
 
 def _generate_elevation_map(seed: int) -> list[list[float]]:
     """
-    Generate a 2D elevation map using simplex noise.
+    Generate a 2D elevation map using Perlin noise (noise.pnoise2).
 
     Returns elevation values normalized to 0–1, then mapped to 0–7.
 
@@ -138,7 +138,7 @@ def _generate_elevation_map(seed: int) -> list[list[float]]:
 
 def _generate_moisture_map(seed: int) -> list[list[float]]:
     """
-    Generate a 2D moisture map using independent simplex noise.
+    Generate a 2D moisture map using independent Perlin noise.
 
     Uses a +100 offset on coordinates to prevent correlation with
     elevation noise, ensuring organic biome variation.
