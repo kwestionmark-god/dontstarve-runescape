@@ -55,7 +55,7 @@ class Game:
         "skill_manager", "crafting", "inventory",
         "camera", "hud", "save_system", "input_manager",
         "_inventory_panel", "_skill_panel", "_crafting_panel",
-        "_gear_panel", "_building_panel", "_combat_panel",
+        "_gear_panel", "_building_panel",
         "build_mode", "_building_pending_id",
         "_trade_panel", "_quest_panel", "_recruit_panel", "_diplomacy_panel",
         "quest_system", "faction_system",
@@ -111,7 +111,6 @@ class Game:
         self.trade_system = None
         self.recruitment_system = None
         self._building_panel = None
-        self._combat_panel = None
         self._gear_panel = None
         self._trade_panel = None
         self.quest_system = None
