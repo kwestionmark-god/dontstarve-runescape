@@ -34,7 +34,7 @@ class StaminaPool:
         """
         if self.is_exhausted:
             return False
-        if self.current <= amount:
+        if self.current < amount:
             self.current = 0.0
             self.is_exhausted = True
             self.exhaustion_timer = 5.0  # 5s rest when exhausted
