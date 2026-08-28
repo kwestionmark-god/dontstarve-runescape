@@ -54,7 +54,7 @@ class SeasonSystem:
         self.season_duration = season_duration
         self.season_transition = season_transition
         self.season_order = season_order
-        self.season_transitions = season_transitions or DEFAULT_SEASON_TRANSITIONS
+        self.season_transitions = season_transitions if season_transitions is not None else DEFAULT_SEASON_TRANSITIONS
 
         self.current_season: str = season_order[0]
         self.season_progress: float = 0.0
@@ -63,8 +63,12 @@ class SeasonSystem:
         self.previous_season: str | None = None
 
         # Survival and resource modifiers (use defaults if not provided)
-        self.survival_modifiers: dict[str, dict[str, float]] = survival_modifiers or DEFAULT_SURVIVAL_MODIFIERS
-        self.resource_multipliers: dict[str, dict[str, float]] = resource_multipliers or DEFAULT_RESOURCE_MULTIPLIERS
+        self.survival_modifiers: dict[str, dict[str, float]] = (
+            survival_modifiers if survival_modifiers is not None else DEFAULT_SURVIVAL_MODIFIERS
+        )
+        self.resource_multipliers: dict[str, dict[str, float]] = (
+            resource_multipliers if resource_multipliers is not None else DEFAULT_RESOURCE_MULTIPLIERS
+        )
         self.availability: dict[str, list[str]] = {}
 
         # Season-change callbacks (registered by other systems)
