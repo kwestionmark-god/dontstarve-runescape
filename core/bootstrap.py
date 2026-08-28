@@ -44,8 +44,6 @@ class Bootstrap:
         self._build_camera()
         self._build_input_manager()
         self._build_input_router()
-        self._build_hud()
-        self._build_ui_panels()
         self._build_phase2_skills()
         self._build_construction_and_building()
         self._build_npc_system()
@@ -65,25 +63,9 @@ class Bootstrap:
             self.game.combat_system.set_player_death_handler(self.game.survival.on_death)
         self._spawn_initial_monsters()
         self._build_renderers()
+        self._build_hud()
+        self._build_ui_panels()
         self._wire_phase4()
-        self._finalize_hud()
-
-    def _finalize_hud(self) -> None:
-        """
-        Re-wire the HUD with subsystems and the final renderer that were not
-        available when _build_hud() ran.
-
-        The HUD is built before the faction/NPC systems and before the real
-        SpriteRenderer (with seasonal tint) exists, so it captured None and
-        placeholder values at construction. Re-apply them here so the faction
-        status bar, NPC proximity alert, and HUD item rendering all get live
-        references instead of silent None refs.
-        """
-        if self.game.hud is None:
-            return
-        self.game.hud.set_faction_system(self.game.faction_system)
-        self.game.hud.set_npc_system(self.game.npc_system)
-        self.game.hud.set_sprite_renderer(self.game._sprite_renderer)
 
     # ── Subsystem builders ──────────────────────────────────────────
 
