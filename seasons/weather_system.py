@@ -9,18 +9,9 @@ from __future__ import annotations
 import random
 from typing import Any
 
-DEFAULT_WEATHER_TYPES = ("clear", "rain", "snow", "storm", "fog")
-DEFAULT_WEATHER_CHANGE_INTERVAL = 120.0
+from config import WEATHER_CHANGE_INTERVAL, WEATHER_WEIGHTS
 
-# Season → weights fallback (mirrors DEFAULT_WEATHER_TYPES order).
-# Used when a WeatherSystem is constructed without explicit spawn_weights so
-# that a missing/empty mapping does not hard-lock weather to "clear".
-DEFAULT_WEATHER_WEIGHTS: dict[str, tuple[float, ...]] = {
-    "spring": (40.0, 35.0, 0.0, 10.0, 15.0),
-    "summer": (50.0, 30.0, 0.0, 15.0, 5.0),
-    "autumn": (45.0, 30.0, 0.0, 15.0, 10.0),
-    "winter": (40.0, 15.0, 30.0, 10.0, 5.0),
-}
+DEFAULT_WEATHER_TYPES = ("clear", "rain", "snow", "storm", "fog")
 
 
 class WeatherSystem:
@@ -31,7 +22,7 @@ class WeatherSystem:
         season_system: "SeasonSystem | None" = None,
         seed: int = 42,
         weather_types: tuple[str, ...] = DEFAULT_WEATHER_TYPES,
-        change_interval: float = DEFAULT_WEATHER_CHANGE_INTERVAL,
+        change_interval: float = WEATHER_CHANGE_INTERVAL,
         spawn_weights: dict[str, tuple[float, ...]] | None = None,
     ) -> None:
         self.season_system = season_system
@@ -40,7 +31,7 @@ class WeatherSystem:
         self.weather_types = weather_types
         self.change_interval = change_interval
 
-        # Season → biome → weights mapping (optional; falls back to spawn_weights)
+        # Season → biome → weights mapping (optional; falls back to config.WEATHER_WEIGHTS)
         self.spawn_weights: dict[str, tuple[float, ...]] = spawn_weights or {}
 
         self.current_weather: str = "clear"
@@ -62,7 +53,7 @@ class WeatherSystem:
             )[0]
         else:
             season = self.season_system.current_season
-            weights = (self.spawn_weights or DEFAULT_WEATHER_WEIGHTS).get(season)
+            weights = (self.spawn_weights or WEATHER_WEIGHTS).get(season)
             if weights is not None and sum(weights) > 0:
                 self.current_weather = self._rng.choices(
                     self.weather_types, weights=weights, k=1
