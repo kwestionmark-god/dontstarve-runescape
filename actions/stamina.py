@@ -1,8 +1,12 @@
 """actions.stamina — StaminaPool dataclass for woodcutting/mining stamina tracking."""
 
+from __future__ import annotations
+
 from config import MAX_STAMINA_BASE
+from dataclasses import dataclass
 
 
+@dataclass(slots=True)
 class StaminaPool:
     """
     Tracks stamina for woodcutting/mining actions.
