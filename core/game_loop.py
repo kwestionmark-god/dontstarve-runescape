@@ -7,6 +7,7 @@ to the Game instance. Skips update during TITLE and LOADING states.
 
 import pygame
 
+from config import TARGET_FPS
 from core.state import GameState
 
 
@@ -19,7 +20,7 @@ def run(game) -> None:
     """
     running = True
     while running:
-        dt = game.clock.tick(60) / 1000.0  # 60 FPS cap, delta time in seconds
+        dt = game.clock.tick(TARGET_FPS) / 1000.0  # FPS cap from config, dt in seconds
 
         # ── Event handling ──────────────────────────────────────────
         for event in pygame.event.get():
