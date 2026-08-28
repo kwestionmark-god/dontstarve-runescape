@@ -426,7 +426,7 @@ class CraftingSystem:
             return CraftResult(success=False, message="Your inventory is full.")
 
         # Save inventory state for rollback on failure
-        saved_slots = list(inventory.slots)
+        saved_slots = inventory.snapshot()
 
         # Cooking success roll: base 50% + cooking success_rate * 2% per point
         import random

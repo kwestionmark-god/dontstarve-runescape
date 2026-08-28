@@ -385,6 +385,28 @@ class Inventory:
                 })
         return result
 
+    def snapshot(self) -> List[Optional["InventorySlot"]]:
+        """
+        Return a deep copy of inventory slots for rollback safety.
+
+        Each slot is cloned so mutations to the original don't affect the snapshot.
+
+        Returns:
+            List of InventorySlot copies (20 entries, None for empty slots).
+        """
+        result: List[Optional["InventorySlot"]] = []
+        for slot in self.slots:
+            if slot is None or (slot.item_id is None and slot.quantity == 0):
+                result.append(None)
+            else:
+                result.append(InventorySlot(
+                    item_id=slot.item_id,
+                    quantity=slot.quantity,
+                    spoilage_remaining=slot.spoilage_remaining,
+                    is_equipped=slot.is_equipped,
+                ))
+        return result
+
     def count_non_empty(self) -> int:
         """Returns the number of non-empty slots."""
         return sum(
