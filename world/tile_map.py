@@ -289,9 +289,11 @@ class TileMap:
         sw = self.get_raw_corner_elevation(x, y + 1)
         se = self.get_raw_corner_elevation(x + 1, y + 1)
 
-        # Slope gradient (directional change in elevation)
-        grad_x = (ne - nw) / 2.0
-        grad_y = (sw - nw) / 2.0
+        # Slope gradient using all four corners (central difference)
+        # grad_x = (east edge avg - west edge avg)
+        # grad_y = (south edge avg - north edge avg)
+        grad_x = (ne + se - nw - sw) / 2.0
+        grad_y = (sw + se - nw - ne) / 2.0
 
         # Slope magnitude (0 = flat, 1+ = very steep)
         slope_mag = math.sqrt(grad_x * grad_x + grad_y * grad_y)
