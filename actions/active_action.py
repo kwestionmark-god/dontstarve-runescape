@@ -18,7 +18,7 @@ class ActiveAction:
 
     Fields:
         action_type: What kind of action (woodcutting/mining/cooking)
-        state: IDLE, RUNNING, SUCCESS, FAILURE
+        state: IDLE, RUNNING
         duration: Total time the action takes (seconds)
         elapsed: Time spent so far
         resource: The resource node being interacted with (None for cooking)
@@ -57,4 +57,4 @@ class ActiveAction:
     @property
     def is_busy(self) -> bool:
         """True while the player cannot perform other actions."""
-        return self.state in (ActionState.RUNNING, ActionState.IDLE) and self.elapsed > 0
+        return self.state == ActionState.RUNNING
