@@ -53,6 +53,7 @@ class SurvivalSystem:
         "_last_env_pressure",
         "_season_hunger_mod",
         "_season_system",
+        "weather_system",
     )
 
     def __init__(
@@ -84,6 +85,8 @@ class SurvivalSystem:
         # Phase 4: optional SeasonSystem reference (set by bootstrap)
         self._season_system: object | None = None
         self._season_hunger_mod: float = 1.0
+        # WeatherSystem reference for gameplay effects (set by bootstrap)
+        self.weather_system: object | None = None
 
     def tick(self, dt: float) -> None:
         """
@@ -235,3 +238,29 @@ class SurvivalSystem:
     def season_system(self, value: object | None) -> None:
         """Setter for season_system (set by bootstrap)."""
         self._season_system = value
+
+    def get_weather_effects(self) -> dict[str, float]:
+        """Return current weather gameplay effects."""
+        if self.weather_system is not None:
+            return self.weather_system.get_effects()
+        return {}
+
+    @property
+    def weather_visibility(self) -> float:
+        """Return weather visibility multiplier (0.0–1.0)."""
+        return self.get_weather_effects().get("visibility", 1.0)
+
+    @property
+    def weather_movement_speed(self) -> float:
+        """Return weather movement speed multiplier (0.0–1.0)."""
+        return self.get_weather_effects().get("movement_speed", 1.0)
+
+    @property
+    def weather_outdoor_crafting(self) -> float:
+        """Return weather outdoor crafting multiplier (0.0–1.0)."""
+        return self.get_weather_effects().get("outdoor_crafting", 1.0)
+
+    @property
+    def weather_spawn_mod(self) -> float:
+        """Return weather spawn modifier (0.0+)."""
+        return self.get_weather_effects().get("spawn_mod", 1.0)

@@ -35,6 +35,7 @@ class Player:
         "moving", "action_system", "gear", "skill_manager",
         "inventory", "survival", "recruited_npcs", "base_x", "base_y",
         "unlocked_recipes", "unlocked_gear",
+        "weather_system",
     )
 
     def __init__(self, world_x: float, world_y: float) -> None:
@@ -61,6 +62,7 @@ class Player:
         self.base_y: "float | None" = None  # Base center Y for recruit behavior tracking
         self.unlocked_recipes: set[str] = set()
         self.unlocked_gear: set[str] = set()
+        self.weather_system: "WeatherSystem | None" = None
 
     def move_to(self, world_x: float, world_y: float) -> None:
         """
@@ -124,8 +126,8 @@ class Player:
             rotated_y = dx * sy + dy * cy
             dx, dy = rotated_x, rotated_y
 
-        self.world_x += dx * self.speed * dt
-        self.world_y += dy * self.speed * dt
+        self.world_x += dx * self.effective_speed * dt
+        self.world_y += dy * self.effective_speed * dt
 
         # Clamp to map bounds
         max_x = MAP_WIDTH * TILE_SIZE
@@ -157,14 +159,23 @@ class Player:
         # Move toward target at full speed
         dx /= distance
         dy /= distance
-        self.world_x += dx * self.speed * dt
-        self.world_y += dy * self.speed * dt
+        self.world_x += dx * self.effective_speed * dt
+        self.world_y += dy * self.effective_speed * dt
 
         # Clamp to map bounds
         max_x = MAP_WIDTH * TILE_SIZE
         max_y = MAP_HEIGHT * TILE_SIZE
         self.world_x = max(0.0, min(self.world_x, max_x))
         self.world_y = max(0.0, min(self.world_y, max_y))
+
+    @property
+    def effective_speed(self) -> float:
+        """Return movement speed with weather modifier applied."""
+        base_speed = self.speed
+        if self.weather_system is not None:
+            effects = self.weather_system.get_effects()
+            base_speed *= effects.get("movement_speed", 1.0)
+        return base_speed
 
     def get_tile_position(self) -> Tuple[int, int]:
         """

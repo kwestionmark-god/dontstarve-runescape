@@ -33,6 +33,7 @@ class ActionSystem:
         "_pending_notifications",
         "survival",
         "_season_system",
+        "weather_system",
     )
 
     def __init__(self) -> None:
@@ -42,6 +43,7 @@ class ActionSystem:
         self._pending_notifications: List[ActionNotification] = []
         self.survival: object | None = None
         self._season_system: object | None = None
+        self.weather_system: object | None = None
 
     def start_action(
         self,
@@ -303,6 +305,12 @@ class ActionSystem:
                 season_mod = self._season_system.get_resource_multiplier(resource.category)
                 quantity = max(1, int(quantity * season_mod))
 
+            # Apply weather outdoor crafting modifier
+            if self.weather_system is not None:
+                effects = self.weather_system.get_effects()
+                outdoor_mod = effects.get("outdoor_crafting", 1.0)
+                quantity = max(1, int(quantity * outdoor_mod))
+
             # Extra resources roll: extra_resources_bonus gives +1 chance per point
             for _ in range(action.extra_resources_bonus):
                 if random.random() * 100 < 50.0:  # 50% chance per bonus point
@@ -329,7 +337,7 @@ class ActionSystem:
         self, inventory: Inventory, tool_type: str,
     ) -> Optional[str]:
         """
-        Find an equipped tool of the given type in the inventory.
+        Find a tool of the given type in the inventory.
 
         Args:
             inventory: Player's inventory.
@@ -338,16 +346,23 @@ class ActionSystem:
         Returns:
             Item ID of the tool if found, None otherwise.
         """
+        # Exact id match or a suffix match ("stone_axe" for "axe") — NOT a
+        # substring match: "axe" in "pickaxe" is True, which made a pickaxe
+        # satisfy an axe requirement.
+        def _matches(item_id: str) -> bool:
+            return (
+                item_id == tool_type
+                or item_id.endswith(f"_{tool_type}")
+            )
+
         for slot in inventory.slots:
             if slot is not None and slot.is_equipped:
-                # Tools store their type via a custom attribute — we check
-                # item_id patterns since tools don't have a tool_type field here
-                if tool_type in (slot.item_id or ""):
+                if _matches(slot.item_id or ""):
                     return slot.item_id
         # Also check non-equipped — allow use without explicit equipping
         for slot in inventory.slots:
             if slot is not None and slot.item_id is not None:
-                if tool_type in (slot.item_id or ""):
+                if _matches(slot.item_id):
                     return slot.item_id
         return None
 

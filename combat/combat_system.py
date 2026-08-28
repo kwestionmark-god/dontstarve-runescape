@@ -81,6 +81,7 @@ class CombatSystem:
         "combat_log",
         "_npc_attack_cooldowns",
         "_player_death_handler",
+        "weather_system",
     )
 
     def __init__(
@@ -98,6 +99,7 @@ class CombatSystem:
         self.firemaking = firemaking
         self.game = game
         self.faction_system = faction_system
+        self.weather_system: object | None = None
 
         # Per-NPC attack cooldown tracking (guards and recruited NPCs)
         self._npc_attack_cooldowns: Dict[str, float] = {}  # npc_id → remaining cooldown

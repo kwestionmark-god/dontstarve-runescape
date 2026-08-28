@@ -552,6 +552,26 @@ class Bootstrap:
         if self.game.hud is not None:
             self.game.hud.set_weather_system(self.game.weather_system)
 
+        # Wire WeatherSystem → Player (movement speed modifier)
+        if hasattr(self.game, "player") and self.game.player is not None:
+            self.game.player.weather_system = self.game.weather_system
+
+        # Wire WeatherSystem → SurvivalSystem (visibility, movement, crafting, spawn modifiers)
+        if hasattr(self.game, "survival") and self.game.survival is not None:
+            self.game.survival.weather_system = self.game.weather_system
+
+        # Wire WeatherSystem → ActionSystem (outdoor crafting modifier)
+        if (
+            hasattr(self.game, "player")
+            and self.game.player is not None
+            and hasattr(self.game.player, "action_system")
+        ):
+            self.game.player.action_system.weather_system = self.game.weather_system
+
+        # Wire WeatherSystem → CombatSystem (spawn modifier)
+        if hasattr(self.game, "combat_system") and self.game.combat_system is not None:
+            self.game.combat_system.weather_system = self.game.weather_system
+
         # Wire SeasonSystem → WeatherSystem (if not already set)
         if (
             hasattr(self.game, "weather_system")
