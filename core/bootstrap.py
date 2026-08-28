@@ -13,7 +13,7 @@ Usage:
 from __future__ import annotations
 
 import json
-from config import WINDOW_WIDTH, WINDOW_HEIGHT
+from config import WINDOW_WIDTH, WINDOW_HEIGHT, TILE_SIZE
 from data import load_json, load_json_list
 from world.biome import BiomeRegistry
 from world.world_gen import generate as generate_world
@@ -351,10 +351,10 @@ class Bootstrap:
         if not biome_monsters:
             return
 
-        spawn_world_x = self.game.world.spawn_x * 64 + 32
-        spawn_world_y = self.game.world.spawn_y * 64 + 32
+        spawn_world_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2
+        spawn_world_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
         from config import INITIAL_MONSTER_SPAWN_RADIUS_TILES
-        spawn_radius = INITIAL_MONSTER_SPAWN_RADIUS_TILES * 64
+        spawn_radius = INITIAL_MONSTER_SPAWN_RADIUS_TILES * TILE_SIZE
 
         self.game.combat_system.spawn_initial_monsters(
             biome_monster_data=biome_monsters,
@@ -400,8 +400,8 @@ class Bootstrap:
 
             # Create player at spawn point
             from core.player import Player
-            spawn_px_x = self.game.world.spawn_x * 64 + 32  # Center of tile
-            spawn_px_y = self.game.world.spawn_y * 64 + 32
+            spawn_px_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2  # Center of tile
+            spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
             self.game.player = Player(spawn_px_x, spawn_px_y)
 
             # Initialize starter pack definition (pack applied after subsystem init)
@@ -472,8 +472,8 @@ class Bootstrap:
 
             # Create player at spawn point
             from core.player import Player
-            spawn_px_x = self.game.world.spawn_x * 64 + 32
-            spawn_px_y = self.game.world.spawn_y * 64 + 32
+            spawn_px_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2
+            spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
             self.game.player = Player(spawn_px_x, spawn_px_y)
 
             # Initialize subsystems via bootstrap

@@ -33,7 +33,7 @@ class Player:
     __slots__ = (
         "world_x", "world_y", "speed", "target_x", "target_y",
         "moving", "is_moving", "action_system", "gear", "skill_manager",
-        "recruited_npcs", "base_x", "base_y",
+        "inventory", "recruited_npcs", "base_x", "base_y",
         "unlocked_recipes", "unlocked_gear",
     )
 
@@ -54,6 +54,8 @@ class Player:
         self.is_moving = False  # True if currently in motion
         self.action_system: "ActionSystem | None" = None
         self.gear = None
+        self.skill_manager: "SkillManager | None" = None
+        self.inventory = None  # Wired by bootstrap after Inventory is built
         self.recruited_npcs: list[str] = []
         self.base_x: "float | None" = None  # Base center X for recruit behavior tracking
         self.base_y: "float | None" = None  # Base center Y for recruit behavior tracking
@@ -259,7 +261,7 @@ class Player:
         tx, ty = self.get_tile_position()
         best = None
         best_dist = radius
-        tile_size = 64
+        tile_size = TILE_SIZE
 
         # Search in a small radius around the player
         search_radius_tiles = int(radius // tile_size) + 2

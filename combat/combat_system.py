@@ -20,6 +20,7 @@ from config import (
     DEATH_XP_PENALTY_FRACTION,
     DEATH_RESTORE_HP_FRACTION,
     DEATH_RESTORE_HUNGER_FRACTION,
+    TILE_SIZE,
 )
 
 if TYPE_CHECKING:
@@ -403,8 +404,8 @@ class CombatSystem:
 
         # Respawn at spawn
         if hasattr(self.game, "world") and self.game.world is not None:
-            self.player.world_x = self.game.world.spawn_x * 64 + 32
-            self.player.world_y = self.game.world.spawn_y * 64 + 32
+            self.player.world_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2
+            self.player.world_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
 
         # Save after death
         if hasattr(self.game, "save_system") and self.game.save_system:
@@ -671,7 +672,7 @@ class CombatSystem:
         for mid in selected:
             m_def = biome_monster_data[mid]
             angle = rng.uniform(0, 2 * math.pi)
-            dist = rng.uniform(64, spawn_radius_px)
+            dist = rng.uniform(TILE_SIZE, spawn_radius_px)
             mx = spawn_world_x + math.cos(angle) * dist
             my = spawn_world_y + math.sin(angle) * dist
 

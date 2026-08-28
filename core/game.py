@@ -167,8 +167,9 @@ class Game:
             self._quest_panel.visible = True
         elif new_state == GameState.RECRUIT_PANEL:
             self._recruit_panel.visible = True
-            if self._recruit_panel is not None:
-                self._recruit_panel.close_session()
+            # NOTE: no close_session() here — the session is opened by
+            # NPCFlows.open_recruit_panel BEFORE set_state(RECRUIT_PANEL), so
+            # wiping it here would leave the panel open with no recruit data.
         elif new_state == GameState.DIPLOMACY_PANEL:
             self._diplomacy_panel.visible = True
         if old_state == GameState.TITLE and new_state == GameState.LOADING:
@@ -262,8 +263,8 @@ class Game:
             self._tile_renderer.render(self.camera)
         if self._sprite_renderer is not None and self.world is not None and self.camera is not None:
             left, top, right, bottom = self.camera.get_view_rect()
-            x_min, x_max = max(0, int(left // 64)), min(self.world.width, int(right // 64) + 1)
-            y_min, y_max = max(0, int(top // 64)), min(self.world.height, int(bottom // 64) + 1)
+            x_min, x_max = max(0, int(left // TILE_SIZE)), min(self.world.width, int(right // TILE_SIZE) + 1)
+            y_min, y_max = max(0, int(top // TILE_SIZE)), min(self.world.height, int(bottom // TILE_SIZE) + 1)
             for x in range(x_min, x_max):
                 for y in range(y_min, y_max):
                     tile = self.world.tiles[x][y]
