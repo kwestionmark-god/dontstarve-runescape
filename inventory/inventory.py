@@ -234,11 +234,43 @@ class Inventory:
                 return i
         return None
 
+    def _get_equip_slot_type(self, item_id: str) -> Optional[str]:
+        """
+        Get the equipment slot type for an item.
+
+        Uses the gear registry (weapon/armor/tool) if available,
+        otherwise falls back to item_id heuristic.
+
+        Args:
+            item_id: The item to check.
+
+        Returns:
+            Slot type ("weapon", "armor", "tool") or None if not equippable.
+        """
+        # Try to look up from gear registry if available
+        if hasattr(self, '_gear_map') and self._gear_map:
+            gear = self._gear_map.get(item_id)
+            if gear:
+                return gear.gear_type
+
+        # Fallback: infer from item_id
+        if item_id in ("axe", "pickaxe"):
+            return "tool"
+        if item_id.endswith("_sword") or item_id.endswith("_axe") or item_id.endswith("_bow") or item_id in ("staff", "dagger"):
+            return "weapon"
+        if item_id.endswith("_armor") or item_id.endswith("_helmet") or item_id.endswith("_boots") or item_id in ("chainmail", "platebody", "leather_armor"):
+            return "armor"
+        return None
+
+    def set_gear_map(self, gear_map: Dict[str, object]) -> None:
+        """Register the gear map for equip slot type lookups."""
+        self._gear_map = gear_map
+
     def equip_item(self, item_id: str) -> bool:
         """
         Equip an item (mark it in the equipped slot).
 
-        Unequips any previous item of the same type first.
+        Unequips any previous item of the same slot type first.
 
         Args:
             item_id: The item to equip.
@@ -246,10 +278,16 @@ class Inventory:
         Returns:
             True if equipped successfully.
         """
-        # Unequip any existing item of same type
+        slot_type = self._get_equip_slot_type(item_id)
+        if slot_type is None:
+            return False  # Not equippable
+
+        # Unequip any existing item of same slot type
         for slot in self.slots:
-            if slot is not None and slot.item_id == item_id and slot.is_equipped:
-                slot.is_equipped = False
+            if slot is not None and slot.is_equipped:
+                existing_type = self._get_equip_slot_type(slot.item_id or "")
+                if existing_type == slot_type:
+                    slot.is_equipped = False
 
         # Find and equip
         for slot in self.slots:

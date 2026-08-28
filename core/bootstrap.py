@@ -44,6 +44,7 @@ class Bootstrap:
         self._build_camera()
         self._build_input_manager()
         self._build_input_router()
+        self._build_ui_panels()
         self._build_phase2_skills()
         self._build_construction_and_building()
         self._build_npc_system()
@@ -64,7 +65,6 @@ class Bootstrap:
         self._spawn_initial_monsters()
         self._build_renderers()
         self._build_hud()
-        self._build_ui_panels()
         self._wire_phase4()
 
     # ── Subsystem builders ──────────────────────────────────────────
@@ -125,9 +125,14 @@ class Bootstrap:
 
     def _build_player_gear(self) -> None:
         """Create player gear and wire skill_manager to player."""
-        from combat.gear import PlayerGear
+        from combat.gear import PlayerGear, GearItem
 
         self.game.player.gear = PlayerGear()
+
+        # Load gear map for inventory equip slot type lookups
+        gear_map = GearItem.load_all()
+        self.game.inventory.set_gear_map(gear_map)
+
         self.game.player.skill_manager = self.game.skill_manager
         self.game.player.survival = self.game.survival
 
