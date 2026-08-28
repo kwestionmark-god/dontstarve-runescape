@@ -175,17 +175,3 @@ class SeasonSystem:
             "resource_multipliers": self.resource_multipliers,
             "availability": self.availability,
         }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any], **kwargs) -> "SeasonSystem":
-        """Restore season state from save data."""
-        season = cls(**kwargs)
-        season.current_season = data.get("current", "spring")
-        season.season_progress = data.get("progress", 0.0)
-        season.season_elapsed = data.get("elapsed", 0.0)
-        season.previous_season = data.get("previous")
-        season.transition_blend = data.get("transition_blend", 0.0)
-        season.survival_modifiers = data.get("survival_modifiers", {})
-        season.resource_multipliers = data.get("resource_multipliers", {})
-        season.availability = data.get("availability", {})
-        return season

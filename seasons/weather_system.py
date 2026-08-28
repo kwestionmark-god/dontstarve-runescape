@@ -120,12 +120,3 @@ class WeatherSystem:
             "timer": self.weather_timer,
             "history": self.weather_history,
         }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any], **kwargs) -> "WeatherSystem":
-        """Restore weather state from save data."""
-        weather = cls(**kwargs)
-        weather.current_weather = data.get("current", "clear")
-        weather.weather_timer = data.get("timer", 0.0)
-        weather.weather_history = data.get("history", [])
-        return weather
