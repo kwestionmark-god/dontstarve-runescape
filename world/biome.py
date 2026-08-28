@@ -60,9 +60,9 @@ class BiomeRegistry:
             )
             self._biomes[biome.id] = biome
 
-    def get(self, biome_id: str) -> Biome:
-        """Look up a biome by ID."""
-        return self._biomes[biome_id]
+    def get(self, biome_id: str, default: Biome | None = None) -> Biome | None:
+        """Look up a biome by ID, returning default if not found."""
+        return self._biomes.get(biome_id, default)
 
     def all(self) -> list[Biome]:
         """Return all biomes."""
