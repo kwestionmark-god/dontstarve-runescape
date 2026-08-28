@@ -334,10 +334,8 @@ class CraftingSystem:
         if not inventory.can_add(recipe.output_item, recipe.output_quantity):
             return CraftResult(success=False, message="Your inventory is full.")
 
-        # Consume materials (backed up for rollback on cooking failure)
-        backed_up: Dict[str, int] = {}
+        # Consume materials
         for item_id, quantity in recipe.input_items:
-            backed_up[item_id] = inventory.get_item_quantity(item_id) + quantity
             inventory.remove_item(item_id, quantity)
 
         # Produce output
