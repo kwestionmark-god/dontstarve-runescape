@@ -31,10 +31,7 @@ class ActionType(Enum):
             return "mining"
         if action_type == ActionType.COOKING:
             return "cooking"
-        # Fallback: use resource tool to disambiguate
-        if resource is not None and resource.requires_tool == "axe":
-            return "woodcutting"
-        return "mining"
+        raise ValueError(f"Unknown ActionType: {action_type}")
 
 
 class ActionState(Enum):
