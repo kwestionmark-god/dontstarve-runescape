@@ -12,6 +12,7 @@ from config import (
     INITIAL_MONSTER_SPAWN_RADIUS_TILES,
     AUTOSAVE_INTERVAL,
     TILE_SIZE,
+    FOG_COLOR,
 )
 
 from core.state import GameState
@@ -257,9 +258,14 @@ class Game:
             self.render_game(screen)
 
     def render_game(self, screen: pygame.Surface) -> None:
-        screen.fill((135, 206, 235))
+        screen.fill(FOG_COLOR)
         if self._tile_renderer is not None and self.camera is not None:
             self._tile_renderer.render(self.camera)
+
+        # Collect all sprite drawables with their depth sort key (world_y + elevation offset)
+        # so entities behind others are drawn first (painter's algorithm)
+        drawables: list[tuple[float, callable]] = []
+
         if self._sprite_renderer is not None and self.world is not None and self.camera is not None:
             left, top, right, bottom = self.camera.get_view_rect()
             x_min, x_max = max(0, int(left // TILE_SIZE)), min(self.world.width, int(right // TILE_SIZE) + 1)
@@ -268,34 +274,84 @@ class Game:
                 for y in range(y_min, y_max):
                     tile = self.world.tiles[x][y]
                     if tile is not None and tile.resource_node is not None:
-                        self._sprite_renderer.render_resource(screen, tile.resource_node, self.camera, tile.elevation, tile_x=x, tile_y=y)
+                        # Sort by tile center Y + elevation
+                        sort_y = y * TILE_SIZE + tile.elevation * 3
+                        drawables.append((
+                            sort_y,
+                            lambda s=screen, n=tile.resource_node, c=self.camera, e=tile.elevation, tx=x, ty=y:
+                                self._sprite_renderer.render_resource(s, n, c, e, tile_x=tx, tile_y=ty),
+                        ))
+
         if self._sprite_renderer is not None and self.player is not None and self.camera is not None and self.world is not None:
             tx, ty = self.player.get_tile_position()
             tile = self.world.get_tile(tx, ty)
-            self._sprite_renderer.render_player(screen, self.player, self.camera, tile.elevation if tile else 0)
+            sort_y = self.player.world_y + (tile.elevation if tile else 0) * 3
+            drawables.append((
+                sort_y,
+                lambda s=screen, p=self.player, c=self.camera, e=(tile.elevation if tile else 0):
+                    self._sprite_renderer.render_player(s, p, c, e),
+            ))
+
         if self._sprite_renderer is not None and self.combat_system is not None and self.camera is not None:
             for monster in self.combat_system.monsters:
                 if monster.is_alive():
-                    self._sprite_renderer.render_monster(screen, monster, self.camera)
+                    sort_y = monster.world_y
+                    drawables.append((
+                        sort_y,
+                        lambda s=screen, m=monster, c=self.camera:
+                            self._sprite_renderer.render_monster(s, m, c),
+                    ))
+
         if self._sprite_renderer is not None and self.npc_system is not None and self.player is not None:
             nearby_npc = self.npc_system.check_proximity(self.player)
             for npc in self.npc_system.npcs:
                 if not npc.is_active:
                     continue
-                self._sprite_renderer.render_npc(screen, npc, self.camera, elevation=0)
+                sort_y = npc.world_y
+                drawables.append((
+                    sort_y,
+                    lambda s=screen, n=npc, c=self.camera:
+                        self._sprite_renderer.render_npc(s, n, c, elevation=0),
+                ))
                 if npc is nearby_npc:
-                    self._sprite_renderer.render_proximity_prompt(screen, npc, self.camera)
+                    drawables.append((
+                        sort_y,
+                        lambda s=screen, n=npc, c=self.camera:
+                            self._sprite_renderer.render_proximity_prompt(s, n, c),
+                    ))
+
         if self._sprite_renderer is not None and self.building_system is not None and self.camera is not None:
             for structure in self.building_system.structures:
                 if structure.is_active:
-                    self._sprite_renderer.render_structure(screen, structure, self.camera)
+                    sort_y = structure.world_y
+                    drawables.append((
+                        sort_y,
+                        lambda s=screen, st=structure, c=self.camera:
+                            self._sprite_renderer.render_structure(s, st, c),
+                    ))
+
         # Build-mode ghost preview (a PLAYING sub-state): translucent marker
         # under the cursor showing where the next structure will land.
         if self.build_mode and self.camera is not None and self.world is not None and self._build_cursor is not None:
-            self._render_build_ghost(screen)
+            drawables.append((
+                float('inf'),  # Always drawn last (on top)
+                lambda s=screen: self._render_build_ghost(s),
+            ))
+
         if self._sprite_renderer is not None and self.firemaking is not None and self.camera is not None:
             for fire in self.firemaking.get_active_fires():
-                self._sprite_renderer.render_fire(screen, fire, self.camera)
+                sort_y = fire.world_y
+                drawables.append((
+                    sort_y,
+                    lambda s=screen, f=fire, c=self.camera:
+                        self._sprite_renderer.render_fire(s, f, c),
+                ))
+
+        # Sort by depth (Y coordinate) so entities "behind" are drawn first
+        drawables.sort(key=lambda d: d[0])
+        for _, draw_fn in drawables:
+            draw_fn()
+
         if self.particle_system is not None:
             self.particle_system.draw(screen)
         if self.seasonal_renderer is not None:
