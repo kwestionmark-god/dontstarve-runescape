@@ -547,8 +547,7 @@ class Bootstrap:
             self.game.world.season_system = self.game.season_system
 
         # Create WeatherSystem and wire to SeasonSystem
-        self.game.weather_system = WeatherSystem()
-        self.game.weather_system.set_season_system(self.game.season_system)
+        self.game.weather_system = WeatherSystem(season_system=self.game.season_system, seed=self.game.seed)
         # Wire weather system to HUD for weather icon/forecast display
         if self.game.hud is not None:
             self.game.hud.set_weather_system(self.game.weather_system)
