@@ -292,14 +292,12 @@ class TestHarvestSeasonGate:
 
         action_system.active = active
 
-        messages = action_system._complete_action()
+        result = action_system._complete_action()
 
-        # Should return gate message, not action_complete
-        gate_msg = [m for m in messages if "not available this season" in m.lower()]
-        assert len(gate_msg) > 0, f"Expected gate message, got: {messages}"
-        assert not any(m.startswith("action_complete:") for m in messages), (
-            "Should not produce action_complete for out-of-season harvest"
-        )
+        # Should return gate result, not action_complete
+        assert result is not None, f"Expected ActionResult, got: {result}"
+        assert not result.success, "Out-of-season harvest should fail"
+        assert "not available this season" in result.message.lower(), f"Expected gate message, got: {result.message}"
 
     def test_harvest_in_season_succeeds(self) -> None:
         """Harvesting a winter resource in winter should succeed."""
@@ -343,11 +341,10 @@ class TestHarvestSeasonGate:
 
         action_system.active = active
 
-        messages = action_system._complete_action()
+        result = action_system._complete_action()
 
-        action_complete = [m for m in messages if m.startswith("action_complete:")]
-        assert len(action_complete) > 0, f"Expected action_complete, got: {messages}"
-        assert action_complete[0].split(":")[1] == "mithril_ore"
+        assert result is not None and result.success, f"Expected success result, got: {result}"
+        assert result.item_id == "mithril_ore"
 
     def test_no_season_system_no_gate(self) -> None:
         """Without season_system, all resources should be harvestable."""
@@ -386,10 +383,10 @@ class TestHarvestSeasonGate:
 
         action_system.active = active
 
-        messages = action_system._complete_action()
+        result = action_system._complete_action()
 
-        action_complete = [m for m in messages if m.startswith("action_complete:")]
-        assert len(action_complete) > 0, f"Expected action_complete, got: {messages}"
+        assert result is not None and result.success, f"Expected success result, got: {result}"
+        assert result.item_id == "mithril_ore"
 
 
 if __name__ == "__main__":

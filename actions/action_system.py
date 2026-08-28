@@ -8,6 +8,7 @@ from actions.types import ActionType, ActionState
 from actions.active_action import ActiveAction
 from actions.stamina import StaminaPool
 from actions.notifications import ActionNotification
+from actions.action_result import ActionResult
 
 if TYPE_CHECKING:
     from world.resource_node import ResourceNode
@@ -137,59 +138,54 @@ class ActionSystem:
 
     def process_completion(
         self,
-        messages: List[str],
+        result: ActionResult | None,
         inventory: "Inventory",
         skill_manager: "SkillManager",
         food_registry: "FoodRegistry | None" = None,
     ) -> None:
         """
-        Process action-complete messages: add items, grant XP, show notifications.
-
-        Parses messages of the form "action_complete:{item_id}:{quantity}:{xp}"
-        and applies them to the inventory and skill manager.
+        Process action completion result: add items, grant XP, show notifications.
 
         Args:
-            messages: Feedback messages from action update.
+            result: Structured ActionResult from action update.
             inventory: Player inventory to add items to.
             skill_manager: Skill manager for XP granting.
         """
-        for msg in messages:
-            if msg.startswith("action_complete:"):
-                parts = msg.split(":")
-                if len(parts) == 4:
-                    item_id = parts[1]
-                    quantity = int(parts[2])
-                    xp = float(parts[3])
+        if result is None:
+            return
 
-                    # Add yield to inventory
-                    if not inventory.add_item(item_id, quantity):
-                        self.add_notification(
-                            "Inventory is full!", (255, 100, 100),
-                        )
-                    else:
-                        self.add_notification(
-                            f"+{quantity} {item_id}", (100, 255, 100),
-                        )
+        if not result.success:
+            if result.message:
+                self.add_notification(result.message)
+            return
 
-                        # Perishable food harvested via gathering now spoils
-                        # (previously only crafted/cooked food did).
-                        if food_registry is not None:
-                            food = food_registry.get(item_id)
-                            if food is not None and food.spoilage_rate > 0:
-                                inventory.set_spoilage(item_id, food.spoilage_rate)
-
-                    # Determine skill from active resource
-                    skill_id = self._action_type_to_skill_id()
-
-                    # Delegate XP + level-up notification to SkillManager
-                    skill_manager.add_xp_with_notification(
-                        skill_id, xp,
-                        lambda msg: self.add_notification(msg, (255, 215, 0)),
-                    )
-
+        # Successful result with yield
+        if result.item_id and result.quantity > 0:
+            # Add yield to inventory
+            if not inventory.add_item(result.item_id, result.quantity):
+                self.add_notification("Inventory is full!", (255, 100, 100))
             else:
-                # Regular message
-                self.add_notification(msg)
+                self.add_notification(f"+{result.quantity} {result.item_id}", (100, 255, 100))
+
+                # Perishable food harvested via gathering now spoils
+                # (previously only crafted/cooked food did).
+                if food_registry is not None:
+                    food = food_registry.get(result.item_id)
+                    if food is not None and food.spoilage_rate > 0:
+                        inventory.set_spoilage(result.item_id, food.spoilage_rate)
+
+                # Determine skill from active resource
+                skill_id = self._action_type_to_skill_id()
+
+                # Delegate XP + level-up notification to SkillManager
+                skill_manager.add_xp_with_notification(
+                    skill_id, result.xp,
+                    lambda msg: self.add_notification(msg, (255, 215, 0)),
+                )
+
+        # Show success message
+        if result.message:
+            self.add_notification(result.message)
 
     def _action_type_to_skill_id(self) -> str:
         """
@@ -224,66 +220,65 @@ class ActionSystem:
                     self.active.state = ActionState.IDLE
                     self.active.elapsed = 0.0
             self.stamina.tick(dt)
-            return messages
+            return None
 
         # Progress the action
         self.active.elapsed += dt
 
         # Check for completion
         if self.active.elapsed >= self.active.duration:
-            messages = self._complete_action()
+            result = self._complete_action()
+            self.stamina.tick(dt)
+            return result
 
         self.stamina.tick(dt)
-        return messages
+        return None
 
-    def _complete_action(self) -> List[str]:
+    def _complete_action(self) -> ActionResult | None:
         """
         Process the result of a completed action.
 
         Returns:
-            List of feedback messages.
+            ActionResult with structured completion data, or None if no action completed.
         """
-        messages: List[str] = []
         action = self.active
 
         if action.action_type == ActionType.WOODCUTTING or action.action_type == ActionType.MINING:
-            messages = self._complete_gathering(action)
+            result = self._complete_gathering(action)
 
-        # Reset to idle
-        action.state = ActionState.IDLE
-        action.elapsed = 0.0
-        action.resource = None
-        action.recipe_id = None
-        return messages
+            # Reset to idle
+            action.state = ActionState.IDLE
+            action.elapsed = 0.0
+            action.resource = None
+            action.recipe_id = None
+            return result
+
+        return None
 
     def _complete_gathering(
         self, action: ActiveAction,
-    ) -> List[str]:
+    ) -> ActionResult:
         """Process completion of a woodcutting or mining action."""
-        messages: List[str] = []
         resource = action.resource
 
         if resource is None:
-            return ["No resource to harvest."]
+            return ActionResult(success=False, message="No resource to harvest.")
 
         # Check seasonal availability
         if self._season_system is not None:
             if not self._season_system.is_resource_available(resource.resource_id):
-                messages.append(f"The {resource.name} is not available this season.")
                 action.cooldown = 1.0
-                return messages
+                return ActionResult(success=False, message=f"The {resource.name} is not available this season.")
 
         # Check depletion
         if resource.is_depleted:
-            messages.append("The resource is depleted.")
             action.cooldown = 1.0
-            return messages
+            return ActionResult(success=False, message="The resource is depleted.")
 
         # Check stamina
         if not self.stamina.consume(action.stamina_cost):
-            messages.append("You are too exhausted. Rest for a moment.")
             action.cooldown = 1.0
-            return messages
+            return ActionResult(success=False, message="You are too exhausted. Rest for a moment.")
 
         # Roll success: base_chance + success_rate_stat
         # Base chance is 50%, bonus is success_rate_stat * 1.0% per point
@@ -292,8 +287,7 @@ class ActionSystem:
         if random.random() * 100 < success_threshold:
             # Success
             if not resource.harvest():
-                messages.append("The resource is depleted.")
-                return messages
+                return ActionResult(success=False, message="The resource is depleted.")
 
             # Determine yield
             quantity = action.yield_quantity
@@ -314,15 +308,19 @@ class ActionSystem:
                 if random.random() * 100 < 50.0:  # 50% chance per bonus point
                     quantity += 1
 
-            # Return yield info for Game layer to process
-            messages.append(f"action_complete:{action.yield_item}:{quantity}:{action.xp_reward}")
-            return messages
+            # Return structured result
+            return ActionResult(
+                success=True,
+                item_id=action.yield_item,
+                quantity=quantity,
+                xp=action.xp_reward,
+                message=f"Harvested {quantity} {action.yield_item}.",
+            )
 
         else:
             # Failure — no yield, cooldown penalty
-            messages.append("You fail to harvest the resource.")
             action.cooldown = 2.0
-            return messages
+            return ActionResult(success=False, message="You fail to harvest the resource.")
 
     def _find_equipped_tool(
         self, inventory: Inventory, tool_type: str,

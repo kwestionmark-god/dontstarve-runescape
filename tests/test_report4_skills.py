@@ -91,10 +91,9 @@ class TestFix1GatheringSuccessRate:
         )
 
         with mock.patch("random.random", return_value=0.5):
-            messages = system._complete_action()
+            result = system._complete_action()
 
-        complete = [m for m in messages if m.startswith("action_complete:")]
-        assert complete, f"expected a success message, got {messages}"
+        assert result is not None and result.success, f"expected a success result, got {result}"
 
     def test_negative_stat_still_hardens_the_roll(self) -> None:
         """ sanity check: a -10 success_rate lowers the threshold to 40, so a 50
@@ -110,9 +109,9 @@ class TestFix1GatheringSuccessRate:
         assert system.active.success_rate_bonus == 10.0
 
         with mock.patch("random.random", return_value=0.5):
-            messages = system._complete_action()
+            result = system._complete_action()
 
-        assert not [m for m in messages if m.startswith("action_complete:")]
+        assert result is not None and not result.success
 
 
 # ── Fix 2 — Smelting grants XP exactly once ──────────────────────────────────

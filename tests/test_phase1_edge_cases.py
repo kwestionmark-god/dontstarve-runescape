@@ -131,13 +131,11 @@ class TestMiningDepletedResource(unittest.TestCase):
         action_sys.active.state = ActionState.RUNNING
         action_sys.active.elapsed = 2.0  # Simulate completion
 
-        messages = action_sys._complete_gathering(action_sys.active)
+        result = action_sys._complete_gathering(action_sys.active)
 
-        # Should return depletion message, no items gained
-        self.assertTrue(
-            any("depleted" in m.lower() for m in messages),
-            "Mining depleted resource should return depletion message",
-        )
+        # Should return depletion result, no items gained
+        self.assertFalse(result.success, "Mining depleted resource should fail")
+        self.assertIn("depleted", result.message.lower(), "Should contain depletion message")
         iron_count = inv.get_item_quantity("iron_ore")
         self.assertEqual(iron_count, 0, "No iron_ore should be added from depleted rock")
 

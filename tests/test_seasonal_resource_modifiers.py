@@ -118,15 +118,14 @@ class TestActionSystemSeasonalYield(unittest.TestCase):
         action_system.active.state = 1  # ActionState.RUNNING
 
         # Complete the action
-        messages = action_system._complete_action()
+        result = action_system._complete_action()
 
         # Check that yield is scaled by winter multiplier (0.5)
         # Base yield 2 * 0.5 = 1, so action_complete:herb:1:...
-        action_complete_msg = [m for m in messages if m.startswith("action_complete:")]
-        self.assertTrue(len(action_complete_msg) > 0)
-        parts = action_complete_msg[0].split(":")
-        self.assertEqual(parts[1], "herb")
-        self.assertEqual(int(parts[2]), 1)  # 2 * 0.5 = 1 (floored, min 1)
+        self.assertIsNotNone(result)
+        self.assertTrue(result.success)
+        self.assertEqual(result.item_id, "herb")
+        self.assertEqual(result.quantity, 1)  # 2 * 0.5 = 1 (floored, min 1)
 
     def test_autumn_boosts_herbs_yield(self):
         """Autumn season should boost herb yields by 1.3x."""
@@ -159,13 +158,13 @@ class TestActionSystemSeasonalYield(unittest.TestCase):
         inventory = Inventory()
         inventory.set_stack_size("herb", 99)
 
-        messages = action_system._complete_action()
+        result = action_system._complete_action()
 
         # 3 * 1.3 = 3.9 → int = 3, so yield should be 3
-        action_complete_msg = [m for m in messages if m.startswith("action_complete:")]
-        self.assertTrue(len(action_complete_msg) > 0)
-        parts = action_complete_msg[0].split(":")
-        self.assertEqual(int(parts[2]), 3)
+        self.assertIsNotNone(result)
+        self.assertTrue(result.success)
+        self.assertEqual(result.item_id, "herb")
+        self.assertEqual(result.quantity, 3)
 
     def test_no_season_system_no_modifier(self):
         """Without season_system, yields should be unchanged."""
@@ -194,12 +193,12 @@ class TestActionSystemSeasonalYield(unittest.TestCase):
         inventory = Inventory()
         inventory.set_stack_size("herb", 99)
 
-        messages = action_system._complete_action()
+        result = action_system._complete_action()
 
-        action_complete_msg = [m for m in messages if m.startswith("action_complete:")]
-        self.assertTrue(len(action_complete_msg) > 0)
-        parts = action_complete_msg[0].split(":")
-        self.assertEqual(int(parts[2]), 3)  # No modifier, base yield preserved
+        self.assertIsNotNone(result)
+        self.assertTrue(result.success)
+        self.assertEqual(result.item_id, "herb")
+        self.assertEqual(result.quantity, 3)
 
 
 class TestSurvivalSeasonHungerMod(unittest.TestCase):

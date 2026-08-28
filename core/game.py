@@ -207,8 +207,8 @@ class Game:
             if self.player is not None and self.inventory is not None and self.skill_manager is not None:
                 action_sys = self.player.action_system
                 if action_sys is not None:
-                    messages = action_sys.update(dt)
-                    action_sys.process_completion(messages, self.inventory, self.skill_manager, self.food_registry)
+                    result = action_sys.update(dt)
+                    action_sys.process_completion(result, self.inventory, self.skill_manager, self.food_registry)
                     action_sys.update_notifications(dt)
             if self.hud is not None:
                 action_sys = self.player.action_system if self.player else None
