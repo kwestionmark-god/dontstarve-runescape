@@ -280,7 +280,7 @@ class PanelWindow:
         """
         font = font or self.font_normal
         color = color if color is not None else self.TEXT_COLOR
-        key = (text, max_width, font.get_height(), font.get_bold())
+        key = (text, max_width, font.get_height(), font.get_bold(), color)
         cached = self._wrap_cache.get(key)
         if cached is not None:
             return cached
