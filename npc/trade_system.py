@@ -236,19 +236,19 @@ class TradeSystem:
             self._tick_all_merchants()
 
     def _tick_all_merchants(self) -> None:
-        """Restock all bankrupt merchants accessible via NPCSystem or active session."""
+        """Restock all merchants needing restock accessible via NPCSystem or active session."""
         # Priority: use NPCSystem's NPC registry if available
         if self._npc_system is not None:
             all_npcs = getattr(self._npc_system, "npcs", [])
             for npc in all_npcs:
-                if isinstance(npc, MerchantNPC) and self.is_merchant_bankrupt(npc):
+                if isinstance(npc, MerchantNPC) and self.needs_restock(npc):
                     self.restock_merchant(npc)
             return
 
         # Fallback: only restock the active session merchant
         if self.active_session is not None and self.active_session.is_active:
             merchant = self.active_session.merchant
-            if self.is_merchant_bankrupt(merchant):
+            if self.needs_restock(merchant):
                 self.restock_merchant(merchant)
 
     def execute_buy(self, trade_item_id: str, quantity: int) -> TradeResult:
@@ -691,6 +691,7 @@ class TradeSystem:
         Refill stock quantities for a merchant's inventory.
 
         Restocks items that have been sold down, up to their max_stock.
+        Triggered when merchant is bankrupt (gold <= 0) OR when any item has empty stock.
 
         Args:
             merchant: The merchant NPC to restock.
@@ -699,17 +700,35 @@ class TradeSystem:
             if item.stock_quantity < item.max_stock:
                 item.stock_quantity = item.max_stock
 
+    def needs_restock(self, merchant: "MerchantNPC") -> bool:
+        """
+        Check if a merchant needs restocking.
+
+        Restock triggers when:
+        - Merchant is bankrupt (gold <= 0), OR
+        - Any item has empty stock (stock_quantity == 0)
+
+        Args:
+            merchant: The merchant NPC to check.
+
+        Returns:
+            True if restock is needed.
+        """
+        if merchant.gold <= 0:
+            return True
+        return any(item.stock_quantity == 0 for item in merchant.inventory)
+
     def update_merchant_gold(self, merchant: "MerchantNPC", gold_change: int) -> None:
         """
-        Update a merchant's gold reserves and check for bankruptcy.
+        Update a merchant's gold reserves and check for restock need.
 
         Args:
             merchant: The merchant NPC to update.
             gold_change: Amount to add (positive) or subtract (negative).
         """
         merchant.gold += gold_change
-        if self.is_merchant_bankrupt(merchant):
-            # Merchant is bankrupt — restock items
+        if self.needs_restock(merchant):
+            # Merchant needs restock (bankrupt or empty stock) — restock items
             self.restock_merchant(merchant)
 
     def is_merchant_bankrupt(self, merchant: "MerchantNPC") -> bool:
