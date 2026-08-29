@@ -41,42 +41,72 @@ class TestSpriteRendererSeasonalRendererAttr:
 
 
 class TestSeasonTintHelper:
-    """Test _get_season_tint static method."""
+    """Test _get_season_tint instance method."""
 
     def test_tint_tier_1_is_green(self):
-        """Tier 1 (nature/player) should return green tint."""
+        """Tier 1 (nature/player) should return green tint (base fallback)."""
         from render.sprite_renderer import SpriteRenderer
 
-        tint = SpriteRenderer._get_season_tint(tier=1)
-        assert tint == (80, 100, 60)
+        sr = SpriteRenderer()
+        tint = sr._get_season_tint(tier=1)
+        assert tint == (80, 100, 60)  # Base tier 1
 
     def test_tint_tier_2_is_grey(self):
-        """Tier 2 (neutral NPCs) should return grey tint."""
+        """Tier 2 (neutral NPCs) should return grey tint (base fallback)."""
         from render.sprite_renderer import SpriteRenderer
 
-        tint = SpriteRenderer._get_season_tint(tier=2)
-        assert tint == (100, 100, 100)
+        sr = SpriteRenderer()
+        tint = sr._get_season_tint(tier=2)
+        assert tint == (100, 100, 100)  # Base tier 2
 
     def test_tint_tier_3_is_gold(self):
-        """Tier 3 (rare items) should return gold tint."""
+        """Tier 3 (rare items) should return gold tint (base fallback)."""
         from render.sprite_renderer import SpriteRenderer
 
-        tint = SpriteRenderer._get_season_tint(tier=3)
-        assert tint == (120, 100, 60)
+        sr = SpriteRenderer()
+        tint = sr._get_season_tint(tier=3)
+        assert tint == (120, 100, 60)  # Base tier 3
 
     def test_tint_tier_4_is_purple(self):
-        """Tier 4 (rare entities) should return purple tint."""
+        """Tier 4 (rare entities) should return purple tint (base fallback)."""
         from render.sprite_renderer import SpriteRenderer
 
-        tint = SpriteRenderer._get_season_tint(tier=4)
-        assert tint == (100, 80, 100)
+        sr = SpriteRenderer()
+        tint = sr._get_season_tint(tier=4)
+        assert tint == (100, 80, 100)  # Base tier 4
 
     def test_tint_unknown_tier_defaults_to_tier_1(self):
         """Unknown tier should default to tier 1 green tint."""
         from render.sprite_renderer import SpriteRenderer
 
-        tint = SpriteRenderer._get_season_tint(tier=99)
-        assert tint == (80, 100, 60)
+        sr = SpriteRenderer()
+        tint = sr._get_season_tint(tier=99)
+        assert tint == (80, 100, 60)  # Base tier 1
+
+    def test_tint_varies_by_season(self):
+        """Tint should vary by season when seasonal_renderer is set."""
+        from render.sprite_renderer import SpriteRenderer
+        from render.seasonal_renderer import SeasonalRenderer
+
+        sr = SpriteRenderer()
+        seasonal = SeasonalRenderer()
+        sr.seasonal_renderer = seasonal
+
+        # Spring
+        seasonal._current_season = "spring"
+        assert sr._get_season_tint(tier=1) == (60, 120, 50)
+
+        # Summer
+        seasonal._current_season = "summer"
+        assert sr._get_season_tint(tier=1) == (50, 130, 40)
+
+        # Autumn
+        seasonal._current_season = "autumn"
+        assert sr._get_season_tint(tier=1) == (100, 90, 40)
+
+        # Winter
+        seasonal._current_season = "winter"
+        assert sr._get_season_tint(tier=1) == (70, 90, 110)
 
 
 class TestApplySeasonalTint:
@@ -142,7 +172,7 @@ class TestSpriteRendererNoSeasonalRenderer:
         # No seasonal_renderer set — should not crash
         assert sr.seasonal_renderer is None
         # Helpers should still be callable
-        tint = SpriteRenderer._get_season_tint(tier=1)
+        tint = sr._get_season_tint(tier=1)
         assert tint is not None
 
 
@@ -194,7 +224,7 @@ class TestBootstrapWiring:
         test_sprite.fill((200, 200, 200))  # Grey
 
         # Apply tint
-        tint_color = SpriteRenderer._get_season_tint(tier=1)
+        tint_color = sr._get_season_tint(tier=1)
         tinted = sr._apply_seasonal_tint(test_sprite, tint_color, alpha=40)
 
         # Verify tinted surface is different from original
@@ -234,21 +264,23 @@ class TestSeasonalTintWithSeasonSystem:
         # Tint should still be applied (independent of season state)
         test_sprite = pygame.Surface((32, 32), pygame.SRCALPHA)
         test_sprite.fill((255, 255, 255))
-        tint_color = SpriteRenderer._get_season_tint(tier=1)
+        tint_color = sprite_renderer._get_season_tint(tier=1)
         tinted = sprite_renderer._apply_seasonal_tint(test_sprite, tint_color, alpha=40)
 
         assert tinted is not None
         assert tinted.get_size() == test_sprite.get_size()
 
     def test_tint_tier_mapping_for_npc_types(self):
-        """NPC types should map to correct tier tints."""
+        """NPC types should map to correct tier tints (base fallback when no seasonal_renderer)."""
         from render.sprite_renderer import SpriteRenderer
 
+        sr = SpriteRenderer()
+
         # Merchants and quest givers use tier 2 (grey)
-        assert SpriteRenderer._get_season_tint(tier=2) == (100, 100, 100)
+        assert sr._get_season_tint(tier=2) == (100, 100, 100)
 
         # Rare items/recruits use tier 3 (gold)
-        assert SpriteRenderer._get_season_tint(tier=3) == (120, 100, 60)
+        assert sr._get_season_tint(tier=3) == (120, 100, 60)
 
         # Player uses tier 1 (green)
-        assert SpriteRenderer._get_season_tint(tier=1) == (80, 100, 60)
+        assert sr._get_season_tint(tier=1) == (80, 100, 60)

@@ -105,7 +105,9 @@ class TestSpriteKeyResolution:
         from render.sprite_renderer import SpriteRenderer
 
         sr = SpriteRenderer()
-        # Pre-populate cache with dummy surfaces so _get_sprite never misses.
+        # Pre-populate cache with dummy surfaces so _get_base_sprite never misses.
+        # Cache keys are now (sprite_key, zoom) tuples with zoom rounded to 2 decimals.
+        dummy_surf = pygame.Surface((16, 16), pygame.SRCALPHA)
         for key in [
             "trees/oak",
             "trees/oak_depleted",
@@ -122,7 +124,7 @@ class TestSpriteKeyResolution:
             "world/depleted_patch",
             "world/water",
         ]:
-            sr._sprite_cache[key] = pygame.Surface((16, 16), pygame.SRCALPHA)
+            sr._sprite_cache[sr._cache_key(key, 1.0)] = dummy_surf
         return sr
 
     def test_mature_uses_base_key(self, renderer):

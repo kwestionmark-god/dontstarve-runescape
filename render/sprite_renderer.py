@@ -24,6 +24,7 @@ import pygame
 from typing import TYPE_CHECKING
 
 from config import Z_SCALE, FOG_NEAR_DISTANCE, FOG_FAR_DISTANCE, FOG_CULL_DISTANCE, FOG_COLOR
+from render.font_cache import get_monospace
 
 if TYPE_CHECKING:
     from camera import Camera
@@ -43,7 +44,8 @@ class SpriteRenderer:
         Root directory for sprite assets (default ``"assets/sprites"``).
     """
 
-    __slots__ = ("sprite_dir", "_sprite_cache", "_font", "tile_map", "seasonal_renderer")
+    __slots__ = ("sprite_dir", "_sprite_cache", "_font", "tile_map", "seasonal_renderer",
+                 "_anim_timer", "_anim_frame", "_anim_speed")
 
     def __init__(
         self,
@@ -54,13 +56,19 @@ class SpriteRenderer:
         self.sprite_dir = sprite_dir
         self.tile_map = tile_map
         self.seasonal_renderer = seasonal_renderer
-        self._sprite_cache: dict[str, pygame.Surface | None] = {}
+        # Cache keyed by (sprite_key, zoom_level) where zoom is rounded to 2 decimals
+        self._sprite_cache: dict[tuple[str, float], pygame.Surface | None] = {}
         self._font: pygame.font.Font | None = None
+        # Animation state
+        self._anim_timer: float = 0.0
+        self._anim_frame: int = 0
+        self._anim_speed: float = 8.0  # Frames per second
 
     # ── Player rendering ──────────────────────────────────────────────
 
     def render_player(
         self, screen: object, player: object, camera: object, elevation: int = 0,
+        dt: float = 0.0,
     ) -> None:
         """
         Draw the player sprite centred on their world position.
@@ -75,6 +83,8 @@ class SpriteRenderer:
             The orbital camera for coordinate transforms.
         elevation : int, optional
             Current tile elevation (default 0). Deprecated — tile_map is now used.
+        dt : float, optional
+            Delta time in seconds for animation frame updates.
         """
         world_x = player.world_x
         world_y = player.world_y
@@ -95,16 +105,21 @@ class SpriteRenderer:
         # Zoom: scale sprite so it matches zoomed world
         zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
 
-        # Select sprite based on movement state
-        if getattr(player, "moving", False):
-            sprite = self._load_player_sprite("walk_0")
-        else:
-            sprite = self._load_player_sprite("idle_0")
+        # Update animation timer and frame
+        self._anim_timer += dt
+        frame_duration = 1.0 / self._anim_speed
+        if self._anim_timer >= frame_duration:
+            self._anim_timer -= frame_duration
+            self._anim_frame = (self._anim_frame + 1) % 4
 
-        if sprite is not None and zoom != 1.0:
-            scaled_w = max(4, int(sprite.get_width() * zoom))
-            scaled_h = max(4, int(sprite.get_height() * zoom))
-            sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
+        # Select sprite based on movement state and animation frame
+        is_moving = getattr(player, "moving", False)
+        if is_moving:
+            sprite = self._load_player_sprite(f"walk_{self._anim_frame}", zoom)
+        else:
+            # For idle, use slower animation (cycle every 2nd frame)
+            idle_frame = self._anim_frame // 2
+            sprite = self._load_player_sprite(f"idle_{idle_frame % 2}", zoom)
 
         if sprite is not None:
             # Apply seasonal tint if available
@@ -169,56 +184,23 @@ class SpriteRenderer:
         world_x = tile_x * self.TILE_SIZE + self.TILE_SIZE // 2
         world_y = tile_y * self.TILE_SIZE + self.TILE_SIZE // 2
 
-        # Get player position from camera for distance calculations.
-        player_x = 0.0
-        player_y = 0.0
-        if hasattr(camera, "player") and camera.player is not None:
-            player_x = camera.player.world_x
-            player_y = camera.player.world_y
-
-        # Zoom: scale sprite so it matches zoomed world
-        zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
-
-        # LOD culling: skip if beyond fog cull distance.
-        if self._should_cull(world_x, world_y, player_x, player_y):
+        billboard = self._setup_billboard(world_x, world_y, camera, tile_x, tile_y, elevation)
+        if billboard is None:
             return
-
-        # Get tile center height for Z-aware positioning.
-        if self.tile_map is not None:
-            corner_h = self.tile_map.get_tile_center_height(tile_x, tile_y)
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE)
-            # Camera elevation parameter now handles vertical displacement
-        else:
-            # Fallback to original behavior.
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y)
-            elevation_offset = elevation * 3
-            screen_y -= elevation_offset
+        player_x, player_y, zoom, screen_x, screen_y, elevation_offset, cx, cy = billboard
 
         cy = int(screen_y - 8)
         cx = int(screen_x)
 
         # Resolve the correct sprite key based on depletion / regrowth state.
-        sprite_key, sprite = self._resolve_resource_sprite(
-            node, tile_x, tile_y,
-        )
+        sprite_key, _ = self._resolve_resource_sprite(node, tile_x, tile_y)
+        sprite = self._get_sprite_at_zoom(sprite_key, zoom) if sprite_key else None
 
         if sprite is not None:
-            # Apply seasonal tint if available (same path as mature sprites).
-            if self.seasonal_renderer is not None:
-                tier = getattr(node, "tier", 1)
-                tint_color = self._get_season_tint(tier=tier)
-                sprite = self._apply_seasonal_tint(sprite, tint_color, alpha=40)
-            # Scale sprite by zoom
-            if zoom != 1.0:
-                scaled_w = max(4, int(sprite.get_width() * zoom))
-                scaled_h = max(4, int(sprite.get_height() * zoom))
-                sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
-            rect = sprite.get_rect(center=(cx, cy))
-            screen.blit(sprite, rect)
-            # Apply fog overlay
-            fog_a = self._fog_alpha(world_x, world_y, player_x, player_y)
-            if fog_a > 0:
-                self._apply_fog_overlay(screen, rect, fog_a)
+            self._draw_billboard_sprite(
+                screen, sprite, cx, cy, world_x, world_y, player_x, player_y,
+                tier=getattr(node, "tier", 1), alpha=40,
+            )
         else:
             # ── Placeholder ───────────────────────────────────
             # Scale placeholder sizes by zoom
@@ -288,13 +270,11 @@ class SpriteRenderer:
 
     # ── Seasonal tinting helpers ────────────────────────────────────────
 
-    @staticmethod
-    def _get_season_tint(tier: int = 1) -> tuple[int, int, int]:
-        """Return a seasonal tint color based on sprite tier.
+    def _get_season_tint(self, tier: int = 1) -> tuple[int, int, int]:
+        """Return a seasonal tint color based on sprite tier and current season.
 
         Tints are subtle overlays applied to sprites to reflect seasonal
-        atmosphere. Lower tiers get greener tints (nature), higher tiers
-        get more muted/earthy tones.
+        atmosphere. Colors vary by season and tier.
 
         Args:
             tier: Sprite tier (1 = common/nature, 4 = rare/precious).
@@ -302,13 +282,49 @@ class SpriteRenderer:
         Returns:
             RGB tuple for seasonal tint overlay.
         """
-        tints = {
+        # Base tints per tier (used as fallback when no seasonal_renderer)
+        base_tints = {
             1: (80, 100, 60),    # Green — nature, player
             2: (100, 100, 100),  # Grey  — neutral NPCs
             3: (120, 100, 60),   # Gold  — rare items
             4: (100, 80, 100),   # Purple — rare entities
         }
-        return tints.get(tier, tints[1])
+
+        if self.seasonal_renderer is None:
+            return base_tints.get(tier, base_tints[1])
+
+        season = getattr(self.seasonal_renderer, "_current_season", "spring")
+
+        # Season × tier tint variations
+        # Summer: warmer, more vibrant | Winter: cooler, muted
+        seasonal_tints = {
+            "spring": {
+                1: (60, 120, 50),    # Fresh green
+                2: (100, 110, 90),   # Light grey-green
+                3: (140, 120, 50),   # Bright gold
+                4: (120, 90, 120),   # Lilac
+            },
+            "summer": {
+                1: (50, 130, 40),    # Vibrant green
+                2: (110, 110, 80),   # Warm grey
+                3: (160, 130, 40),   # Rich gold
+                4: (140, 70, 140),   # Deep magenta
+            },
+            "autumn": {
+                1: (100, 90, 40),    # Olive
+                2: (120, 100, 70),   # Taupe
+                3: (180, 120, 30),   # Amber
+                4: (130, 70, 90),    # Dusty rose
+            },
+            "winter": {
+                1: (70, 90, 110),    # Cool blue-green
+                2: (100, 100, 120),  # Cool grey
+                3: (130, 120, 80),   # Pale gold
+                4: (90, 80, 120),    # Muted purple
+            },
+        }
+
+        return seasonal_tints.get(season, {}).get(tier, base_tints.get(tier, base_tints[1]))
 
     def _apply_seasonal_tint(
         self,
@@ -385,11 +401,123 @@ class SpriteRenderer:
         fog_surf.fill((*FOG_COLOR, int(alpha)))
         screen.blit(fog_surf, rect)
 
+    def _setup_billboard(
+        self,
+        world_x: float,
+        world_y: float,
+        camera: object,
+        tile_x: int | None = None,
+        tile_y: int | None = None,
+        elevation: int = 0,
+    ) -> tuple[float, float, float, float, float, float, float] | None:
+        """
+        Common billboard setup: player position, zoom, culling, screen coords.
+
+        Returns
+        -------
+        tuple | None
+            (player_x, player_y, zoom, screen_x, screen_y, elevation_offset, cx, cy)
+            or None if culled.
+        """
+        # Get player position from camera for distance calculations.
+        player_x = 0.0
+        player_y = 0.0
+        if hasattr(camera, "player") and camera.player is not None:
+            player_x = camera.player.world_x
+            player_y = camera.player.world_y
+
+        # Zoom: scale sprite so it matches zoomed world
+        zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
+
+        # LOD culling: skip if beyond fog cull distance.
+        if self._should_cull(world_x, world_y, player_x, player_y):
+            return None
+
+        # Get tile center height for Z-aware positioning.
+        elevation_offset = 0.0
+        if self.tile_map is not None and tile_x is not None and tile_y is not None:
+            corner_h = self.tile_map.get_tile_center_height(tile_x, tile_y)
+            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE)
+            # Camera elevation parameter now handles vertical displacement
+        else:
+            # Fallback to original behavior.
+            screen_x, screen_y = camera.world_to_screen(world_x, world_y)
+            elevation_offset = elevation * 3
+
+        cx = int(screen_x)
+        cy = int(screen_y)
+
+        return player_x, player_y, zoom, screen_x, screen_y, elevation_offset, cx, cy
+
+    def _draw_billboard_sprite(
+        self,
+        screen: pygame.Surface,
+        sprite: pygame.Surface | None,
+        cx: int,
+        cy: int,
+        world_x: float,
+        world_y: float,
+        player_x: float,
+        player_y: float,
+        tier: int = 1,
+        alpha: int = 40,
+        y_offset: int = 0,
+    ) -> pygame.Rect | None:
+        """
+        Draw a billboard sprite with seasonal tint and fog overlay.
+
+        Parameters
+        ----------
+        screen : pygame.Surface
+            The display surface.
+        sprite : pygame.Surface | None
+            The sprite to draw (already scaled to correct zoom).
+        cx, cy : int
+            Center coordinates for the sprite.
+        world_x, world_y : float
+            World coordinates for fog calculation.
+        player_x, player_y : float
+            Player coordinates for fog calculation.
+        tier : int
+            Sprite tier for seasonal tint (1=nature, 2=neutral, 3=rare, 4=precious).
+        alpha : int
+            Seasonal tint overlay alpha (0-255).
+        y_offset : int
+            Vertical offset for the sprite center.
+
+        Returns
+        -------
+        pygame.Rect | None
+            The drawn rect if sprite was not None, else None.
+        """
+        if sprite is None:
+            return None
+
+        # Apply seasonal tint if available
+        if self.seasonal_renderer is not None:
+            tint_color = self._get_season_tint(tier=tier)
+            sprite = self._apply_seasonal_tint(sprite, tint_color, alpha=alpha)
+
+        rect = sprite.get_rect(center=(cx, cy - y_offset))
+        screen.blit(sprite, rect)
+
+        # Apply fog overlay
+        fog_a = self._fog_alpha(world_x, world_y, player_x, player_y)
+        if fog_a > 0:
+            self._apply_fog_overlay(screen, rect, fog_a)
+
+        return rect
+
     # ── Helpers ───────────────────────────────────────────────────────
 
-    def _get_sprite(self, sprite_key: str) -> pygame.Surface | None:
+    @staticmethod
+    def _cache_key(sprite_key: str, zoom: float) -> tuple[str, float]:
+        """Return a cache key with zoom rounded to 2 decimals to limit cache size."""
+        return (sprite_key, round(zoom, 2))
+
+    def _get_base_sprite(self, sprite_key: str) -> pygame.Surface | None:
         """
-        Load a sprite from cache or disk.
+        Load a base sprite (zoom=1.0) from cache or disk.
 
         Parameters
         ----------
@@ -401,8 +529,9 @@ class SpriteRenderer:
         pygame.Surface | None
             The loaded sprite, or ``None`` if not found.
         """
-        if sprite_key in self._sprite_cache:
-            return self._sprite_cache[sprite_key]
+        key = self._cache_key(sprite_key, 1.0)
+        if key in self._sprite_cache:
+            return self._sprite_cache[key]
 
         path = f"{self.sprite_dir}/{sprite_key}.png"
         try:
@@ -411,16 +540,52 @@ class SpriteRenderer:
         except (pygame.error, FileNotFoundError):
             surf = None
 
-        self._sprite_cache[sprite_key] = surf
+        self._sprite_cache[key] = surf
         return surf
 
-    def _load_player_sprite(self, frame: str = "idle_0") -> pygame.Surface | None:
-        """Load a player sprite frame.
+    def _get_sprite_at_zoom(self, sprite_key: str, zoom: float) -> pygame.Surface | None:
+        """
+        Get a sprite at the specified zoom level, using cached zoomed variant if available.
+
+        Parameters
+        ----------
+        sprite_key : str
+            Relative path inside ``sprite_dir`` (e.g. ``"trees/oak"``).
+        zoom : float
+            Zoom level (e.g. 1.0, 1.5, 2.0).
+
+        Returns
+        -------
+        pygame.Surface | None
+            The sprite scaled to the zoom level, or ``None`` if base sprite not found.
+        """
+        key = self._cache_key(sprite_key, zoom)
+        if key in self._sprite_cache:
+            return self._sprite_cache[key]
+
+        base = self._get_base_sprite(sprite_key)
+        if base is None:
+            self._sprite_cache[key] = None
+            return None
+
+        if zoom == 1.0:
+            self._sprite_cache[key] = base
+            return base
+
+        scaled_w = max(4, int(base.get_width() * zoom))
+        scaled_h = max(4, int(base.get_height() * zoom))
+        scaled = pygame.transform.scale(base, (scaled_w, scaled_h))
+        self._sprite_cache[key] = scaled
+        return scaled
+
+    def _load_player_sprite(self, frame: str = "idle_0", zoom: float = 1.0) -> pygame.Surface | None:
+        """Load a player sprite frame at the specified zoom.
         
         Args:
             frame: Frame identifier, e.g. 'idle_0', 'walk_0'.
+            zoom: Zoom level to scale the sprite to.
         """
-        return self._get_sprite(f"player/{frame}")
+        return self._get_sprite_at_zoom(f"player/{frame}", zoom)
 
     @staticmethod
     def _resource_radius(node: object) -> int:
@@ -479,13 +644,13 @@ class SpriteRenderer:
     # ── Sprite key resolution (depleted / regrowth / mature) ──────────
 
     def _family_fallback(self, family: str) -> pygame.Surface | None:
-        """Return the shared fallback sprite for a depleted family."""
+        """Return the shared fallback sprite for a depleted family (base zoom)."""
         if family == "tree":
-            return self._get_sprite("trees/stump")
+            return self._get_base_sprite("trees/stump")
         if family in ("rock", "ore"):
-            return self._get_sprite("rocks/rubble")
+            return self._get_base_sprite("rocks/rubble")
         # plant / bush / water
-        return self._get_sprite("world/depleted_patch")
+        return self._get_base_sprite("world/depleted_patch")
 
     def _resolve_resource_sprite(
         self,
@@ -493,7 +658,7 @@ class SpriteRenderer:
         tile_x: int,
         tile_y: int,
     ) -> tuple[str, pygame.Surface | None]:
-        """Resolve the correct sprite key and surface for a resource node.
+        """Resolve the correct sprite key and base surface for a resource node.
 
         Implements the naming convention from
         ``docs/superpowers/plans/phase-depleted-regrowth-sprites.md``:
@@ -506,6 +671,12 @@ class SpriteRenderer:
         Prefers ``tile.regrow_timer`` / ``tile.depleted`` over
         ``node.is_depleted`` when ``tile_map`` is set, so timer-driven
         stages are accurate.
+
+        Returns
+        -------
+        tuple[str, pygame.Surface | None]
+            The resolved sprite key and base sprite (zoom=1.0).
+            The caller should use `_get_sprite_at_zoom(key, zoom)` for rendering.
         """
         base = getattr(node, "sprite_key", "")
         family = self._resource_family(node)
@@ -513,7 +684,7 @@ class SpriteRenderer:
 
         # Infinite resources (depletion_count <= 0) never deplete.
         if depletion_count <= 0:
-            return base, self._get_sprite(base)
+            return base, self._get_base_sprite(base)
 
         # Determine depletion state, preferring tile state when available.
         tile = None
@@ -534,28 +705,28 @@ class SpriteRenderer:
                     regrow_timer, regrow_time, family,
                 )
                 key = f"{base}_{stage}"
-                sprite = self._get_sprite(key)
+                sprite = self._get_base_sprite(key)
                 if sprite is None:
                     # Shared generic fallback for this stage.
                     generic = f"trees/{stage}_generic"
-                    sprite = self._get_sprite(generic)
+                    sprite = self._get_base_sprite(generic)
                 if sprite is None:
                     # Per-type depleted fallback.
-                    sprite = self._get_sprite(f"{base}_depleted")
+                    sprite = self._get_base_sprite(f"{base}_depleted")
                 if sprite is None:
                     # Ultimate fallback.
-                    sprite = self._get_sprite("trees/stump")
+                    sprite = self._get_base_sprite("trees/stump")
                 return key, sprite
             else:
                 # Depleted: try per-type depleted, then family fallback.
                 key = f"{base}_depleted"
-                sprite = self._get_sprite(key)
+                sprite = self._get_base_sprite(key)
                 if sprite is None:
                     sprite = self._family_fallback(family)
                 return key, sprite
         else:
             # Mature (or regrowth finished).
-            return base, self._get_sprite(base)
+            return base, self._get_base_sprite(base)
 
     @staticmethod
     def _tree_growth_stage(
@@ -636,47 +807,23 @@ class SpriteRenderer:
         world_x = monster.world_x
         world_y = monster.world_y
 
-        # Get player position from camera for distance calculations.
-        player_x = 0.0
-        player_y = 0.0
-        if hasattr(camera, "player") and camera.player is not None:
-            player_x = camera.player.world_x
-            player_y = camera.player.world_y
-
-        # Zoom: scale sprite so it matches zoomed world
-        zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
-
-        # LOD culling: skip if beyond fog cull distance.
-        if self._should_cull(world_x, world_y, player_x, player_y):
+        billboard = self._setup_billboard(world_x, world_y, camera, elevation=0)
+        if billboard is None:
             return
-
-        # Monsters have no fixed tile — use elevation 0
-        screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=0)
+        player_x, player_y, zoom, screen_x, screen_y, elevation_offset, cx, cy = billboard
 
         cy = int(screen_y - 12)
         cx = int(screen_x)
 
         # Determine sprite size for health bar positioning
-        sprite = self._get_sprite(f"monster/{monster.monster_id}")
-        # Scale sprite by zoom
-        if sprite is not None and zoom != 1.0:
-            scaled_w = max(4, int(sprite.get_width() * zoom))
-            scaled_h = max(4, int(sprite.get_height() * zoom))
-            sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
+        sprite = self._get_sprite_at_zoom(f"monster/{monster.monster_id}", zoom)
         size = sprite.get_width() if sprite is not None else int(14 * zoom)
 
         if sprite is not None:
-            # Apply seasonal tint if available
-            if self.seasonal_renderer is not None:
-                tint_color = self._get_season_tint(tier=2)
-                sprite = self._apply_seasonal_tint(sprite, tint_color, alpha=30)
-
-            rect = sprite.get_rect(center=(cx, cy))
-            screen.blit(sprite, rect)
-            # Apply fog overlay
-            fog_a = self._fog_alpha(world_x, world_y, player_x, player_y)
-            if fog_a > 0:
-                self._apply_fog_overlay(screen, rect, fog_a)
+            self._draw_billboard_sprite(
+                screen, sprite, cx, cy, world_x, world_y, player_x, player_y,
+                tier=2, alpha=30,
+            )
         else:
             # Fallback: colored circle based on monster_id
             colour = self._MONSTER_COLOURS.get(monster.monster_id, (200, 50, 50))
@@ -723,67 +870,35 @@ class SpriteRenderer:
         npc_x = int(npc.world_x // self.TILE_SIZE)
         npc_y = int(npc.world_y // self.TILE_SIZE)
 
-        # Get player position from camera for distance calculations.
-        player_x = 0.0
-        player_y = 0.0
-        if hasattr(camera, "player") and camera.player is not None:
-            player_x = camera.player.world_x
-            player_y = camera.player.world_y
-
-        # Zoom: scale sprite so it matches zoomed world
-        zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
-
-        # LOD culling: skip if beyond fog cull distance.
-        if self._should_cull(npc.world_x, npc.world_y, player_x, player_y):
+        billboard = self._setup_billboard(npc.world_x, npc.world_y, camera, npc_x, npc_y, elevation)
+        if billboard is None:
             return
-
-        if self.tile_map is not None:
-            corner_h = self.tile_map.get_tile_center_height(npc_x, npc_y)
-            screen_x, screen_y = camera.world_to_screen(
-                npc.world_x, npc.world_y, elevation=corner_h * Z_SCALE,
-            )
-            elevation_offset = 0.0  # Already baked in via camera
-        else:
-            # Fallback to original behavior.
-            screen_x, screen_y = camera.world_to_screen(npc.world_x, npc.world_y)
-            elevation_offset = elevation * 3
+        player_x, player_y, zoom, screen_x, screen_y, elevation_offset, cx, cy = billboard
 
         # Try recruit_sprite_key first if recruited, then fall back to npc_type
         if getattr(npc, "is_recruited", False) and getattr(npc, "recruit_sprite_key", ""):
             sprite_key = f"npcs/{npc.recruit_sprite_key}"
         else:
             sprite_key = f"npcs/{npc.npc_type}"
-        sprite = self._get_sprite(sprite_key)
+        sprite = self._get_sprite_at_zoom(sprite_key, zoom)
 
         # Radius of the drawn entity — used by the recruited-NPC outline below,
         # so it must be initialized on BOTH the sprite and fallback branches.
         radius = int(14 * zoom)
 
         if sprite is not None:
-            # Scale sprite by zoom
-            if zoom != 1.0:
-                scaled_w = max(4, int(sprite.get_width() * zoom))
-                scaled_h = max(4, int(sprite.get_height() * zoom))
-                sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
             radius = max(sprite.get_width(), sprite.get_height()) // 2
 
-            # Apply seasonal tint if available
-            if self.seasonal_renderer is not None:
-                npc_type = getattr(npc, "npc_type", "unknown")
-                tier = 2 if npc_type in ("merchant", "quest_giver") else 3
-                tint_color = self._get_season_tint(tier=tier)
-                sprite = self._apply_seasonal_tint(sprite, tint_color, alpha=35)
-
-            rect = sprite.get_rect(center=(screen_x, screen_y - elevation_offset))
-            screen.blit(sprite, rect)
-            # Apply fog overlay
-            fog_a = self._fog_alpha(npc.world_x, npc.world_y, player_x, player_y)
-            if fog_a > 0:
-                self._apply_fog_overlay(screen, rect, fog_a)
+            npc_type = getattr(npc, "npc_type", "unknown")
+            tier = 2 if npc_type in ("merchant", "quest_giver") else 3
+            self._draw_billboard_sprite(
+                screen, sprite, cx, cy, npc.world_x, npc.world_y, player_x, player_y,
+                tier=tier, alpha=35, y_offset=int(elevation_offset),
+            )
         else:
             # Fallback: colored ellipse (scaled by zoom)
             color = self._NPC_COLOURS.get(npc.npc_type, (200, 200, 200))
-            ellipse_rect = pygame.Rect(screen_x - radius, screen_y - elevation_offset - radius, radius * 2, radius * 2)
+            ellipse_rect = pygame.Rect(cx - radius, cy - int(elevation_offset) - radius, radius * 2, radius * 2)
             pygame.draw.ellipse(screen, color, ellipse_rect)
 
         # Visual indicator: green outline for recruited NPCs
@@ -831,7 +946,7 @@ class SpriteRenderer:
             prompt_text = "[E] Recruit " + npc.name
 
         if self._font is None:
-            self._font = pygame.font.SysFont("monospace", 14)
+            self._font = get_monospace(14)
 
         text_surface = self._font.render(prompt_text, True, (255, 255, 255))
         text_rect = text_surface.get_rect(center=(screen_x, screen_y - 40))
@@ -867,32 +982,16 @@ class SpriteRenderer:
         world_x = fire.world_x
         world_y = fire.world_y
 
-        # Get player position from camera for distance calculations.
-        player_x = 0.0
-        player_y = 0.0
-        if hasattr(camera, "player") and camera.player is not None:
-            player_x = camera.player.world_x
-            player_y = camera.player.world_y
-
-        # Zoom: scale fire by camera zoom
-        zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
-
-        # LOD culling: skip if beyond fog cull distance.
-        if self._should_cull(world_x, world_y, player_x, player_y):
+        # Use shared billboard setup for common logic
+        fx = int(world_x // self.TILE_SIZE) if self.tile_map is not None else None
+        fy = int(world_y // self.TILE_SIZE) if self.tile_map is not None else None
+        billboard = self._setup_billboard(world_x, world_y, camera, fx, fy, 0)
+        if billboard is None:
             return
+        player_x, player_y, zoom, screen_x, screen_y, elevation_offset, cx, cy = billboard
 
-        # Get tile center height for Z-aware positioning.
-        if self.tile_map is not None:
-            fx = int(world_x // self.TILE_SIZE)
-            fy = int(world_y // self.TILE_SIZE)
-            corner_h = self.tile_map.get_tile_center_height(fx, fy)
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE)
-        else:
-            # Fallback to original behavior.
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y)
-
-        cx = int(screen_x)
         cy = int(screen_y - 8)
+        cx = int(screen_x)
 
         # Fire radius in screen pixels (based on heat_output, scaled by zoom)
         base_radius = int(20 * zoom)
@@ -1027,16 +1126,11 @@ class SpriteRenderer:
         cx = int(screen_x)
 
         # Try to load structure sprite
-        sprite = self._get_sprite(f"structure/{structure.structure_def.structure_id}")
+        sprite = self._get_sprite_at_zoom(f"structure/{structure.structure_def.structure_id}", zoom)
         base_size = 16 if structure.structure_def.occupies_tile else 12
         size = int(base_size * zoom)
 
         if sprite is not None:
-            # Scale sprite by zoom
-            if zoom != 1.0:
-                scaled_w = max(4, int(sprite.get_width() * zoom))
-                scaled_h = max(4, int(sprite.get_height() * zoom))
-                sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
             rect = sprite.get_rect(center=(cx, cy))
             screen.blit(sprite, rect)
             # Apply fog overlay
