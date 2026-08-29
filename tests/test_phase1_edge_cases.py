@@ -47,13 +47,14 @@ class TestCookingFailurePreservesRaw(unittest.TestCase):
         import random
         from inventory.inventory import Inventory
         from crafting.crafting_system import CraftingSystem
+        from crafting.recipe_registry import RecipeRegistry
         from skills.skill_manager import SkillManager
 
         inv = Inventory()
         inv.set_stack_size("raw_meat", 10)
         inv.add_item("raw_meat", 3)
 
-        system = CraftingSystem()
+        system = CraftingSystem(recipe_registry=RecipeRegistry())
         system.load_recipes([
             {
                 "id": "cook_meat",

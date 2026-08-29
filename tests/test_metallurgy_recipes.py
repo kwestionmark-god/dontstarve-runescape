@@ -12,6 +12,7 @@ from pathlib import Path
 
 from inventory.recipe import Recipe
 from crafting.crafting_system import CraftingSystem
+from crafting.recipe_registry import RecipeRegistry
 
 
 # Expected metallurgy recipe IDs from the plan
@@ -149,7 +150,7 @@ class TestMetallurgyRecipeLoading:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        cs = CraftingSystem(recipe_registry=RecipeRegistry())
         count = cs.load_recipes(recipes_data)
         assert count == len(recipes_data), (
             f"Expected {len(recipes_data)} recipes, loaded {count}"
@@ -162,7 +163,7 @@ class TestMetallurgyRecipeLoading:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        cs = CraftingSystem(recipe_registry=RecipeRegistry())
         cs.load_recipes(recipes_data)
 
         for recipe_id in EXPECTED_RECIPE_IDS:
@@ -177,7 +178,7 @@ class TestMetallurgyRecipeLoading:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        cs = CraftingSystem(recipe_registry=RecipeRegistry())
         cs.load_recipes(recipes_data)
 
         # Verify legacy recipes still present

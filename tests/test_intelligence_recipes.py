@@ -12,6 +12,7 @@ from pathlib import Path
 
 from inventory.recipe import Recipe
 from crafting.crafting_system import CraftingSystem
+from crafting.recipe_registry import RecipeRegistry
 
 
 # Expected intelligence recipe IDs from the plan
@@ -222,7 +223,7 @@ class TestIntelligenceRecipeLoading:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        cs = CraftingSystem(recipe_registry=RecipeRegistry())
         count = cs.load_recipes(recipes_data)
         assert count == 8, f"Expected 8 recipes, loaded {count}"
 
@@ -233,7 +234,7 @@ class TestIntelligenceRecipeLoading:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        cs = CraftingSystem(recipe_registry=RecipeRegistry())
         cs.load_recipes(recipes_data)
 
         for recipe_id in EXPECTED_RECIPE_IDS:
@@ -259,7 +260,7 @@ class TestIntelligenceRecipeLoading:
             "attune_celestial_crystal": "intelligence_celestial",
         }
 
-        cs = CraftingSystem()
+        cs = CraftingSystem(recipe_registry=RecipeRegistry())
         cs.load_recipes(data["recipes"])
 
         for recipe_id, expected_chain in chain_map.items():

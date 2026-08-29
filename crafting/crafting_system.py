@@ -57,38 +57,33 @@ class CraftingSystem:
     """
     Manages crafting recipes, validation, and execution.
 
-    Delegates recipe storage to a RecipeRegistry when provided.
-    Keeps local fallback for backward compatibility.
+    Delegates recipe storage and queries to a RecipeRegistry.
 
     Fields:
-        _registry: Optional RecipeRegistry holding all recipes
+        _registry: RecipeRegistry holding all recipes
         completed_recipes: set of recipe_ids that have been crafted at least once
         locked_recipes: set of recipe_ids locked behind quests
         unlocked_gear: set of gear_ids unlocked by quests
     """
 
-    __slots__ = ("_registry", "_recipes", "completed_recipes", "locked_recipes", "unlocked_gear")
+    __slots__ = ("_registry", "completed_recipes", "locked_recipes", "unlocked_gear")
 
-    def __init__(self, recipe_registry=None) -> None:
+    def __init__(self, recipe_registry) -> None:
+        if recipe_registry is None:
+            raise ValueError("CraftingSystem requires a RecipeRegistry")
         self._registry = recipe_registry
-        self._recipes: Dict[str, Recipe] = {}
         self.completed_recipes: set[str] = set()
         self.locked_recipes: set[str] = set()
         self.unlocked_gear: set[str] = set()
 
     @property
     def recipes(self) -> Dict[str, Recipe]:
-        """Return the recipe store — delegates to RecipeRegistry when available."""
-        if self._registry is not None:
-            return self._registry.recipes
-        return self._recipes
+        """Return the recipe store from the registry."""
+        return self._registry.recipes
 
     def load_recipes(self, recipes_data: list[dict]) -> int:
         """
-        Load recipes from JSON data.
-
-        If a RecipeRegistry is attached, stores recipes there.
-        Otherwise stores in the local fallback dict.
+        Load recipes from JSON data into the registry.
 
         Args:
             recipes_data: Parsed list of recipe dicts from recipes.json.
@@ -99,14 +94,9 @@ class CraftingSystem:
         count = 0
         for data in recipes_data:
             recipe = Recipe.from_dict(data)
-            if self._registry is not None:
-                self._registry.recipes[recipe.recipe_id] = recipe
-                if recipe.quest_unlock is not None:
-                    self._registry.locked_recipes.add(recipe.recipe_id)
-            else:
-                self._recipes[recipe.recipe_id] = recipe
-                if recipe.quest_unlock is not None:
-                    self.locked_recipes.add(recipe.recipe_id)
+            self._registry.recipes[recipe.recipe_id] = recipe
+            if recipe.quest_unlock is not None:
+                self._registry.locked_recipes.add(recipe.recipe_id)
             count += 1
         return count
 
@@ -114,25 +104,20 @@ class CraftingSystem:
 
     def get_recipe(self, recipe_id: str) -> Optional[Recipe]:
         """Look up a recipe by ID."""
-        return self.recipes.get(recipe_id)
+        return self._registry.get_recipe(recipe_id)
 
     def get_available_recipes(
         self, skill_manager: Optional[SkillManager] = None,
     ) -> List[Recipe]:
         """
-        Return all recipes. Phase 1: all are available.
+        Return all recipes not locked behind quests.
 
         Phase 2+: filter by skill levels, structures, etc.
 
         Args:
             skill_manager: Optional skill manager for level-based filtering.
         """
-        available: List[Recipe] = []
-        for recipe in self.recipes.values():
-            if recipe.quest_unlock is not None and recipe.recipe_id in self.locked_recipes:
-                continue
-            available.append(recipe)
-        return available
+        return self._registry.get_available_recipes()
 
     def get_recipes_for_chain(self, chain: str) -> List[Recipe]:
         """
@@ -144,7 +129,11 @@ class CraftingSystem:
         Returns:
             List of recipes in the chain.
         """
-        return [r for r in self.recipes.values() if r.processing_chain == chain]
+        return self._registry.get_recipes_for_chain(chain)
+
+    def is_recipe_locked(self, recipe_id: str) -> bool:
+        """Check if a recipe is locked behind a quest."""
+        return self._registry.is_recipe_locked(recipe_id)
 
     # ── Validation ─────────────────────────────────────────────────
 
@@ -159,7 +148,7 @@ class CraftingSystem:
         Returns:
             True if all materials are available.
         """
-        recipe = self.recipes.get(recipe_id)
+        recipe = self._registry.get_recipe(recipe_id)
         if recipe is None:
             return False
         for item_id, quantity in recipe.input_items:
@@ -215,10 +204,7 @@ class CraftingSystem:
         Returns:
             True if the recipe was (or already was) unlocked.
         """
-        if recipe_id not in self.locked_recipes:
-            return False
-        self.locked_recipes.discard(recipe_id)
-        return True
+        return self._registry.unlock_recipe(recipe_id)
 
     def lock_recipe(self, recipe_id: str) -> bool:
         """
@@ -233,12 +219,7 @@ class CraftingSystem:
         Returns:
             True if the recipe was (or already was) locked.
         """
-        if recipe_id in self.locked_recipes:
-            return True
-        if recipe_id in self.recipes:
-            self.locked_recipes.add(recipe_id)
-            return True
-        return False
+        return self._registry.lock_recipe(recipe_id)
 
     def unlock_gear(self, gear_id: str) -> bool:
         """
@@ -254,18 +235,6 @@ class CraftingSystem:
         """
         self.unlocked_gear.add(gear_id)
         return True
-
-    def is_recipe_locked(self, recipe_id: str) -> bool:
-        """
-        Check if a recipe is locked behind a quest.
-
-        Args:
-            recipe_id: The recipe to check.
-
-        Returns:
-            True if the recipe is locked and not yet unlocked.
-        """
-        return recipe_id in self.locked_recipes
 
     def process_chain_complete(self, recipe_id: str) -> bool:
         """

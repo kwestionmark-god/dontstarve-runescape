@@ -27,7 +27,8 @@ from skills.skill_manager import SkillManager
 
 @pytest.fixture
 def system():
-    return CraftingSystem()
+    from crafting.recipe_registry import RecipeRegistry
+    return CraftingSystem(recipe_registry=RecipeRegistry())
 
 
 def _recipe(rid, chain, inputs, out, qty=1, xp=4.0):
@@ -98,7 +99,7 @@ def test_can_add_predicts_add_item():
 
 
 def test_craft_full_inventory_does_not_consume(system):
-    system._recipes = {"grass_rope": _recipe("grass_rope", "foraging_chain",
+    system._registry.recipes = {"grass_rope": _recipe("grass_rope", "foraging_chain",
                                               [["fibers", 3]], "grass_rope", 1)}
     inv = _full_with_inputs("fibers", 3)
     skill = SkillManager()
@@ -116,7 +117,7 @@ def test_craft_full_inventory_does_not_consume(system):
 
 
 def test_craft_exact_fit_success_and_woodcutting_xp(system):
-    system._recipes = {"sticks": _recipe("sticks", "wood_chain",
+    system._registry.recipes = {"sticks": _recipe("sticks", "wood_chain",
                                           [["oak_logs", 1]], "stick", 3, 3.0)}
     inv = _empty_with_input("oak_logs", 1)
     inv.set_stack_size("stick", 28)
@@ -131,7 +132,7 @@ def test_craft_exact_fit_success_and_woodcutting_xp(system):
 
 
 def test_craft_foraging_grants_crafting_not_woodcutting(system):
-    system._recipes = {"paper": _recipe("paper", "foraging_chain",
+    system._registry.recipes = {"paper": _recipe("paper", "foraging_chain",
                                         [["reed", 2]], "paper", 1)}
     inv = _empty_with_input("reed", 2)
     inv.set_stack_size("paper", 28)
@@ -146,7 +147,7 @@ def test_craft_foraging_grants_crafting_not_woodcutting(system):
 
 
 def test_cook_full_inventory_does_not_consume(system):
-    system._recipes = {"cook_bole": _recipe("cook_bole", "cooking_chain",
+    system._registry.recipes = {"cook_bole": _recipe("cook_bole", "cooking_chain",
                                             [["trout", 1]], "cooked_trout", 1, xp=10)}
     inv = _full_with_inputs("trout", 1)
     skill = SkillManager()

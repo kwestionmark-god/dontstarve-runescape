@@ -82,9 +82,11 @@ class TestDataIntegration(unittest.TestCase):
         """Lock/unlock a recipe -> is_recipe_locked reflects state."""
         import json
         from crafting.crafting_system import CraftingSystem
+        from crafting.recipe_registry import RecipeRegistry
         from pathlib import Path
 
-        cs = CraftingSystem()
+        registry = RecipeRegistry()
+        cs = CraftingSystem(recipe_registry=registry)
 
         # Load recipes from skill package JSONs (skip metallurgy — different schema)
         skill_dirs = [

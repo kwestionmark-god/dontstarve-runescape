@@ -50,7 +50,9 @@ def _inventory(*start):
 
 
 def _crafting_system():
-    cs = CraftingSystem()
+    from crafting.recipe_registry import RecipeRegistry
+    registry = RecipeRegistry()
+    cs = CraftingSystem(recipe_registry=registry)
     cs.load_recipes(
         [
             {

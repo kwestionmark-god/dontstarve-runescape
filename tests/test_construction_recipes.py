@@ -90,12 +90,14 @@ class TestConstructionRecipeParsing:
 
     def test_existing_recipes_still_parse(self) -> None:
         """Existing construction recipes (planks, etc.) should still parse."""
+        from crafting.recipe_registry import RecipeRegistry
         path = Path("skills/construction/data/recipes.json")
         with open(path) as f:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        registry = RecipeRegistry()
+        cs = CraftingSystem(recipe_registry=registry)
         count = cs.load_recipes(recipes_data)
         assert count > 0, "Should have at least one recipe"
 
@@ -110,12 +112,14 @@ class TestConstructionRecipeLoading:
 
     def test_all_construction_recipes_load(self) -> None:
         """All construction recipes should load into CraftingSystem."""
+        from crafting.recipe_registry import RecipeRegistry
         path = Path("skills/construction/data/recipes.json")
         with open(path) as f:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        registry = RecipeRegistry()
+        cs = CraftingSystem(recipe_registry=registry)
         count = cs.load_recipes(recipes_data)
         assert count == len(recipes_data), (
             f"Expected {len(recipes_data)} recipes, loaded {count}"
@@ -123,12 +127,14 @@ class TestConstructionRecipeLoading:
 
     def test_elder_wood_recipes_are_registered(self) -> None:
         """Both elder wood recipes should be in the crafting system."""
+        from crafting.recipe_registry import RecipeRegistry
         path = Path("skills/construction/data/recipes.json")
         with open(path) as f:
             data = json.load(f)
         recipes_data = data["recipes"]
 
-        cs = CraftingSystem()
+        registry = RecipeRegistry()
+        cs = CraftingSystem(recipe_registry=registry)
         cs.load_recipes(recipes_data)
 
         for recipe_id in EXPECTED_RECIPE_IDS:
