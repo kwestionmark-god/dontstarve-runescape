@@ -2,12 +2,11 @@
 camera.py — Orbital camera with separate yaw/pitch.
 
 Player-centered camera with:
-- yaw (horizontal orbit): Q/E or ←/→ arrows
+- yaw (horizontal orbit): ←/→ arrows
   Controls which compass direction the camera is viewing from (0=below player, π=above).
 - pitch (vertical tilt): ↑/↓ arrows
-  Tilts within a 30°–60° isometric range.
+  Tilts within a 5°–35° isometric range (config.CAMERA_PITCH_MIN to CAMERA_PITCH_MAX).
 - zoom: mouse wheel
-- pan: PAGEUP/PAGEDOWN (manual offset)
 
 The two axes are independent — yaw rotates the view around the player,
 pitch tilts the camera height, giving true 2.5D orbital control.
@@ -40,9 +39,9 @@ class Camera:
         - π   → looking from "above" (player's north)
         - 3π/2 → looking from "left" (player's west)
 
-    Pitch (vertical tilt, radians: 30°…60°):
-        - 30° → elevated isometric
-        - 60° → steep isometric
+    Pitch (vertical tilt, radians: 5°–35°):
+        - 5°  → elevated isometric (config.CAMERA_PITCH_MIN)
+        - 35° → steep isometric (config.CAMERA_PITCH_MAX)
 
     Both axes are independent and can be combined freely.
     """
@@ -89,7 +88,7 @@ class Camera:
         Update camera based on input state.
 
         Yaw (horizontal orbit): ←/→ arrows
-        Pitch (vertical tilt): ↑/↓ arrows
+        Pitch (vertical tilt): ↑/↓ arrows (clamped to 5°–35°)
         Zoom: mouse wheel
 
         Args:
