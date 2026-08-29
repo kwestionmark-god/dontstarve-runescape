@@ -9,27 +9,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from skills.building_tech import (
+    BUILDING_TECH_STATS,
+    BUILDING_TECH_NAMES,
+    get_building_tech_level,
+    get_building_tech_bonus,
+    get_all_building_tech_bonuses,
+)
+
 if TYPE_CHECKING:
     from typing import Dict
 
     from skills.skill_manager import SkillManager
-
-
-# Building tech stat names
-BUILDING_TECH_STATS = (
-    "common_building_tech",
-    "defensive_building_tech",
-    "offensive_building_tech",
-    "decorative_building_tech",
-)
-
-# Tech name mapping for display
-BUILDING_TECH_NAMES: Dict[str, str] = {
-    "common_building_tech": "Common Building",
-    "defensive_building_tech": "Defensive Building",
-    "offensive_building_tech": "Offensive Building",
-    "decorative_building_tech": "Decorative Building",
-}
 
 
 class CraftingSkill:
@@ -103,17 +94,21 @@ class CraftingSkill:
         """
         Return the allocated points for a building tech stat.
 
+        Delegates to skills.building_tech.
+
         Args:
             tech_type: One of the building tech stat names.
 
         Returns:
             Allocated points (0 if not found).
         """
-        return self.skill_manager.get_effective_stat("crafting", tech_type)
+        return get_building_tech_level(self.skill_manager, tech_type)
 
     def get_building_tech_bonus(self, tech_type: str) -> float:
         """
         Return the bonus multiplier for a building tech stat.
+
+        Delegates to skills.building_tech.
 
         Formula: 1.0 + points * 0.10
 
@@ -125,20 +120,18 @@ class CraftingSkill:
         Returns:
             Bonus multiplier (1.0–∞).
         """
-        points = self.get_building_tech_level(tech_type)
-        return 1.0 + points * 0.10
+        return get_building_tech_bonus(self.skill_manager, tech_type)
 
     def get_all_building_tech(self) -> Dict[str, float]:
         """
         Return all building tech bonuses.
 
+        Delegates to skills.building_tech.
+
         Returns:
             Dict of tech_name → bonus multiplier.
         """
-        return {
-            BUILDING_TECH_NAMES[k]: self.get_building_tech_bonus(k)
-            for k in BUILDING_TECH_STATS
-        }
+        return get_all_building_tech_bonuses(self.skill_manager)
 
     # ── Descriptor ───────────────────────────────────────────────────
 

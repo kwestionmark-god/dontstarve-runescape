@@ -420,11 +420,9 @@ class BuildingSystem:
                 structure._fire_timer = cooldown
                 continue
 
-            # Calculate damage: base + offensive_building_tech × multiplier
-            offensive_level = self.skill_manager.get_effective_stat(
-                "crafting", "offensive_building_tech"
-            )
+            from skills.building_tech import calculate_offensive_damage
 
+            # Calculate damage using shared formula
             if struct_id == "ballista":
                 base_damage = 5
                 multiplier = 2
@@ -432,7 +430,7 @@ class BuildingSystem:
                 base_damage = 10
                 multiplier = 3
 
-            damage = base_damage + offensive_level * multiplier
+            damage = calculate_offensive_damage(base_damage, multiplier, self.skill_manager)
 
             # Delegate damage handling to CombatSystem
             combat_system.offensive_structure_hit(structure, best_monster, damage)

@@ -7,7 +7,12 @@ Handles structure HP bonuses and placement permission checks.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
+
+from skills.building_tech import (
+    calculate_structure_hp_from_def,
+    get_material_return_rate,
+)
 
 if TYPE_CHECKING:
     from skills.skill_manager import SkillManager
@@ -27,12 +32,12 @@ class Construction:
 
     __slots__ = ("skill_manager",)
 
-    def __init__(self, skill_manager: SkillManager) -> None:
+    def __init__(self, skill_manager: "SkillManager") -> None:
         self.skill_manager: SkillManager = skill_manager
 
     # ── Placement Checks ────────────────────────────────────────────
 
-    def can_place_structure(self, struct_def: StructureDef, crafting_level: int) -> tuple[bool, str]:
+    def can_place_structure(self, struct_def: "StructureDef", crafting_level: int) -> tuple[bool, str]:
         """
         Check if the player can place a structure based on Construction stats.
 
@@ -43,13 +48,17 @@ class Construction:
         Returns:
             (is_allowed, reason_if_denied).
         """
-        # Check Construction sub-stat level
-        sub_stat = struct_def.construction_sub_stat
-        level = self.skill_manager.get_effective_stat("crafting", sub_stat)
+        # Check Construction sub-stat level. structures.json stores the SHORT
+        # category name ("common"/"defensive"/"offensive"/"decorative"), while
+        # the SkillManager tracks the LONG sub-stat keys
+        # ("common_building_tech", ...) — map the short name to the real key.
+        short_name = struct_def.construction_sub_stat
+        stat_key = f"{short_name}_building_tech"
+        level = self.skill_manager.get_effective_stat("crafting", stat_key)
 
         if level < struct_def.requires_structure_level:
             return False, (
-                f"Need {sub_stat.replace('_', ' ').title()} level "
+                f"Need {short_name.replace('_', ' ').title()} level "
                 f"{struct_def.requires_structure_level}."
             )
 
@@ -59,12 +68,11 @@ class Construction:
 
         return True, ""
 
-    def calculate_structure_hp(self, struct_def: StructureDef) -> int:
+    def calculate_structure_hp(self, struct_def: "StructureDef") -> int:
         """
         Calculate the HP of a structure with Construction stat bonuses.
 
-        Common structures: base_hp + common_level × 2
-        Defensive structures: base_hp + defensive_level × 5
+        Delegates to skills.building_tech for the shared formula.
 
         Args:
             struct_def: The structure blueprint.
@@ -72,35 +80,13 @@ class Construction:
         Returns:
             Calculated HP.
         """
-        base_hp = struct_def.hp
+        return calculate_structure_hp_from_def(struct_def, self.skill_manager)
 
-        sub_stat = struct_def.construction_sub_stat
-        if sub_stat == "defensive":
-            defensive_level = self.skill_manager.get_effective_stat(
-                "crafting", "defensive_building_tech"
-            )
-            base_hp += defensive_level * 5
-        elif sub_stat == "common":
-            common_level = self.skill_manager.get_effective_stat(
-                "crafting", "common_building_tech"
-            )
-            base_hp += common_level * 2
-        elif sub_stat == "offensive":
-            offensive_level = self.skill_manager.get_effective_stat(
-                "crafting", "offensive_building_tech"
-            )
-            base_hp += offensive_level * 3
-        elif sub_stat == "decorative":
-            decorative_level = self.skill_manager.get_effective_stat(
-                "crafting", "decorative_building_tech"
-            )
-            base_hp += decorative_level * 1
-
-        return base_hp
-
-    def get_material_return_rate(self, struct_def: StructureDef) -> float:
+    def get_material_return_rate(self, struct_def: "StructureDef") -> float:
         """
         Get the material return rate when picking up or destroying a structure.
+
+        Delegates to skills.building_tech for the shared formula.
 
         Portable structures: 100% return
         Fixed structures: 50% return (furnace, smelter, cooking station, garden, bench)
@@ -112,9 +98,7 @@ class Construction:
         Returns:
             Return rate as a fraction (0.0–1.0).
         """
-        if struct_def.structure_type == "portable":
-            return 1.0
-        elif struct_def.construction_sub_stat == "defensive":
-            return 0.3
-        else:
-            return 0.5
+        return get_material_return_rate(
+            struct_def.structure_type,
+            struct_def.construction_sub_stat,
+        )
