@@ -444,11 +444,8 @@ class BuildingSystem:
 
             # Attack cooldown per structure (ballista: 2s, trebuchet: 4s)
             cooldown = 2.0 if struct_id == "ballista" else 4.0
-            if not hasattr(structure, "_fire_timer"):
-                structure._fire_timer = cooldown  # Fire immediately on first tick
-
-            structure._fire_timer -= dt
-            if structure._fire_timer > 0:
+            structure.fire_timer -= dt
+            if structure.fire_timer > 0:
                 continue
 
             # Find nearest monster to this offensive structure
@@ -486,7 +483,7 @@ class BuildingSystem:
             # Delegate damage handling to CombatSystem
             combat_system.offensive_structure_hit(structure, best_monster, damage)
 
-            structure._fire_timer = cooldown
+            structure.fire_timer = cooldown
 
         # Update item drops: tick lifetime and remove expired
         self.item_drops = [drop for drop in self.item_drops if not drop.tick(dt)]

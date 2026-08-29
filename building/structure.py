@@ -120,6 +120,7 @@ class Structure:
         is_active: Whether the structure is operational.
         fuel_items: Fuel for campfires/furnaces — [(item_id, qty)].
         is_portable: True if the structure can be picked up.
+        fire_timer: Timer for offensive structure firing (ballista/trebuchet).
     """
 
     structure_def: StructureDef
@@ -131,6 +132,7 @@ class Structure:
     fuel_items: Optional[List[Tuple[str, int]]] = None
     is_portable: bool = False
     assigned_npc_id: Optional[str] = None
+    fire_timer: float = 0.0
 
     def take_damage(self, damage: int) -> bool:
         """

@@ -187,7 +187,7 @@ def _ballista_system_with_in_range_monster():
         is_active=True,
     )
     # Arm it so the fire path runs on the very first tick (reaches math.sqrt).
-    ballista._fire_timer = 0.0
+    ballista.fire_timer = 0.0
     building_system.structures.append(ballista)
 
     class _Monster:
