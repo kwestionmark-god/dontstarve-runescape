@@ -14,6 +14,11 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from config import TILE_SIZE
 
+
+def _tile_coords(world_x: float, world_y: float) -> Tuple[int, int]:
+    """Convert world pixel coordinates to tile coordinates."""
+    return (int(world_x // TILE_SIZE), int(world_y // TILE_SIZE))
+
 if TYPE_CHECKING:
     from skills.skill_manager import SkillManager
     from inventory.inventory import Inventory
@@ -122,21 +127,16 @@ class BuildingSystem:
             return BuildResult(success=False, message="Too far from player.")
 
         # 2. Check for existing structure at position
+        target_tile = _tile_coords(world_x, world_y)
         for existing in self.structures:
-            if (
-                math.isclose(existing.world_x, world_x, abs_tol=TILE_SIZE)
-                and math.isclose(existing.world_y, world_y, abs_tol=TILE_SIZE)
-            ):
+            if _tile_coords(existing.world_x, existing.world_y) == target_tile:
                 return BuildResult(success=False, message="Tile already occupied.")
 
         # 2b. Check if player or NPCs occupy the target tile
         if self._game_ref is not None:
             player = getattr(self._game_ref, "player", None)
             if player is not None:
-                if (
-                    math.isclose(player.world_x, world_x, abs_tol=TILE_SIZE)
-                    and math.isclose(player.world_y, world_y, abs_tol=TILE_SIZE)
-                ):
+                if _tile_coords(player.world_x, player.world_y) == target_tile:
                     return BuildResult(success=False, message="Player occupies this tile.")
             # Check NPC positions
             npc_system = getattr(self._game_ref, "npc_system", None)
@@ -147,10 +147,7 @@ class BuildingSystem:
                     npc_x = getattr(npc, "world_x", None)
                     npc_y = getattr(npc, "world_y", None)
                     if npc_x is not None and npc_y is not None:
-                        if (
-                            math.isclose(npc_x, world_x, abs_tol=TILE_SIZE)
-                            and math.isclose(npc_y, world_y, abs_tol=TILE_SIZE)
-                        ):
+                        if _tile_coords(npc_x, npc_y) == target_tile:
                             return BuildResult(
                                 success=False,
                                 message=f"{npc.name} occupies this tile.",
@@ -361,12 +358,10 @@ class BuildingSystem:
         self, world_x: float, world_y: float
     ) -> List[Structure]:
         """Return structures on a specific tile (pixel coords)."""
+        target_tile = _tile_coords(world_x, world_y)
         result = []
         for s in self.structures:
-            if (
-                math.isclose(s.world_x, world_x, abs_tol=TILE_SIZE)
-                and math.isclose(s.world_y, world_y, abs_tol=TILE_SIZE)
-            ):
+            if _tile_coords(s.world_x, s.world_y) == target_tile:
                 result.append(s)
         return result
 
