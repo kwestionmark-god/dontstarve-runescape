@@ -445,22 +445,22 @@ class BuildingSystem:
 
             # Find nearest monster to this offensive structure
             best_monster = None
-            best_dist = float("inf")
+            best_dist_sq = float("inf")
             attack_range = 200.0 if struct_id == "ballista" else 300.0  # px
+            attack_range_sq = attack_range * attack_range
 
             for monster in combat_system.monsters:
                 if not monster.is_alive():
                     continue
-                dist = math.sqrt(
-                    (monster.world_x - structure.world_x) ** 2 +
-                    (monster.world_y - structure.world_y) ** 2
-                )
-                if dist <= attack_range and dist < best_dist:
-                    best_dist = dist
+                dx = monster.world_x - structure.world_x
+                dy = monster.world_y - structure.world_y
+                dist_sq = dx * dx + dy * dy
+                if dist_sq <= attack_range_sq and dist_sq < best_dist_sq:
+                    best_dist_sq = dist_sq
                     best_monster = monster
 
             if best_monster is None:
-                structure._fire_timer = cooldown
+                structure.fire_timer = cooldown
                 continue
 
             from skills.building_tech import calculate_offensive_damage
