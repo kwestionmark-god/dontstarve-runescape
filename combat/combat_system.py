@@ -224,9 +224,8 @@ class CombatSystem:
         Returns:
             Attack cooldown in seconds.
         """
-        base_cooldown = COMBAT_BASE_ATTACK_COOLDOWN  # Default unarmed
+        base_cooldown = COMBAT_BASE_ATTACK_COOLDOWN  # All weapons share base 1.5s
         if self.player.gear and self.player.gear.weapon:
-            base_cooldown = COMBAT_BASE_ATTACK_COOLDOWN  # All weapons share base 1.5s
             # Weapon speed_bonus is applied as a flat modifier
             base_cooldown += self.player.gear.weapon.speed_bonus
 
