@@ -288,8 +288,8 @@ class Game:
             sort_y = self.player.world_y + (tile.elevation if tile else 0) * 3
             drawables.append((
                 sort_y,
-                lambda s=screen, p=self.player, c=self.camera, e=(tile.elevation if tile else 0):
-                    self._sprite_renderer.render_player(s, p, c, e),
+                lambda s=screen, p=self.player, c=self.camera, e=(tile.elevation if tile else 0), dt=self.dt:
+                    self._sprite_renderer.render_player(s, p, c, e, dt),
             ))
 
         if self._sprite_renderer is not None and self.combat_system is not None and self.camera is not None:
