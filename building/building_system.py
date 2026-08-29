@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from skills.skill_manager import SkillManager
     from inventory.inventory import Inventory
 
+from building.item_drop import ItemDrop
 from building.structure import Structure, StructureDef
 from skills.construction.construction import Construction
 
@@ -57,6 +58,7 @@ class BuildingSystem:
         "inventory",
         "structure_defs",
         "npc_assignments",
+        "item_drops",
         "_game_ref",
     )
 
@@ -73,6 +75,7 @@ class BuildingSystem:
         self.structures: List[Structure] = []
         self.inventory: Inventory = inventory
         self.structure_defs: Dict[str, Dict[str, StructureDef]] = structure_defs
+        self.item_drops: List[ItemDrop] = []
 
         # NPC-structure assignments: structure_id → npc_id
         self.npc_assignments: Dict[str, str] = {}
@@ -332,11 +335,19 @@ class BuildingSystem:
         destroyed = best.take_damage(monster_attack)
 
         if destroyed:
-            # Drop partial materials
+            # Drop partial materials on the ground as ItemDrop entities
             return_rate = self.construction.get_material_return_rate(best.structure_def)
             for item_id, qty in best.structure_def.materials:
                 returned_qty = max(1, int(qty * return_rate))
-                self.inventory.add_item(item_id, returned_qty)
+                drop = ItemDrop(
+                    item_id=item_id,
+                    quantity=returned_qty,
+                    world_x=best.world_x,
+                    world_y=best.world_y,
+                    lifetime=300.0,  # 5 minutes
+                    created_at=0.0,
+                )
+                self.item_drops.append(drop)
             # Clean up NPC assignment when structure is destroyed by monster
             self._cleanup_npc_assignment_on_removal(best)
             self.structures.remove(best)
@@ -362,6 +373,44 @@ class BuildingSystem:
     def get_all_structures(self) -> List[Structure]:
         """Return all structures."""
         return list(self.structures)
+
+    def get_item_drops_near(
+        self, player_x: float, player_y: float, radius: float = 64.0
+    ) -> List[ItemDrop]:
+        """
+        Return item drops within pickup range of the player.
+
+        Args:
+            player_x: Player's X position.
+            player_y: Player's Y position.
+            radius: Pickup radius in pixels (default 1 tile).
+
+        Returns:
+            List of ItemDrop entities within range.
+        """
+        result = []
+        for drop in self.item_drops:
+            dx = drop.world_x - player_x
+            dy = drop.world_y - player_y
+            if dx * dx + dy * dy <= radius * radius:
+                result.append(drop)
+        return result
+
+    def pickup_item_drop(self, drop: ItemDrop) -> bool:
+        """
+        Pick up an item drop, adding it to inventory.
+
+        Args:
+            drop: The ItemDrop to pick up.
+
+        Returns:
+            True if picked up successfully, False if inventory full.
+        """
+        if not self.inventory.add_item(drop.item_id, drop.quantity):
+            return False
+        if drop in self.item_drops:
+            self.item_drops.remove(drop)
+        return True
 
     def tick(self, dt: float, combat_system=None) -> None:
         """
@@ -438,6 +487,9 @@ class BuildingSystem:
             combat_system.offensive_structure_hit(structure, best_monster, damage)
 
             structure._fire_timer = cooldown
+
+        # Update item drops: tick lifetime and remove expired
+        self.item_drops = [drop for drop in self.item_drops if not drop.tick(dt)]
 
     # ── NPC-Structure Assignment ────────────────────────────────────
 
