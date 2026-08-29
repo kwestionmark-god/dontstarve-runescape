@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from config import TILE_SIZE
 
@@ -24,8 +24,12 @@ if TYPE_CHECKING:
     from inventory.inventory import Inventory
 
 from building.item_drop import ItemDrop
-from building.structure import Structure, StructureDef
+from building.structure import Structure, StructureDef, StructureDefRegistry
 from skills.construction.construction import Construction
+
+# Type alias for backward compatibility
+StructureDefsDict = Dict[str, Dict[str, StructureDef]]
+StructureDefsSource = Union[StructureDefsDict, StructureDefRegistry]
 
 
 @dataclass
@@ -72,19 +76,25 @@ class BuildingSystem:
         skill_manager: SkillManager,
         inventory: Inventory,
         construction: Construction,
-        structure_defs: Dict[str, Dict[str, StructureDef]],
+        structure_defs: StructureDefsSource,
         game_ref: object | None = None,
     ) -> None:
         self.skill_manager: SkillManager = skill_manager
         self.construction: Construction = construction
         self.structures: List[Structure] = []
         self.inventory: Inventory = inventory
-        self.structure_defs: Dict[str, Dict[str, StructureDef]] = structure_defs
+        self.structure_defs: StructureDefsSource = structure_defs
         self.item_drops: List[ItemDrop] = []
 
         # NPC-structure assignments: structure_id → npc_id
         self.npc_assignments: Dict[str, str] = {}
         self._game_ref: object | None = game_ref
+
+    def _get_structure_def(self, category: str, structure_id: str) -> Optional[StructureDef]:
+        """Get a structure definition by category and ID, works with both dict and registry."""
+        if isinstance(self.structure_defs, StructureDefRegistry):
+            return self.structure_defs.get_structure(category, structure_id)
+        return self.structure_defs.get(category, {}).get(structure_id)
 
     # ── Placement ───────────────────────────────────────────────────
 

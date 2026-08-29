@@ -231,16 +231,17 @@ class Bootstrap:
     def _build_construction_and_building(self) -> None:
         """Initialize construction and building system."""
         from skills.construction.construction import Construction
-        from building.structure import StructureDef
+        from building.structure import StructureDefRegistry
         from building.building_system import BuildingSystem
 
         self.game.construction = Construction(self.game.skill_manager)
-        structure_defs = StructureDef.load_all()
+        structure_registry = StructureDefRegistry()
+        structure_registry.load_all()
         self.game.building_system = BuildingSystem(
             self.game.skill_manager,
             self.game.inventory,
             self.game.construction,
-            structure_defs,
+            structure_registry,
             game_ref=self.game,
         )
 
