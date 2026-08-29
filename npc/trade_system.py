@@ -890,7 +890,7 @@ class TradeSystem:
         Extract biome from NPC ID.
 
         NPC IDs follow patterns like 'merchant_forest_1', 'merchant_plains_1'.
-        Extracts biome by splitting on '_' and taking the second part.
+        Extracts biome using regex pattern matching.
 
         Args:
             npc_id: The NPC's ID string.
@@ -898,9 +898,10 @@ class TradeSystem:
         Returns:
             Biome string (e.g., "forest", "plains"), or empty string.
         """
-        parts = npc_id.split("_")
-        if len(parts) >= 2:
-            return parts[1]
+        import re
+        match = re.match(r'merchant_(\w+)_\d+', npc_id)
+        if match:
+            return match.group(1)
         return ""
 
     def _get_stock_for_merchant(
