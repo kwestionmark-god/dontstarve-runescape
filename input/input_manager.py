@@ -130,9 +130,6 @@ class InputManager:
     def _on_key_up(self, key: int) -> None:
         """Handle a key release — re-evaluate based on held keys."""
         self._held_keys.discard(key)
-        # Clear hotbar one-shot on any key release
-        if pygame.K_1 <= key <= pygame.K_8:
-            self.input_state.hotbar_slot = 0
         # P3-S21: Reset continuous flags when Enter/Space released
         if key in (pygame.K_RETURN, pygame.K_KP_ENTER):
             self.input_state.trade_accept = False
