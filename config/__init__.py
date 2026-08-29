@@ -1,0 +1,56 @@
+"""
+config package — Global constants and tuning parameters.
+
+All magic numbers are defined here. No subsystem should hardcode
+values that appear in this table; instead, import from config.
+"""
+
+from config.constants import (
+    # Window & Rendering
+    WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, TARGET_FPS,
+    # Tile & Terrain
+    TILE_SIZE, TILE_SUBDIVISIONS, MAP_WIDTH, MAP_HEIGHT,
+    ELEVATION_LEVELS, Z_SCALE,
+    # Survival
+    HUNGER_DRAIN_INTERVAL, HUNGER_DRAIN_RATE, STARVATION_HP_DRAIN_RATE,
+    HP_BASE_MAX, MAX_STAMINA_BASE,
+    # Player
+    PLAYER_MOVEMENT_SPEED,
+    # XP & Progression
+    XP_SCALE_FACTOR, STAT_POINTS_PER_LEVEL, WILDCARD_INTERVAL,
+    # Camera
+    CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX, CAMERA_ZOOM_DEFAULT,
+    CAMERA_ORBIT_SPEED, CAMERA_TILT_SPEED,
+    CAMERA_PITCH_MIN, CAMERA_PITCH_MAX,
+    # Terrain Shading
+    SHADING_STRENGTH, LIGHT_DIRECTION,
+    # Fog & LOD
+    FOG_NEAR_DISTANCE, FOG_FAR_DISTANCE, FOG_CULL_DISTANCE, FOG_COLOR,
+    # State Machine
+    LOADING_SCREEN_DURATION, FLAVOR_TEXT_COUNT, FLAVOR_TEXTS,
+    # Combat
+    PLAYER_HP_PER_COMBAT_LEVEL, COMBAT_BASE_ATTACK_COOLDOWN,
+    COMBAT_SPEED_STAT_COOLDOWN_REDUCTION, COMBAT_DAMAGE_NUMBER_RISE_RATE,
+    DEATH_XP_PENALTY_FRACTION, DEATH_RESTORE_HP_FRACTION,
+    DEATH_RESTORE_HUNGER_FRACTION, DEATH_CLEAR_MONSTERS_RADIUS,
+    # Firemaking
+    FIRE_INTERACTION_RADIUS_TILES, CAMPFIRE_SEARCH_RADIUS_TILES,
+    # Monster Spawning
+    INITIAL_MONSTER_SPAWN_RADIUS_TILES,
+    # Save System
+    SAVE_SLOT_COUNT, AUTOSAVE_INTERVAL,
+    # Data
+    DATA_DIR, ITEMS_FILE,
+    # Weather
+    WEATHER_CHANGE_INTERVAL, WEATHER_WEIGHTS,
+)
+
+# Keybindings
+from config.keybindings import (
+    KEYBIND_ACTIONS,
+    KEYBIND_PANEL_ACTIONS,
+    KEYBIND_DISPLAY_NAMES,
+    get_key_for_action,
+    get_actions_for_panel,
+    get_display_name,
+)

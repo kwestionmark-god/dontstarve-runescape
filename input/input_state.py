@@ -37,6 +37,7 @@ class InputState:
         "quest_accept", "quest_accept_pressed",
         "faction_negotiate", "faction_negotiate_pressed",
         "hotbar_slot",  # 1-8 one-shot flag for hotbar key presses
+        "attack",  # One-shot: set by J key press
     )
 
     def __init__(self) -> None:
