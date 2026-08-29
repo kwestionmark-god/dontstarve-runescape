@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from world.resource_node import ResourceNode
     from skills.skill_manager import SkillManager
     from inventory.inventory import Inventory
+    from skills.woodcutting.woodcutting import WoodcuttingSkill
+    from skills.mining.mining import MiningSkill
+    from skills.foraging.foraging import ForagingSkill
 
 
 class ActionSystem:
@@ -35,6 +38,9 @@ class ActionSystem:
         "survival",
         "_season_system",
         "weather_system",
+        "woodcutting_skill",
+        "mining_skill",
+        "foraging_skill",
     )
 
     def __init__(self) -> None:
@@ -45,6 +51,9 @@ class ActionSystem:
         self.survival: object | None = None
         self._season_system: object | None = None
         self.weather_system: object | None = None
+        self.woodcutting_skill: "WoodcuttingSkill | None" = None
+        self.mining_skill: "MiningSkill | None" = None
+        self.foraging_skill: "ForagingSkill | None" = None
 
     def start_action(
         self,
@@ -95,15 +104,23 @@ class ActionSystem:
             action.xp_reward = resource.xp_reward
             action.yield_item = resource.yield_item
             action.yield_quantity = resource.yield_quantity
-            action.stamina_cost = 3.0
             action.required_tool = resource.requires_tool
-            # Store positive success_rate; subtracted from threshold in roll.
-            action.success_rate_bonus = skill_manager.get_effective_stat(
-                "woodcutting", "success_rate"
-            ) * 1.0
-            action.extra_resources_bonus = skill_manager.get_effective_stat(
-                "woodcutting", "harvest_boost"
-            )
+            
+            if self.woodcutting_skill is not None:
+                action.stamina_cost = self.woodcutting_skill.get_effective_stamina_cost(3.0)
+                action.success_rate_bonus = self.woodcutting_skill.get_success_rate_bonus()
+                action.extra_resources_bonus = self.woodcutting_skill.skill_manager.get_effective_stat(
+                    "woodcutting", "harvest_boost"
+                )
+            else:
+                # Fallback to direct skill_manager access
+                action.stamina_cost = 3.0
+                action.success_rate_bonus = skill_manager.get_effective_stat(
+                    "woodcutting", "success_rate"
+                ) * 1.0
+                action.extra_resources_bonus = skill_manager.get_effective_stat(
+                    "woodcutting", "harvest_boost"
+                )
 
         elif action_type == ActionType.MINING and resource is not None:
             action.duration = 2.0
@@ -111,14 +128,22 @@ class ActionSystem:
             action.xp_reward = resource.xp_reward
             action.yield_item = resource.yield_item
             action.yield_quantity = resource.yield_quantity
-            action.stamina_cost = 3.0
             action.required_tool = resource.requires_tool
-            action.success_rate_bonus = skill_manager.get_effective_stat(
-                "mining", "success_rate"
-            ) * 1.0
-            action.extra_resources_bonus = skill_manager.get_effective_stat(
-                "mining", "extra_resources"
-            )
+            
+            if self.mining_skill is not None:
+                action.stamina_cost = self.mining_skill.get_effective_stamina_cost(3.0)
+                action.success_rate_bonus = self.mining_skill.get_success_rate_bonus()
+                action.extra_resources_bonus = self.mining_skill.skill_manager.get_effective_stat(
+                    "mining", "extra_resources"
+                )
+            else:
+                action.stamina_cost = 3.0
+                action.success_rate_bonus = skill_manager.get_effective_stat(
+                    "mining", "success_rate"
+                ) * 1.0
+                action.extra_resources_bonus = skill_manager.get_effective_stat(
+                    "mining", "extra_resources"
+                )
 
         elif action_type == ActionType.FORAGING and resource is not None:
             action.duration = 1.0  # Faster than woodcutting/mining
@@ -126,14 +151,22 @@ class ActionSystem:
             action.xp_reward = resource.xp_reward
             action.yield_item = resource.yield_item
             action.yield_quantity = resource.yield_quantity
-            action.stamina_cost = 2.0
             action.required_tool = resource.requires_tool  # Should be None/empty for foraging
-            action.success_rate_bonus = skill_manager.get_effective_stat(
-                "foraging", "success_rate"
-            ) * 1.0
-            action.extra_resources_bonus = skill_manager.get_effective_stat(
-                "foraging", "harvest_boost"
-            )
+            
+            if self.foraging_skill is not None:
+                action.stamina_cost = 2.0 * (1.0 - self.foraging_skill.get_stamina_reduction())
+                action.success_rate_bonus = self.foraging_skill.get_success_rate() * 100.0  # Convert to percentage
+                action.extra_resources_bonus = self.foraging_skill.skill_manager.get_effective_stat(
+                    "foraging", "harvest_boost"
+                )
+            else:
+                action.stamina_cost = 2.0
+                action.success_rate_bonus = skill_manager.get_effective_stat(
+                    "foraging", "success_rate"
+                ) * 1.0
+                action.extra_resources_bonus = skill_manager.get_effective_stat(
+                    "foraging", "harvest_boost"
+                )
 
         elif action_type == ActionType.COOKING and recipe_id is not None:
             action.duration = 3.0
@@ -302,8 +335,16 @@ class ActionSystem:
             if not resource.harvest():
                 return ActionResult(success=False, message="The resource is depleted.")
 
-            # Determine yield
-            quantity = action.yield_quantity
+            # Determine yield using skill classes
+            if action.action_type == ActionType.WOODCUTTING and self.woodcutting_skill is not None:
+                quantity = self.woodcutting_skill.calculate_yield(action.yield_quantity, action.extra_resources_bonus)
+            elif action.action_type == ActionType.MINING and self.mining_skill is not None:
+                quantity = self.mining_skill.calculate_yield(action.yield_quantity, action.extra_resources_bonus)
+            elif action.action_type == ActionType.FORAGING and self.foraging_skill is not None:
+                quantity = self.foraging_skill.calculate_harvest(action.yield_quantity)
+            else:
+                # Fallback to old logic
+                quantity = action.yield_quantity
 
             # Apply seasonal resource multiplier to yield
             if self._season_system is not None and resource is not None:
@@ -315,11 +356,6 @@ class ActionSystem:
                 effects = self.weather_system.get_effects()
                 outdoor_mod = effects.get("outdoor_crafting", 1.0)
                 quantity = max(1, int(quantity * outdoor_mod))
-
-            # Extra resources roll: extra_resources_bonus gives +1 chance per point
-            for _ in range(action.extra_resources_bonus):
-                if random.random() * 100 < 50.0:  # 50% chance per bonus point
-                    quantity += 1
 
             # Return structured result
             return ActionResult(

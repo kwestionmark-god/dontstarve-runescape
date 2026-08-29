@@ -72,6 +72,7 @@ class Game:
         "_title_selection_index", "_save_slots", "_flavor_text",
         "_build_cursor", "_input_router", "_npc_flows", "_bootstrap",
         "_character_select_panel", "_pending_character_def",
+        "woodcutting", "mining", "foraging",
     )
 
     def __init__(self, seed: int = 42) -> None:

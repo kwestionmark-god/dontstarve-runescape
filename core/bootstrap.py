@@ -213,6 +213,9 @@ class Bootstrap:
         from skills.firemaking.firemaking import FiremakingSkill
         from skills.intelligence.intelligence import IntelligenceSkill
         from skills.cooking.cooking import CookingSkill
+        from skills.woodcutting.woodcutting import WoodcuttingSkill
+        from skills.mining.mining import MiningSkill
+        from skills.foraging.foraging import ForagingSkill
         from ui.gear_panel import GearPanel
 
         self.game.metallurgy = MetallurgySkill(
@@ -221,6 +224,15 @@ class Bootstrap:
         self.game.firemaking = FiremakingSkill(self.game.skill_manager)
         self.game.intelligence = IntelligenceSkill(self.game.skill_manager)
         self.game.cooking = CookingSkill(self.game.skill_manager)
+        
+        # Wire gathering skills into action system
+        self.game.woodcutting = WoodcuttingSkill(self.game.skill_manager)
+        self.game.mining = MiningSkill(self.game.skill_manager)
+        self.game.foraging = ForagingSkill(self.game.skill_manager)
+        if self.game.player.action_system is not None:
+            self.game.player.action_system.woodcutting_skill = self.game.woodcutting
+            self.game.player.action_system.mining_skill = self.game.mining
+            self.game.player.action_system.foraging_skill = self.game.foraging
 
         self.game._gear_panel = GearPanel()
         self.game._gear_panel.visible = False
