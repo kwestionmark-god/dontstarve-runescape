@@ -178,7 +178,7 @@ class CombatSystem:
         Calculate damage dealt by attacker to defender.
 
         Damage = max(1, floor(
-            attacker_attack * weapon_damage * attack_multiplier
+            (base_attack + weapon_damage) * attack_multiplier
             * (1 - defender_defence_reduction)
         ))
 
@@ -201,7 +201,7 @@ class CombatSystem:
         monster_defence = defender.defence
         defence_reduction = monster_defence * 0.01
 
-        raw_damage = base_attack * weapon_damage * attack_mult
+        raw_damage = (base_attack + weapon_damage) * attack_mult
         damage = max(1, int(raw_damage * (1 - defence_reduction)))
 
         return damage

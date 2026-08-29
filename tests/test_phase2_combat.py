@@ -113,25 +113,25 @@ class TestCombatSystem(unittest.TestCase):
             return CombatSystem(player, survival=None)
 
         # iron_sword: damage=5, attack_bonus=1.
-        # base_attack = 20 (+1) = 21, mult = 1.105, raw = 21 * 5 * 1.105 = 116.025.
-        # => 116 (110 before the fix).
+        # base_attack = 20 (+1) = 21, mult = 1.105, raw = (21 + 5) * 1.105 = 28.73.
+        # => 28
         iron_cs = make_cs(GearItem.load_all()["iron_sword"])
-        self.assertEqual(iron_cs.calculate_damage(iron_cs.player, monster), 116)
+        self.assertEqual(iron_cs.calculate_damage(iron_cs.player, monster), 28)
 
         # Isolation: a bonus-0 weapon of the SAME damage (5) yields exactly the
-        # no-bonus value 110, so the +1 delta is attributable only to the bonus.
+        # no-bonus value 26 * 1.10 = 28.6 -> 28, so the +1 delta is attributable only to the bonus.
         bonus0 = GearItem.from_dict({
             "item_id": "dmg5_bonus0", "name": "Dmg5 Bonus0",
             "gear_type": "weapon", "damage": 5,
             "attack_bonus": 0, "defence_bonus": 0, "speed_bonus": 0.0,
         })
         bonus0_cs = make_cs(bonus0)
-        self.assertEqual(bonus0_cs.calculate_damage(bonus0_cs.player, monster), 110)
+        # base_attack = 20, weapon_damage = 5, mult = 1.10 -> (20 + 5) * 1.10 = 27.5 -> 27
+        self.assertEqual(bonus0_cs.calculate_damage(bonus0_cs.player, monster), 27)
 
-        # Bonus-0 real weapon is unaffected: wooden_sword (dmg 2, bonus 0) =>
-        # 20 * 2 * 1.10 = 44, identical before and after the fix.
+        # wooden_sword (dmg 2, bonus 0) => (20 + 2) * 1.10 = 24.2 -> 24
         wooden_cs = make_cs(GearItem.load_all()["wooden_sword"])
-        self.assertEqual(wooden_cs.calculate_damage(wooden_cs.player, monster), 44)
+        self.assertEqual(wooden_cs.calculate_damage(wooden_cs.player, monster), 24)
 
     def test_ranged_special_reset_restores_attack_range(self):
         from combat.monster import Monster
