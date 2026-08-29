@@ -726,12 +726,7 @@ class CombatSystem:
                             )
 
                 # Fire deterrence: monsters flee from fires
-                if (
-                    self.firemaking is not None
-                    and not monster.is_alive()
-                ):
-                    pass  # Dead monsters don't flee
-                elif self.firemaking is not None:
+                if self.firemaking is not None:
                     fires = self.firemaking.get_fires_in_radius(
                         monster.world_x, monster.world_y, 200.0,
                     )
