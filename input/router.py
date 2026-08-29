@@ -4,6 +4,7 @@ import pygame
 from config import TILE_SIZE
 from core.state import GameState, PANEL_STATES
 from typing import TYPE_CHECKING
+from data import load_json_list
 
 if TYPE_CHECKING:
     from core.game import Game
@@ -25,6 +26,16 @@ class InputRouter:
         # B15: reuse the shared, single-owned Game._npc_flows (router and
         # panel_dispatcher no longer construct their own NPCFlows).
         self._npc_flows = getattr(game, "_npc_flows", None)
+        # Cache items.json and food registry for hotbar handling
+        self._items_cache = load_json_list("items.json", "items")
+        self._food_registry = getattr(game, "food_registry", None)
+
+    def _ensure_caches(self, game: "Game") -> None:
+        """Lazy-initialize caches if not already set (for tests/mocks)."""
+        if not hasattr(self, "_items_cache") or self._items_cache is None:
+            self._items_cache = load_json_list("items.json", "items")
+        if not hasattr(self, "_food_registry") or self._food_registry is None:
+            self._food_registry = getattr(game, "food_registry", None)
 
     def handle(self, event: pygame.event.Event) -> None:
         game = self._game
@@ -206,7 +217,8 @@ class InputRouter:
 
     def _handle_hotbar(self, game: "Game", slot: int) -> None:
         """Handle a hotbar slot key press (1-8)."""
-        if game.inventory is None or game.survival is None or game.food_registry is None:
+        self._ensure_caches(game)
+        if game.inventory is None or game.survival is None:
             return
         if slot < 1 or slot > 8:
             return
@@ -229,8 +241,8 @@ class InputRouter:
 
         item_id = inv_slot.item_id
 
-        # Food → eat it
-        food_item = game.food_registry.get(item_id)
+        # Food → eat it (use cached food registry)
+        food_item = self._food_registry.get(item_id) if self._food_registry else None
         if food_item is not None:
             result = game.survival.eat(food_item)
             if game.player is not None and game.player.action_system is not None:
@@ -239,10 +251,8 @@ class InputRouter:
             game.inventory.remove_item(item_id, 1)
             return
 
-        # Equippable tool → equip it
-        from data import load_json_list
-        items_data = load_json_list("items.json", "items")
-        for item_def in items_data:
+        # Equippable tool → equip it (use cached items.json)
+        for item_def in self._items_cache:
             if item_def.get("id") == item_id and item_def.get("is_equippable", False):
                 if game.inventory.equip_item(item_id):
                     if game.player is not None and game.player.action_system is not None:
@@ -251,10 +261,10 @@ class InputRouter:
                         )
                 return
 
-        # Everything else → generic use notification
+        # Everything else → generic use notification (use cached items.json)
         if game.player is not None and game.player.action_system is not None:
             item_name = next(
-                (d.get("name", item_id) for d in items_data if d.get("id") == item_id),
+                (d.get("name", item_id) for d in self._items_cache if d.get("id") == item_id),
                 item_id,
             )
             game.player.action_system.add_notification(f"Used {item_name}.", (200, 200, 220))
