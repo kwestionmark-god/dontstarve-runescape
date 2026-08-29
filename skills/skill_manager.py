@@ -386,6 +386,39 @@ class SkillManager:
         skill.sub_stats[sub_stat] = skill.sub_stats.get(sub_stat, 0) + points
         return True
 
+    def refund_stat(
+        self,
+        skill_id: str,
+        sub_stat: str,
+        points: int = 1,
+    ) -> bool:
+        """
+        Refund stat points from a sub-stat.
+
+        Args:
+            skill_id: The skill to refund points from.
+            sub_stat: The sub-stat name.
+            points: Number of points to refund (default 1).
+
+        Returns:
+            True if refund succeeded, False if sub-stat has insufficient points.
+        """
+        if points < 1:
+            return False
+
+        if skill_id not in self.skills:
+            return False
+
+        skill = self.skills[skill_id]
+
+        current = skill.sub_stats.get(sub_stat, 0)
+        if current < points:
+            return False
+
+        skill.sub_stats[sub_stat] = current - points
+        skill.stat_points += points
+        return True
+
     # ── State Snapshots ─────────────────────────────────────────────
 
     def get_snapshot(self) -> Dict[str, object]:

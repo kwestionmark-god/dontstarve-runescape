@@ -168,11 +168,7 @@ class PanelDispatcher:
                             game._skill_panel._use_wildcard)
             game.skill_manager.allocate_stat(skill_id, sub_stat, points, wildcard=use_wildcard)
         elif points < 0:
-            if skill_id in game.skill_manager.skills:
-                skill = game.skill_manager.skills[skill_id]
-                if sub_stat in skill.sub_stats and skill.sub_stats[sub_stat] > 0:
-                    skill.sub_stats[sub_stat] -= 1
-                    skill.stat_points += 1
+            game.skill_manager.refund_stat(skill_id, sub_stat, -points)
 
     def _handle_craft_click(self, btn_type: str, item_id: str) -> None:
         game = self._game
