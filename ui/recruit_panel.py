@@ -101,11 +101,17 @@ class RecruitPanel(PanelWindow):
         if self._player_ref is None:
             self._set_status("Player not available.", self.ERROR_COLOR)
             return False
+        # SkillManager lives on the Player (player.skill_manager) — NOT on the
+        # action system. The action system only holds survival/stamina.
+        skill_manager = getattr(self._player_ref, "skill_manager", None)
+        if skill_manager is None:
+            self._set_status("Skill manager not available.", self.ERROR_COLOR)
+            return False
         from skills.intelligence.intelligence import IntelligenceSkill
-        intelligence = IntelligenceSkill(self._player_ref.action_system.skill_manager)
+        intelligence = IntelligenceSkill(skill_manager)
         eligibility = intelligence.is_recruitment_eligible(npc, self._player_ref)
-        commerce = self._player_ref.action_system.skill_manager.get_effective_stat("intelligence", "commerce")
-        persuasion = self._player_ref.action_system.skill_manager.get_effective_stat("intelligence", "persuasion")
+        commerce = skill_manager.get_effective_stat("intelligence", "commerce")
+        persuasion = skill_manager.get_effective_stat("intelligence", "persuasion")
         self._recruit_info = RecruitInfo(
             npc=npc,
             eligibility=eligibility,

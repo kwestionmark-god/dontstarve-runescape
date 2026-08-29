@@ -388,23 +388,14 @@ class RecruitNPC(NPC):
         Returns:
             EligibilityResult indicating eligibility status.
         """
-        from skills.intelligence.intelligence import IntelligenceSkill
-        if not hasattr(player, "action_system") or player.action_system is None:
-            from skills.intelligence.intelligence import EligibilityResult
-            return EligibilityResult(
-                eligible=False, commerce_ok=False, persuasion_ok=False,
-                slot_available=False, composite_ok=False,
-                message="No action system available."
-            )
-        action_system = player.action_system
-        if not hasattr(action_system, "skill_manager") or action_system.skill_manager is None:
-            from skills.intelligence.intelligence import EligibilityResult
+        from skills.intelligence.intelligence import IntelligenceSkill, EligibilityResult
+        skill_manager = getattr(player, "skill_manager", None)
+        if skill_manager is None:
             return EligibilityResult(
                 eligible=False, commerce_ok=False, persuasion_ok=False,
                 slot_available=False, composite_ok=False,
                 message="Skill manager not available."
             )
-        skill_manager = action_system.skill_manager
         intelligence = IntelligenceSkill(skill_manager)
         return intelligence.is_recruitment_eligible(self, player)
 
