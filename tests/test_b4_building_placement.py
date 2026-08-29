@@ -30,7 +30,7 @@ from skills.skill_manager import SkillManager
 
 
 def _shelter_def() -> StructureDef:
-    """A fixed common structure costing 3 wood, placeable at crafting 0."""
+    """A fixed common structure costing 3 wood, placeable at crafting 1 (Common 1)."""
     return StructureDef(
         structure_id="test_shelter",
         name="Test Shelter",
@@ -38,7 +38,7 @@ def _shelter_def() -> StructureDef:
         construction_sub_stat="common",
         hp=40,
         materials=[("wood", 3)],
-        requires_structure_level=0,
+        requires_structure_level=1,
         requires_skill_level=0,
         biome_compatible=["plains", "forest"],
     )
@@ -82,6 +82,8 @@ def _player():
 
 def _building_system(inventory=None):
     skill_manager = SkillManager()
+    # Allocate Common Building Tech level 1 to satisfy requires_structure_level=1
+    skill_manager.allocate_stat("crafting", "common_building_tech", 1)
     construction = Construction(skill_manager)
     bs = BuildingSystem(
         skill_manager,
