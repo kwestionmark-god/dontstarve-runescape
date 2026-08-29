@@ -233,13 +233,13 @@ class BuildingSystem:
 
     def pickup_structure(self, structure: Structure) -> RemoveResult:
         """
-        Pick up a portable structure, returning materials to inventory.
+        Pick up a portable structure, returning 50% materials to inventory.
 
         Args:
             structure: The structure to pick up.
 
         Returns:
-            RemoveResult with materials returned.
+            RemoveResult with materials returned (50% of original cost).
         """
         if not structure.is_portable:
             return RemoveResult(
@@ -247,7 +247,8 @@ class BuildingSystem:
                 message="Cannot pick up fixed structures.",
             )
 
-        return_rate = self.construction.get_material_return_rate(structure.structure_def)
+        # Pickup returns 50% of materials
+        return_rate = 0.5
 
         materials_returned: List[Tuple[str, int]] = []
         for item_id, qty in structure.structure_def.materials:
@@ -267,25 +268,26 @@ class BuildingSystem:
 
     def remove_structure(self, structure: Structure) -> RemoveResult:
         """
-        Destroy/demolish a structure (no material return for fixed).
+        Destroy/demolish a structure (0% material return).
 
         Args:
             structure: The structure to remove.
 
         Returns:
-            RemoveResult with partial materials (if any).
+            RemoveResult with no materials returned.
         """
-        return_rate = self.construction.get_material_return_rate(structure.structure_def)
-
-        materials_returned: List[Tuple[str, int]] = []
-        for item_id, qty in structure.structure_def.materials:
-            returned_qty = max(1, int(qty * return_rate))
-            self.inventory.add_item(item_id, returned_qty)
-            materials_returned.append((item_id, returned_qty))
+        # Demolition returns 0% of materials
+        return_rate = 0.0
 
         # Clean up NPC assignment when structure is destroyed
         self._cleanup_npc_assignment_on_removal(structure)
         self.structures.remove(structure)
+
+        return RemoveResult(
+            success=True,
+            materials_returned=[],
+            message=f"Demolished {structure.structure_def.name}.",
+        )
 
         return RemoveResult(
             success=True,
