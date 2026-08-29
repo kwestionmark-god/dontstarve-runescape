@@ -227,8 +227,37 @@ class SaveSystem:
                         game.building_system.structures.append(structure)
                         break
 
+        # 6b. Restore resource nodes (depletion state, regrowth timers)
+        if "resource_nodes" in save_data and game.world:
+            from world.resource_node import ResourceNode
+            from world.resource_placer import ResourcePlacer
+            import dataclasses
+            resource_cache = ResourcePlacer._load_resource_definitions()
+            for node_data in save_data["resource_nodes"]:
+                x = node_data.get("x", 0)
+                y = node_data.get("y", 0)
+                resource_id = node_data.get("resource_id", "")
+                current_depletions = node_data.get("current_depletions", 0)
+                depleted = node_data.get("depleted", False)
+                regrow_timer = node_data.get("regrow_timer", 0.0)
+                
+                tile = game.world.get_tile(x, y)
+                if tile is None:
+                    continue
+                
+                if resource_id in resource_cache:
+                    # Create a copy of the resource node with saved depletion state
+                    node = resource_cache[resource_id]
+                    tile.resource_node = dataclasses.replace(node, current_depletions=current_depletions)
+                    tile.depleted = depleted
+                    tile.regrow_timer = regrow_timer
+                else:
+                    # Resource definition not found (maybe removed from data)
+                    tile.resource_node = None
+                    tile.depleted = False
+                    tile.regrow_timer = 0.0
+
         # 6.5 Restore NPC-structure assignments (P3-S16)
-        if "npc_structure_assignments" in save_data and save_data["npc_structure_assignments"]:
             assignments = save_data["npc_structure_assignments"]
             for npc_id, structure_id in assignments.items():
                 # Set the NPC's field
@@ -511,6 +540,24 @@ class SaveSystem:
                         "is_active": s.is_active,
                     })
         snapshot["structures"] = structures
+
+        # Resource nodes (depletion state, regrowth timers)
+        resource_nodes: List[Dict[str, Any]] = []
+        if game.world:
+            for x in range(game.world.width):
+                for y in range(game.world.height):
+                    tile = game.world.get_tile(x, y)
+                    if tile and tile.resource_node is not None:
+                        node = tile.resource_node
+                        resource_nodes.append({
+                            "x": x,
+                            "y": y,
+                            "resource_id": node.resource_id,
+                            "current_depletions": node.current_depletions,
+                            "depleted": tile.depleted,
+                            "regrow_timer": tile.regrow_timer,
+                        })
+        snapshot["resource_nodes"] = resource_nodes
 
         # Active fires (guard null)
         fires: List[Dict[str, Any]] = []
