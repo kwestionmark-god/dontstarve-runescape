@@ -64,9 +64,6 @@ class InputRouter:
         ):
             self._cancel_build_mode(game)
 
-        if event.key in (pygame.K_i, pygame.K_s, pygame.K_1):
-            pass
-
         # Read InputState flags to actually control panels
         if is_state.open_inventory:
             is_state.open_inventory = False
@@ -164,8 +161,9 @@ class InputRouter:
             if game.player is not None and game.player.action_system is not None:
                 game.player.action_system.add_notification("Game saved (F5).", (100, 255, 100))
         if is_state.hotbar_slot and game.state == GameState.PLAYING:
+            slot = is_state.hotbar_slot  # Capture BEFORE clearing the one-shot
             is_state.hotbar_slot = 0
-            self._handle_hotbar(game, is_state.hotbar_slot)
+            self._handle_hotbar(game, slot)
         elif event.key == pygame.K_e and game.state == GameState.PLAYING:
             self._handle_e_interact(game)
 
