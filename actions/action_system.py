@@ -120,6 +120,21 @@ class ActionSystem:
                 "mining", "extra_resources"
             )
 
+        elif action_type == ActionType.FORAGING and resource is not None:
+            action.duration = 1.0  # Faster than woodcutting/mining
+            action.resource = resource
+            action.xp_reward = resource.xp_reward
+            action.yield_item = resource.yield_item
+            action.yield_quantity = resource.yield_quantity
+            action.stamina_cost = 2.0
+            action.required_tool = resource.requires_tool  # Should be None/empty for foraging
+            action.success_rate_bonus = skill_manager.get_effective_stat(
+                "foraging", "success_rate"
+            ) * 1.0
+            action.extra_resources_bonus = skill_manager.get_effective_stat(
+                "foraging", "harvest_boost"
+            )
+
         elif action_type == ActionType.COOKING and recipe_id is not None:
             action.duration = 3.0
             action.recipe_id = recipe_id

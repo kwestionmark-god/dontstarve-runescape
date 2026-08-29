@@ -10,6 +10,7 @@ from skills.firemaking.fire_entity import FireEntity
 from skills.intelligence.intelligence import IntelligenceSkill
 from skills.cooking.cooking import CookingSkill
 from skills.construction.construction import Construction
+from skills.foraging.foraging import ForagingSkill
 
 __all__ = [
     "MetallurgySkill", "SmeltRecipe", "SmeltResult",
@@ -17,4 +18,5 @@ __all__ = [
     "IntelligenceSkill",
     "CookingSkill",
     "Construction",
+    "ForagingSkill",
 ]

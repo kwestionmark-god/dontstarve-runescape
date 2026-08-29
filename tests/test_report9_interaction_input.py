@@ -93,5 +93,5 @@ def test_handle_interact_still_works_after_deletion():
     # (a) behavioral: the real gather path still fires.
     player.find_interactable_resource.assert_called_once()
     player.action_system.start_action.assert_called_once_with(
-        ActionType.WOODCUTTING, node, game.skill_manager, game.inventory,
+        ActionType.FORAGING, node, game.skill_manager, game.inventory,
     )

@@ -8,6 +8,7 @@ class ActionType(Enum):
     WOODCUTTING = auto()
     MINING = auto()
     COOKING = auto()
+    FORAGING = auto()
 
     @staticmethod
     def get_skill_id(
@@ -31,6 +32,8 @@ class ActionType(Enum):
             return "mining"
         if action_type == ActionType.COOKING:
             return "cooking"
+        if action_type == ActionType.FORAGING:
+            return "foraging"
         raise ValueError(f"Unknown ActionType: {action_type}")
 
 

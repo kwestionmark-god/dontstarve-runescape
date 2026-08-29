@@ -32,6 +32,7 @@ _SKILL_DEFAULTS: Dict[str, Dict[str, int]] = {
     "woodcutting": {"success_rate": 0, "harvest_boost": 0, "stamina": 0},
     "mining": {"success_rate": 0, "extra_resources": 0, "stamina": 0},
     "cooking": {"success_rate": 0, "nutrition": 0, "spoilage_reduction": 0},
+    "foraging": {"success_rate": 0, "harvest_boost": 0, "stamina": 0},
     # Phase 2 skills
     "crafting": {
         "item_quality": 0,

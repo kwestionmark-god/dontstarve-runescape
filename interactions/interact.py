@@ -53,9 +53,8 @@ class InteractSystem:
             elif node.requires_tool == "pickaxe":
                 action_type = ActionType.MINING
             else:
-                # No tool requirement — forage (berries, herbs, etc.)
-                # Map to woodcutting XP for Phase 1
-                action_type = ActionType.WOODCUTTING
+                # No tool requirement — forage (berries, herbs, water, etc.)
+                action_type = ActionType.FORAGING
 
             # Delegate action construction to ActionSystem
             error = action_sys.start_action(
