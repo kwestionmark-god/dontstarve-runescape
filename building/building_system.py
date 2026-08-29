@@ -253,8 +253,19 @@ class BuildingSystem:
         materials_returned: List[Tuple[str, int]] = []
         for item_id, qty in structure.structure_def.materials:
             returned_qty = max(1, int(qty * return_rate))
-            self.inventory.add_item(item_id, returned_qty)
-            materials_returned.append((item_id, returned_qty))
+            if not self.inventory.add_item(item_id, returned_qty):
+                # Inventory full - drop remaining items on the ground
+                drop = ItemDrop(
+                    item_id=item_id,
+                    quantity=returned_qty,
+                    world_x=structure.world_x,
+                    world_y=structure.world_y,
+                    lifetime=300.0,
+                    created_at=0.0,
+                )
+                self.item_drops.append(drop)
+            else:
+                materials_returned.append((item_id, returned_qty))
 
         # Clean up NPC assignment when structure is picked up
         self._cleanup_npc_assignment_on_removal(structure)
