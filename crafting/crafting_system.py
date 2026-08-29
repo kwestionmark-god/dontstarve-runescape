@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import LOADING_SCREEN_DURATION
-
 if TYPE_CHECKING:
     from typing import List, Optional, Tuple
 
