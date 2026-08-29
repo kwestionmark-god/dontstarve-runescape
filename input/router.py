@@ -76,6 +76,33 @@ class InputRouter:
             self._cancel_build_mode(game)
 
         # Read InputState flags to actually control panels
+        # Only process panel open/close flags when in PLAYING state,
+        # or when the flag matches the current panel (for toggling).
+        # This prevents TAB from opening skill panel while quest panel is open.
+        if game.state in PANEL_STATES:
+            # In a panel state, only process the flag for the CURRENT panel (toggle close)
+            # Skip all other panel open flags
+            current_panel_flag = {
+                GameState.INVENTORY_OPEN: 'open_inventory',
+                GameState.SKILL_PANEL: 'open_skill_panel',
+                GameState.CRAFTING_PANEL: 'open_crafting',
+                GameState.BUILDING_PANEL: 'open_building_panel',
+                GameState.GEAR_PANEL: 'open_inventory',  # G key, not a flag
+                GameState.TRADE_PANEL: 'open_trade_panel',
+                GameState.QUEST_PANEL: 'open_quest_panel',
+                GameState.RECRUIT_PANEL: 'open_recruit_panel',
+                GameState.DIPLOMACY_PANEL: 'open_diplomacy_panel',
+            }.get(game.state)
+            
+            # Clear flags for other panels to prevent interference
+            for flag_name in ['open_inventory', 'open_skill_panel', 'open_crafting', 
+                              'open_building_panel', 'open_quest_panel', 'open_trade_panel',
+                              'open_recruit_panel', 'open_diplomacy_panel']:
+                if flag_name != current_panel_flag:
+                    setattr(is_state, flag_name, False)
+        
+        # Now process panel flags (for PLAYING/TITLE, all flags processed;
+        # for panel states, only the current panel's flag remains set)
         if is_state.open_inventory:
             is_state.open_inventory = False
             if game.state == GameState.INVENTORY_OPEN:
@@ -459,26 +486,31 @@ class InputRouter:
             result = game._quest_panel.handle_click(event.pos[0], event.pos[1])
             if result is not None:
                 self._panel_dispatcher.dispatch_click(game.state, "quest", result)
+            return
         # Trade panel
         elif game.state == GameState.TRADE_PANEL and game._trade_panel is not None:
             result = game._trade_panel.handle_click(event.pos[0], event.pos[1])
             if result is not None:
                 self._panel_dispatcher.dispatch_click(game.state, "trade", result)
+            return
         # Recruit panel
         elif game.state == GameState.RECRUIT_PANEL and game._recruit_panel is not None:
             result = game._recruit_panel.handle_click(event.pos[0], event.pos[1])
             if result is not None:
                 self._panel_dispatcher.dispatch_click(game.state, "recruit", result)
+            return
         # Diplomacy panel
         elif game.state == GameState.DIPLOMACY_PANEL and game._diplomacy_panel is not None:
             result = game._diplomacy_panel.handle_click(event.pos[0], event.pos[1])
             if result is not None:
                 self._panel_dispatcher.dispatch_click(game.state, "diplomacy", result)
+            return
         # Building panel
         elif game.state == GameState.BUILDING_PANEL and game._building_panel is not None:
             result = game._building_panel.handle_click(event.pos[0], event.pos[1])
             if result is not None:
                 self._panel_dispatcher.dispatch_click(game.state, "building", result)
+            return
 
         if event.button == 1:
             # Inventory panel left-click: use/equip items
@@ -488,6 +520,7 @@ class InputRouter:
                 )
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "inventory", result)
+                return
             elif game.state == GameState.PLAYING:
                 self._handle_hotbar_click(game, event.pos[0], event.pos[1])
                 # Click-to-move / attack
@@ -513,18 +546,22 @@ class InputRouter:
                 )
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "inventory", result)
+                return
             elif game.state == GameState.SKILL_PANEL and game._skill_panel is not None:
                 result = game._skill_panel.handle_click(event.pos[0], event.pos[1])
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "skill", result)
+                return
             elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
                 result = game._crafting_panel.handle_click(event.pos[0], event.pos[1])
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "crafting", result)
+                return
             elif game.state == GameState.GEAR_PANEL and game._gear_panel is not None:
                 result = game._gear_panel.handle_click(event.pos[0], event.pos[1])
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "gear", result)
+                return
 
     def _handle_wheel(self, game: "Game", event) -> None:
         """

@@ -762,11 +762,7 @@ class TradePanel(PanelWindow):
         Routes clicks to the appropriate action based on which rect was hit.
         """
         # Check close button first
-        close_rect = pygame.Rect(
-            self.CLOSE_X, self.CLOSE_Y,
-            self.CLOSE_SIZE, self.CLOSE_SIZE,
-        )
-        if close_rect.collidepoint(x, y):
+        if self.show_close and self._close_rect.collidepoint(x, y):
             return ("close",)
 
         # Check tab clicks

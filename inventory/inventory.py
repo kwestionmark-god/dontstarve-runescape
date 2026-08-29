@@ -34,13 +34,14 @@ class Inventory:
         gold: currency (Phase 1 stub: always 0)
     """
 
-    __slots__ = ("max_slots", "slots", "gold", "_stack_sizes")
+    __slots__ = ("max_slots", "slots", "gold", "_stack_sizes", "_gear_map")
 
     def __init__(self) -> None:
         self.max_slots: int = 20
         self.slots: List[Optional[InventorySlot]] = [None] * self.max_slots
         self.gold: int = 0
         self._stack_sizes: Dict[str, int] = {}  # item_id → max stack size
+        self._gear_map: Dict[str, object] = {}
 
     def set_stack_size(self, item_id: str, max_stack: int) -> None:
         """

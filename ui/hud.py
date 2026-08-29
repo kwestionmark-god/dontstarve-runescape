@@ -470,7 +470,7 @@ class HUD:
                             sprite_key = d.get("sprite_key")
                             break
                     if sprite_key:
-                        sprite = self.sprite_renderer._get_sprite(sprite_key)
+                        sprite = self.sprite_renderer._get_base_sprite(sprite_key)
                         if sprite is not None:
                             # Scale sprite to fit within cell
                             icon_size = 28

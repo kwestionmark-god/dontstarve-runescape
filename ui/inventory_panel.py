@@ -149,7 +149,7 @@ class InventoryPanel(PanelWindow):
 
                 # Render item sprite (scaled to fit cell)
                 if self.sprite_renderer is not None:
-                    sprite = self.sprite_renderer._get_sprite(slot_data.get("sprite_key", item_id))
+                    sprite = self.sprite_renderer._get_base_sprite(slot_data.get("sprite_key", item_id))
                     if sprite is not None:
                         margin = 6
                         avail_w = self.CELL_SIZE - margin * 2
