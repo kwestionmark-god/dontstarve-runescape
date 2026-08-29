@@ -114,7 +114,6 @@ class TradeSystem:
         "intelligence_skill",
         "tick_timer",
         "_npc_system",
-        "_cached_item_prices",
         "_faction_system",
     )
 
@@ -129,7 +128,6 @@ class TradeSystem:
         self.trade_items: List[MerchantItem] = []
         self.active_session: Optional[TradeSession] = None
         self.tick_timer: float = 0.0
-        self._cached_item_prices: Optional[dict[str, int]] = None
         self._npc_system: Any = None
         self._faction_system: Any = None
 
@@ -303,20 +301,20 @@ class TradeSystem:
 
         # Check stock
         current_stock = self._get_stock_for_merchant(merchant, trade_item_id)
+        if current_stock <= 0:
+            return TradeResult(
+                success=False,
+                item_id=trade_item_id,
+                quantity=0,
+                gold_changed=0,
+                player_gold_before=player.inventory.gold,
+                player_gold_after=player.inventory.gold,
+                merchant_gold_before=merchant.gold,
+                merchant_gold_after=merchant.gold,
+                message=f"No stock remaining for '{trade_item_id}'.",
+            )
         if current_stock < quantity:
-            quantity = max(1, current_stock)
-            if quantity <= 0:
-                return TradeResult(
-                    success=False,
-                    item_id=trade_item_id,
-                    quantity=0,
-                    gold_changed=0,
-                    player_gold_before=player.inventory.gold,
-                    player_gold_after=player.inventory.gold,
-                    merchant_gold_before=merchant.gold,
-                    merchant_gold_after=merchant.gold,
-                    message=f"No stock remaining for '{trade_item_id}'.",
-                )
+            quantity = current_stock  # Truncate to available stock
 
         # Check player gold
         base_price = trade_item.buy_price
@@ -792,31 +790,23 @@ class TradeSystem:
 
     def _get_item_base_price(self, item_id: str) -> Optional[int]:
         """
-        Look up the base price of an item from items.json.
+        Look up the base price of an item for barter valuation.
 
-        Caches results to avoid repeated JSON reads.
+        Prices only exist in trade_items.json (items.json carries no price
+        fields), so the canonical price for an arbitrary player item is the
+        trade-item entry with a matching ``item_id``. Returns None when there
+        is no trade data for the requested item.
 
         Args:
             item_id: The item_id to look up.
 
         Returns:
-            Base price as int, or None if not found.
+            Base buy price as int, or None if not found.
         """
-        if self._cached_item_prices is None:
-            self._cached_item_prices = {}
-            filepath = os.path.join(DATA_DIR, "items.json")
-            try:
-                with open(filepath, "r") as f:
-                    data = json.load(f)
-                for entry in data.get("items", []):
-                    iid = entry.get("item_id", "")
-                    price = entry.get("buy_price", entry.get("base_value", 0))
-                    if iid:
-                        self._cached_item_prices[iid] = price
-            except (FileNotFoundError, json.JSONDecodeError):
-                pass
-
-        return self._cached_item_prices.get(item_id)
+        trade_item = self._find_trade_item_by_item_id(item_id)
+        if trade_item is None:
+            return None
+        return trade_item.buy_price
 
     def _make_merchant_item(self, raw: dict) -> "MerchantItem":
         """
