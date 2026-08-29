@@ -80,7 +80,7 @@ class GearItem:
         gear_map: Dict[str, GearItem] = {}
         with open(gear_file, "r") as f:
             data = json.load(f)
-        for category in ("weapons", "armor"):
+        for category in ("weapons", "armor", "tools"):
             if category in data:
                 for item_data in data[category].values():
                     item = cls.from_dict(item_data)

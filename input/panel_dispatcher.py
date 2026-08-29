@@ -44,6 +44,12 @@ class PanelDispatcher:
         if isinstance(action, tuple) and action[0] == "negotiate" and state == GameState.DIPLOMACY_PANEL:
             self._npc_flows.execute_negotiation(); return
 
+    def _handle_building_select(self, structure_id: str) -> None:
+        game = self._game
+        panel = getattr(game, "_building_panel", None)
+        if panel is not None:
+            panel.selected_structure_id = structure_id
+
     def dispatch_click(self, state: "GameState", panel_name: str, action) -> None:
         if panel_name == "inventory" and action is not None:
             self._handle_inventory_click(action[0], action[1])
@@ -56,6 +62,12 @@ class PanelDispatcher:
         elif panel_name == "building" and action is not None:
             if action[0] == "select":
                 self._handle_building_select(action[1])
+                game = self._game
+                panel = getattr(game, "_building_panel", None)
+                if panel is not None:
+                    panel.selected_structure_id = action[1]
+                    game.build_mode = True
+                    game._building_pending_id = action[1]
             elif action[0] == "close":
                 self._handle_building_close()
         elif panel_name == "trade" and action is not None:

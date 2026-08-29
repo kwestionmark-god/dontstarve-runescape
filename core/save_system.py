@@ -228,7 +228,7 @@ class SaveSystem:
                         break
 
         # 6b. Restore resource nodes (depletion state, regrowth timers)
-        if "resource_nodes" in save_data and game.world:
+        if "resource_nodes" in save_data and hasattr(game, "world") and game.world:
             from world.resource_node import ResourceNode
             from world.resource_placer import ResourcePlacer
             import dataclasses
@@ -429,6 +429,40 @@ class SaveSystem:
             game.weather_system.weather_timer = weather_data.get("timer", 0.0)
             game.weather_system.weather_history = weather_data.get("history", [])
 
+        # Restore monsters (population, positions, stats, AI state)
+        if "monsters" in save_data and save_data["monsters"] and game.combat_system:
+            from combat.monster import Monster
+            for monster_data in save_data["monsters"]:
+                monster = Monster(
+                    monster_id=monster_data.get("monster_id", "unknown"),
+                    name=monster_data.get("name", "Unknown"),
+                    biome=monster_data.get("biome", "generic"),
+                    world_x=monster_data.get("world_x", 0.0),
+                    world_y=monster_data.get("world_y", 0.0),
+                    hp=monster_data.get("hp", 1),
+                    max_hp=monster_data.get("max_hp", 1),
+                    attack=monster_data.get("attack", 1),
+                    defence=monster_data.get("defence", 1),
+                    speed=monster_data.get("speed", 50.0),
+                    aggression_range=monster_data.get("aggression_range", 150.0),
+                    flee_range=monster_data.get("flee_range", 300.0),
+                    attack_cooldown=monster_data.get("attack_cooldown", 1.5),
+                    xp_reward=monster_data.get("xp_reward", 10.0),
+                    loot_table=monster_data.get("loot_table", []),
+                    sprite_key=monster_data.get("sprite_key", "monster/wolf"),
+                    is_hostile=monster_data.get("is_hostile", True),
+                    special=monster_data.get("special", ""),
+                )
+                monster.ai_state = monster_data.get("ai_state", "idle")
+                monster.attack_cooldown_timer = monster_data.get("attack_cooldown_timer", 0.0)
+                monster._attack_range = monster_data.get("_attack_range", 40.0)
+                monster._base_stats = monster_data.get("_base_stats", {})
+                monster._poison_applied = monster_data.get("_poison_applied", False)
+                monster._base_speed = monster_data.get("_base_speed", 0.0)
+                monster._base_defence = monster_data.get("_base_defence", 0)
+                monster._base_attack_range = monster_data.get("_base_attack_range", 0.0)
+                game.combat_system.register_monster(monster)
+
         # Re-sync particle system after load
         if hasattr(game, "particle_system") and game.particle_system is not None:
             game.particle_system.sync(game.weather_system.current_weather)
@@ -543,7 +577,7 @@ class SaveSystem:
 
         # Resource nodes (depletion state, regrowth timers)
         resource_nodes: List[Dict[str, Any]] = []
-        if game.world:
+        if hasattr(game, "world") and game.world:
             for x in range(game.world.width):
                 for y in range(game.world.height):
                     tile = game.world.get_tile(x, y)
@@ -707,5 +741,40 @@ class SaveSystem:
             snapshot["weather"] = game.weather_system.to_dict()
         else:
             snapshot["weather"] = None
+
+        # Monsters (population, positions, stats, AI state)
+        monsters: List[Dict[str, Any]] = []
+        if hasattr(game, "combat_system") and game.combat_system:
+            for monster in game.combat_system.monsters:
+                if monster.is_alive():
+                    monsters.append({
+                        "monster_id": monster.monster_id,
+                        "name": monster.name,
+                        "biome": monster.biome,
+                        "world_x": monster.world_x,
+                        "world_y": monster.world_y,
+                        "hp": monster.hp,
+                        "max_hp": monster.max_hp,
+                        "attack": monster.attack,
+                        "defence": monster.defence,
+                        "speed": monster.speed,
+                        "aggression_range": monster.aggression_range,
+                        "flee_range": monster.flee_range,
+                        "attack_cooldown": monster.attack_cooldown,
+                        "xp_reward": monster.xp_reward,
+                        "loot_table": monster.loot_table,
+                        "sprite_key": monster.sprite_key,
+                        "is_hostile": monster.is_hostile,
+                        "ai_state": monster.ai_state,
+                        "attack_cooldown_timer": monster.attack_cooldown_timer,
+                        "special": monster.special,
+                        "_attack_range": monster._attack_range,
+                        "_base_stats": monster._base_stats,
+                        "_poison_applied": monster._poison_applied,
+                        "_base_speed": monster._base_speed,
+                        "_base_defence": monster._base_defence,
+                        "_base_attack_range": monster._base_attack_range,
+                    })
+        snapshot["monsters"] = monsters
 
         return snapshot

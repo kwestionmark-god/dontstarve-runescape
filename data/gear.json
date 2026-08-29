@@ -258,5 +258,33 @@
       "sprite_key": "gear/steel_boots",
       "tier": 2
     }
+  },
+  "tools": {
+    "axe": {
+      "item_id": "axe",
+      "name": "Axe",
+      "gear_type": "tool",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 0,
+      "speed_bonus": 0.0,
+      "required_combat_level": 1,
+      "sprite_key": "items/axe",
+      "tier": 1,
+      "durability": 100
+    },
+    "pickaxe": {
+      "item_id": "pickaxe",
+      "name": "Pickaxe",
+      "gear_type": "tool",
+      "damage": 0,
+      "attack_bonus": 0,
+      "defence_bonus": 0,
+      "speed_bonus": 0.0,
+      "required_combat_level": 1,
+      "sprite_key": "items/pickaxe",
+      "tier": 1,
+      "durability": 100
+    }
   }
 }

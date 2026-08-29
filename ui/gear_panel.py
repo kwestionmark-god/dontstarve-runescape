@@ -89,6 +89,7 @@ class GearPanel(PanelWindow):
         self._hovered_item: Optional[str] = None
         self._unequip_weapon_rect: Optional[pygame.Rect] = None
         self._unequip_armor_rect: Optional[pygame.Rect] = None
+        self._unequip_tool_rect: Optional[pygame.Rect] = None
 
     def scroll_viewport(self):
         """Return (visible_px, total_px) for scrollbar sizing."""
@@ -102,6 +103,8 @@ class GearPanel(PanelWindow):
         if self._player_gear and self._player_gear.weapon:
             count += 1
         if self._player_gear and self._player_gear.armor:
+            count += 1
+        if self._player_gear and self._player_gear.tool:
             count += 1
         count += len(self._gear_items)
         return count
@@ -148,6 +151,13 @@ class GearPanel(PanelWindow):
         slot_y = self._render_equipped_slot(
             screen, "Armor", self._player_gear.armor, slot_y,
             "armor", left, content_rect.width - 20,
+        )
+        slot_y += self.SLOT_HEIGHT + 8
+
+        # Tool slot
+        slot_y = self._render_equipped_slot(
+            screen, "Tool", self._player_gear.tool, slot_y,
+            "tool", left, content_rect.width - 20,
         )
         slot_y += self.SLOT_HEIGHT + 16
 
@@ -266,6 +276,10 @@ class GearPanel(PanelWindow):
             if slot_type == "armor":
                 return idx == self._selected_index
             idx += 1
+        if self._player_gear and self._player_gear.tool:
+            if slot_type == "tool":
+                return idx == self._selected_index
+            idx += 1
         return False
 
     def _is_unequip_selected(self, slot_type: str) -> bool:
@@ -279,6 +293,10 @@ class GearPanel(PanelWindow):
             idx += 1  # armor slot
             if slot_type == "armor":
                 return idx == self._selected_index
+        if self._player_gear and self._player_gear.tool:
+            idx += 1  # tool slot
+            if slot_type == "tool":
+                return idx == self._selected_index
         return False
 
     def _is_gear_selected(self, item_id: str) -> bool:
@@ -290,6 +308,9 @@ class GearPanel(PanelWindow):
         if self._player_gear and self._player_gear.armor:
             idx += 1  # armor slot
             idx += 1  # armor unequip
+        if self._player_gear and self._player_gear.tool:
+            idx += 1  # tool slot
+            idx += 1  # tool unequip
         for i, (iid, _, _) in enumerate(self._gear_items):
             if iid == item_id:
                 return idx == self._selected_index
@@ -328,7 +349,7 @@ class GearPanel(PanelWindow):
         Keyboard navigation for the gear panel.
 
         Arrow keys / WASD: navigate items and unequip buttons
-        Enter: return "equip:<item_id>" or "unequip:weapon"/"unequip:armor"
+        Enter: return "equip:<item_id>" or "unequip:weapon"/"unequip:armor"/"unequip:tool"
 
         Returns None for navigation only; action string on Enter.
         """
@@ -354,6 +375,15 @@ class GearPanel(PanelWindow):
                     # Armor unequip
                     if idx == self._selected_index:
                         return "unequip:armor"
+                    idx += 1
+                # Tool slot
+                if self._player_gear and self._player_gear.tool:
+                    if idx == self._selected_index:
+                        return None  # slot itself not actionable
+                    idx += 1
+                    # Tool unequip
+                    if idx == self._selected_index:
+                        return "unequip:tool"
                     idx += 1
                 # Available gear items
                 for item_id, _, _ in self._gear_items:

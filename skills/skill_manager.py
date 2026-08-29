@@ -360,12 +360,12 @@ class SkillManager:
 
         Args:
             skill_id: The skill to allocate points to.
-            sub_stat: The sub-stat name.
+            sub_stat: The sub-stat name. Must be a valid sub-stat for the skill.
             points: Number of points to spend (>= 1).
             wildcard: Whether to use wildcard points (False = skill-specific).
 
         Returns:
-            True if allocation succeeded, False if insufficient points.
+            True if allocation succeeded, False if insufficient points or invalid sub-stat.
         """
         if points < 1:
             return False
@@ -374,6 +374,12 @@ class SkillManager:
             return False
 
         skill = self.skills[skill_id]
+
+        # Validate that sub_stat is a known sub-stat for this skill
+        valid_sub_stats = _SKILL_DEFAULTS.get(skill_id, {}).keys()
+        if sub_stat not in valid_sub_stats:
+            print("Warning: %s is not a valid sub-stat for skill %s. Valid ones: %s" % (sub_stat, skill_id, valid_sub_stats))
+            return False
 
         if wildcard:
             if self.wildcard_points < points:
@@ -386,7 +392,6 @@ class SkillManager:
 
         skill.sub_stats[sub_stat] = skill.sub_stats.get(sub_stat, 0) + points
         return True
-
     def refund_stat(
         self,
         skill_id: str,
