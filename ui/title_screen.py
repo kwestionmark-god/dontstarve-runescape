@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 from config import FLAVOR_TEXTS
 from core.state import GameState
+from render.font_cache import get_monospace, get_monospace_bold
 
 
 def render_title_screen(game: "Game", screen: pygame.Surface) -> None:
@@ -30,13 +31,13 @@ def render_title_screen(game: "Game", screen: pygame.Surface) -> None:
     screen.fill((20, 20, 30))  # Dark background
 
     # Title text (placeholder — font loaded in S1)
-    font = pygame.font.SysFont("monospace", 48, bold=True)
+    font = get_monospace_bold(48)
     title_surf = font.render("Don't Starve RuneScape", True, (200, 180, 120))
     title_rect = title_surf.get_rect(center=(screen.get_width() // 2, 200))
     screen.blit(title_surf, title_rect)
 
     # Seed display
-    seed_font = pygame.font.SysFont("monospace", 24)
+    seed_font = get_monospace(24)
     seed_surf = seed_font.render(f"Seed: {game.seed}", True, (150, 150, 150))
     seed_rect = seed_surf.get_rect(center=(screen.get_width() // 2, 280))
     screen.blit(seed_surf, seed_rect)
@@ -46,7 +47,7 @@ def render_title_screen(game: "Game", screen: pygame.Surface) -> None:
         game._save_slots = game.save_system.list_slots()
 
     # Button hints
-    hint_font = pygame.font.SysFont("monospace", 20)
+    hint_font = get_monospace(20)
     new_game = hint_font.render("Press ENTER or SPACE for New Game", True, (200, 200, 200))
     new_game_rect = new_game.get_rect(center=(screen.get_width() // 2, 360))
     screen.blit(new_game, new_game_rect)

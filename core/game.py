@@ -358,7 +358,8 @@ class Game:
             self.seasonal_renderer.draw_ambient_overlay(screen, alpha=20)
         if self.combat_system is not None and self.camera is not None:
             from combat.combat_ui import render_damage_numbers
-            font = pygame.font.SysFont("monospace", 16, bold=True)
+            from render.font_cache import get_monospace_bold
+            font = get_monospace_bold(16)
             render_damage_numbers(screen, self.combat_system.damage_numbers, self.camera, font)
             if self.combat_system.damage_numbers:
                 latest = self.combat_system.damage_numbers[-1]

@@ -39,8 +39,9 @@ class SeasonalHUD:
     ) -> None:
         self.bar_width = bar_width
         self.bar_height = bar_height
-        self._font_small = pygame.font.SysFont("monospace", 14)
-        self._font_medium = pygame.font.SysFont("monospace", 16)
+        from render.font_cache import get_monospace
+        self._font_small = get_monospace(14)
+        self._font_medium = get_monospace(16)
 
     def render_season_bar(
         self,

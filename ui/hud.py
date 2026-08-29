@@ -77,8 +77,9 @@ class HUD:
         self.npc_system = npc_system
         self.sprite_renderer: "SpriteRenderer | None" = sprite_renderer
         self.player: object | None = None  # Set via set_player()
-        self.font = pygame.font.SysFont("monospace", 12)
-        self.font_bold = pygame.font.SysFont("monospace", 14, bold=True)
+        from render.font_cache import get_monospace, get_monospace_bold
+        self.font = get_monospace(12)
+        self.font_bold = get_monospace_bold(14)
         self._notifications: list[ActionNotification] = []
         self._active_action_progress: float = 0.0
         self._active_action_skill: str = ""

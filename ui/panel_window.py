@@ -23,26 +23,7 @@ if TYPE_CHECKING:
     Font = pygame.types.Font
     Rect = pygame.types.Rect
 
-
-class _FontRegistry:
-    """
-    Cache of :class:`pygame.font.Font` keyed by ``(name, size, bold, path)``.
-
-    Fonts are comparatively expensive to build, so every panel must go through
-    this registry rather than calling ``pygame.font.SysFont`` itself.
-    """
-
-    _cache: dict = {}
-
-    @classmethod
-    def get(cls, name: str, size: int, bold: bool = False,
-            italic: bool = False) -> Font:
-        key = (name, size, bold, italic)
-        font = cls._cache.get(key)
-        if font is None:
-            font = pygame.font.SysFont(name, size, bold=bold, italic=italic)
-            cls._cache[key] = font
-        return font
+from render.font_cache import get_font
 
 
 # Sentinel returned by _scrollbar_hit when the click lands on the thumb
@@ -216,19 +197,19 @@ class PanelWindow:
     # ── Fonts (shared, cached) ───────────────────────────────────────────
     @property
     def font_title(self) -> Font:
-        return _FontRegistry.get("monospace", 14, bold=True)
+        return get_font("monospace", 14, bold=True)
 
     @property
     def font_normal(self) -> Font:
-        return _FontRegistry.get("monospace", 11)
+        return get_font("monospace", 11)
 
     @property
     def font_small(self) -> Font:
-        return _FontRegistry.get("monospace", 10)
+        return get_font("monospace", 10)
 
     @property
     def font_bold(self) -> Font:
-        return _FontRegistry.get("monospace", 12, bold=True)
+        return get_font("monospace", 12, bold=True)
 
     # ── Scroll ───────────────────────────────────────────────────────────
     def scroll_viewport(self) -> Tuple[int, int]:

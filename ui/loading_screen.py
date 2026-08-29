@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 from config import FLAVOR_TEXTS
 from core.state import GameState
+from render.font_cache import get_monospace, get_monospace_bold, get_monospace_italic
 
 
 def render_loading_screen(game: "Game", screen: pygame.Surface) -> None:
@@ -31,7 +32,7 @@ def render_loading_screen(game: "Game", screen: pygame.Surface) -> None:
     screen.fill((30, 30, 40))  # Slightly lighter dark
 
     # Loading text
-    font = pygame.font.SysFont("monospace", 36, bold=True)
+    font = get_monospace_bold(36)
     if game.state == GameState.LOADING_SAVE:
         label = "Loading save..."
     else:
@@ -44,7 +45,7 @@ def render_loading_screen(game: "Game", screen: pygame.Surface) -> None:
     if not hasattr(game, "_flavor_text"):
         rng = random.Random(game.seed)
         game._flavor_text = rng.choice(FLAVOR_TEXTS)
-    flavor_font = pygame.font.SysFont("monospace", 16, italic=True)
+    flavor_font = get_monospace_italic(16)
     flavor_surf = flavor_font.render(game._flavor_text, True, (150, 150, 170))
     flavor_rect = flavor_surf.get_rect(center=(screen.get_width() // 2, 290))
     screen.blit(flavor_surf, flavor_rect)
@@ -64,14 +65,14 @@ def render_loading_screen(game: "Game", screen: pygame.Surface) -> None:
     pygame.draw.rect(screen, (120, 120, 120), (bar_x, bar_y, bar_width, bar_height), 2)
 
     # Percentage
-    pct_font = pygame.font.SysFont("monospace", 18)
+    pct_font = get_monospace(18)
     pct_surf = pct_font.render(f"{int(game.loading_progress * 100)}%", True, (255, 255, 255))
     pct_rect = pct_surf.get_rect(center=(screen.get_width() // 2, 360))
     screen.blit(pct_surf, pct_rect)
 
     # Error state message
     if game.world is None and game.state == GameState.ERROR:
-        error_font = pygame.font.SysFont("monospace", 24)
+        error_font = get_monospace(24)
         error_surf = error_font.render(
             "World generation failed. Press Enter or Escape to return.", True, (255, 100, 100),
         )
