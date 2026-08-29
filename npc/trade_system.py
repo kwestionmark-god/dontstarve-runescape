@@ -613,12 +613,10 @@ class TradeSystem:
 
         # Execute barter — give player item, remove from merchant stock, give trade item to player
         player.inventory.remove_item(player_item_id, player_quantity)
-        # Give the player as many of the merchant item as the merchant can spare
-        give_quantity = min(player_quantity, merchant_stock - 1)
-        if give_quantity <= 0:
-            give_quantity = 1
+        # Fair barter: both sides exchange the same quantity
+        give_quantity = min(player_quantity, merchant_stock)
         player.inventory.add_item(trade_item.item_id, give_quantity)
-        self._set_stock_for_merchant(merchant, trade_item_id, merchant_stock - 1)
+        self._set_stock_for_merchant(merchant, trade_item_id, merchant_stock - give_quantity)
 
         return BarterResult(
             success=True,
