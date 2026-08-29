@@ -345,6 +345,8 @@ class CraftingSystem:
         recipe_id: str,
         inventory: Inventory,
         skill_manager: Optional[SkillManager] = None,
+        cooking_skill: Optional["CookingSkill"] = None,
+        food_registry: Optional["FoodRegistry"] = None,
         has_campfire: bool = False,
         structures: list | None = None,
         player_pos: tuple[float, float] | None = None,
@@ -359,18 +361,19 @@ class CraftingSystem:
         - Station proximity validation
         - Success rate based on Cooking success_rate sub-stat
         - Failure preserves raw materials (doesn't destroy them)
-        - Spoilage timer set on success
+        - Spoilage timer set on success (modified by Cooking spoilage_reduction)
 
         Args:
             recipe_id: The cooking recipe to execute.
             inventory: The player's inventory.
             skill_manager: Optional skill manager for XP and stat lookup.
+            cooking_skill: Optional CookingSkill for success rate, spoilage, nutrition.
             has_campfire: Whether the player is near a campfire.
             structures: Optional list of placed Structure instances.
             player_pos: Optional (player_x, player_y) in pixels for station checks.
             quest_system: Optional quest system; on success its record_craft()
                 is called so "craft N of X" quest objectives can advance.
-            spoilage_seconds: Optional spoilage timer for the output item (if perishable).
+            spoilage_seconds: Optional base spoilage timer for the output item (if perishable).
 
         Returns:
             CraftResult with success/failure info.
@@ -406,10 +409,13 @@ class CraftingSystem:
         # Save inventory state for rollback on failure
         saved_slots = inventory.snapshot()
 
-        # Cooking success roll: base 50% + cooking success_rate * 2% per point
+        # Cooking success roll: base 50% + cooking_skill success_rate bonus
         import random
         success_threshold = 50.0
-        if skill_manager is not None:
+        if cooking_skill is not None:
+            success_threshold += cooking_skill.get_success_rate_bonus()
+        elif skill_manager is not None:
+            # Fallback: direct skill_manager access
             cooking_success = skill_manager.get_effective_stat("cooking", "success_rate")
             success_threshold += cooking_success * 2.0
 
@@ -417,7 +423,13 @@ class CraftingSystem:
             # Success — consume materials and produce output
             for item_id, quantity in recipe.input_items:
                 inventory.remove_item(item_id, quantity)
-            inventory.add_item(recipe.output_item, recipe.output_quantity, spoilage_seconds=spoilage_seconds)
+
+            # Apply cooking skill spoilage modifier if available
+            final_spoilage = spoilage_seconds
+            if cooking_skill is not None and spoilage_seconds is not None:
+                final_spoilage = cooking_skill.get_effective_spoilage_time(spoilage_seconds)
+
+            inventory.add_item(recipe.output_item, recipe.output_quantity, spoilage_seconds=final_spoilage)
 
             # Grant XP to Cooking skill
             xp_gained = recipe.xp_reward

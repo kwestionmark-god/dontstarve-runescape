@@ -194,7 +194,9 @@ class PanelDispatcher:
         if recipe.requires_campfire:
             has_campfire = game._fire_interaction.check_nearby_campfire()
             result = game.crafting.cook(item_id, game.inventory, game.skill_manager,
-                has_campfire, structures=structures, player_pos=(player_x, player_y),
+                cooking_skill=game.cooking, food_registry=game.food_registry,
+                has_campfire=has_campfire,
+                structures=structures, player_pos=(player_x, player_y),
                 quest_system=getattr(game, "quest_system", None),
                 spoilage_seconds=spoilage_seconds)
         else:
