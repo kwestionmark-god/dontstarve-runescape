@@ -86,6 +86,13 @@ class Monster:
     special: str = ""  # "poison", "ranged", "ambush", "aerial"
     # Stats loaded from definition at initialization time
     _attack_range: float = field(default=40.0)
+    # Base stats for special behavior restoration
+    _base_stats: Dict[str, Any] = field(default_factory=dict)
+    # Special behavior state flags
+    _poison_applied: bool = False
+    _base_speed: float = 0.0
+    _base_defence: int = 0
+    _base_attack_range: float = 0.0
 
     @classmethod
     def from_def(cls, monster_id: str, biome: str,
@@ -307,8 +314,9 @@ class Monster:
             # Poison: on attack, inflict additional 1 damage (DoT stub)
             # Integration point: when this monster attacks, apply poison
             # For now, poison increases attack by 1
-            self.attack += 1 if not getattr(self, "_poison_applied", False) else 0
-            self._poison_applied = True
+            if not self._poison_applied:
+                self.attack += 1
+                self._poison_applied = True
 
         elif self.special == "ambush":
             # Ambush: approach silently until within 60px of player
@@ -321,16 +329,18 @@ class Monster:
 
         elif self.special == "aerial":
             # Aerial: higher movement speed (+30%), reduced ground defence (-1)
-            self.speed = getattr(self, "_base_speed", self.speed) * 1.3
-            if not hasattr(self, "_base_defence"):
+            if self._base_speed == 0.0:
+                self._base_speed = self.speed
+            self.speed = self._base_speed * 1.3
+            if self._base_defence == 0:
                 self._base_defence = self.defence
             self.defence = max(0, self._base_defence - 1)
 
         elif self.special == "ranged":
-            # Ranged: effective attack range +50px
-            if not hasattr(self, "_base_attack_range"):
+            # Ranged: effective attack range +55px (from 40 to 95)
+            if self._base_attack_range == 0.0:
                 self._base_attack_range = self._attack_range
-            self._attack_range = 95.0  # Base 40 + 55 extra
+            self._attack_range = 95.0
 
     def reset_special(self) -> None:
         """
@@ -340,17 +350,17 @@ class Monster:
         enters idle/flee state.
         """
         if self.special == "poison":
-            self._poison_applied = False
-            # Restore base attack from the stats loaded at spawn.
-            base = getattr(self, "_base_stats", {})
+            # Always restore base attack from the stats loaded at spawn.
+            base = self._base_stats
             if base:
                 self.attack = base.get("attack", self.attack)
+            self._poison_applied = False
         elif self.special == "aerial":
-            if hasattr(self, "_base_speed"):
+            if self._base_speed != 0.0:
                 self.speed = self._base_speed
-            if hasattr(self, "_base_defence"):
+            if self._base_defence != 0:
                 self.defence = self._base_defence
         elif self.special == "ranged":
-            if hasattr(self, "_base_attack_range"):
+            if self._base_attack_range != 0.0:
                 self._attack_range = self._base_attack_range
 
