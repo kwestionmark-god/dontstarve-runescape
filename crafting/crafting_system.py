@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 # Runtime imports
 from typing import Dict
-from inventory.recipe import Recipe
+from inventory.recipe import Recipe, validate_recipe_dict
 
 
 def _chain_to_skill(processing_chain: str) -> str:
@@ -85,6 +85,8 @@ class CraftingSystem:
         """
         Load recipes from JSON data into the registry.
 
+        Validates each recipe before loading (malformed recipes are skipped).
+
         Args:
             recipes_data: Parsed list of recipe dicts from recipes.json.
 
@@ -93,6 +95,11 @@ class CraftingSystem:
         """
         count = 0
         for data in recipes_data:
+            errors = validate_recipe_dict(data)
+            if errors:
+                import logging
+                logging.warning("Skipping invalid recipe: %s", "; ".join(errors))
+                continue
             recipe = Recipe.from_dict(data)
             self._registry.recipes[recipe.recipe_id] = recipe
             if recipe.quest_unlock is not None:

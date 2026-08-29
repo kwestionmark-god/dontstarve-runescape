@@ -56,6 +56,7 @@ def _crafting_system():
     cs.load_recipes(
         [
             {
+                "recipe_id": "planks",
                 "id": "planks",
                 "name": "Plank",
                 "input_items": [["log", 1]],
@@ -63,6 +64,7 @@ def _crafting_system():
                 "output_quantity": 2,
                 "xp_reward": 5,
                 "processing_chain": "basic",
+                "tier": 1,
             }
         ]
     )
@@ -100,6 +102,7 @@ def test_cook_records_craft_on_success():
     cs.load_recipes(
         [
             {
+                "recipe_id": "cooked_meat",
                 "id": "cooked_meat",
                 "name": "Cooked Meat",
                 "input_items": [["raw_meat", 1]],
@@ -108,6 +111,7 @@ def test_cook_records_craft_on_success():
                 "xp_reward": 10,
                 "processing_chain": "cooking",
                 "requires_campfire": True,
+                "tier": 1,
             }
         ]
     )
@@ -133,6 +137,7 @@ def test_cook_failure_does_not_record(monkeypatch):
     cs.load_recipes(
         [
             {
+                "recipe_id": "cooked_meat",
                 "id": "cooked_meat",
                 "name": "Cooked Meat",
                 "input_items": [["raw_meat", 1]],
@@ -141,6 +146,7 @@ def test_cook_failure_does_not_record(monkeypatch):
                 "xp_reward": 10,
                 "processing_chain": "cooking",
                 "requires_campfire": True,
+                "tier": 1,
             }
         ]
     )
