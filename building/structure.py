@@ -248,6 +248,13 @@ class StructureDefRegistry:
                     for item_data in data["structures"][category].values():
                         item = StructureDef.from_validated_dict(item_data)
                         if item is not None:
+                            # Validate category matches construction_sub_stat
+                            if item.construction_sub_stat != category:
+                                logging.warning(
+                                    "Structure %s in category '%s' has construction_sub_stat '%s', skipping",
+                                    item.structure_id, category, item.construction_sub_stat,
+                                )
+                                continue
                             self.structures[category][item.structure_id] = item
                             count += 1
         except Exception:
