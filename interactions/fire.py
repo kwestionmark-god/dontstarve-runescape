@@ -79,9 +79,16 @@ class FireInteraction:
     def check_nearby_campfire(self) -> bool:
         """Check if player is near a campfire structure tile."""
         game = self._game
-        if game.world is None:
+        if game.player is None or game.building_system is None:
             return False
-        tx, ty = game.player.get_tile_position()
-        return game.world.has_structure_nearby(
-            tx, ty, CAMPFIRE_SEARCH_RADIUS_TILES, "campfire",
+        # Campfires are placed as Structures in building_system, not as
+        # resource nodes — validate against the actual structure list.
+        from utils.structure_utils import is_structure_nearby
+        structures = game.building_system.get_all_structures()
+        return is_structure_nearby(
+            structures,
+            game.player.world_x,
+            game.player.world_y,
+            "campfire",
+            radius=CAMPFIRE_SEARCH_RADIUS_TILES,
         )
