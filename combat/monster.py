@@ -17,22 +17,22 @@ if TYPE_CHECKING:
 
 # Base monster stats by ID (Phase 2 defaults)
 _MONSTER_HP_TABLE: Dict[str, Dict[str, Any]] = {
-    "wolf":         {"hp": 8,  "attack": 3, "defence": 2, "speed": 80,  "xp": 15},
-    "bear":         {"hp": 15, "attack": 5, "defence": 4, "speed": 50,  "xp": 25},
-    "goblin":       {"hp": 6,  "attack": 4, "defence": 1, "speed": 70,  "xp": 12},
-    "poison_frog":  {"hp": 4,  "attack": 3, "defence": 1, "speed": 30,  "xp": 10},
-    "crocodile":    {"hp": 12, "attack": 6, "defence": 3, "speed": 40,  "xp": 20},
-    "swamp_drake":  {"hp": 10, "attack": 5, "defence": 3, "speed": 60,  "xp": 20},
-    "scorpion":     {"hp": 6,  "attack": 4, "defence": 2, "speed": 50,  "xp": 14},
-    "sand_worm":    {"hp": 18, "attack": 7, "defence": 3, "speed": 60,  "xp": 30},
-    "djinn":        {"hp": 20, "attack": 8, "defence": 5, "speed": 90,  "xp": 40},
-    "stone_golem":  {"hp": 30, "attack": 10, "defence": 8, "speed": 20, "xp": 50},
-    "eagle":        {"hp": 8,  "attack": 5, "defence": 2, "speed": 120, "xp": 15},
-    "cave_troll":   {"hp": 22, "attack": 8, "defence": 5, "speed": 35,  "xp": 35},
-    "boar":         {"hp": 10, "attack": 5, "defence": 3, "speed": 70,  "xp": 16},
-    "snake":        {"hp": 5,  "attack": 4, "defence": 1, "speed": 90,  "xp": 12},
-    "hawk":         {"hp": 4,  "attack": 3, "defence": 1, "speed": 130, "xp": 15},
-    "crab":         {"hp": 6,  "attack": 2, "defence": 4, "speed": 40,  "xp": 10},
+    "wolf":         {"hp": 8,  "attack": 3, "defence": 2, "speed": 80,  "xp_reward": 15},
+    "bear":         {"hp": 15, "attack": 5, "defence": 4, "speed": 50,  "xp_reward": 25},
+    "goblin":       {"hp": 6,  "attack": 4, "defence": 1, "speed": 70,  "xp_reward": 12},
+    "poison_frog":  {"hp": 4,  "attack": 3, "defence": 1, "speed": 30,  "xp_reward": 10},
+    "crocodile":    {"hp": 12, "attack": 6, "defence": 3, "speed": 40,  "xp_reward": 20},
+    "swamp_drake":  {"hp": 10, "attack": 5, "defence": 3, "speed": 60,  "xp_reward": 20},
+    "scorpion":     {"hp": 6,  "attack": 4, "defence": 2, "speed": 50,  "xp_reward": 14},
+    "sand_worm":    {"hp": 18, "attack": 7, "defence": 3, "speed": 60,  "xp_reward": 30},
+    "djinn":        {"hp": 20, "attack": 8, "defence": 5, "speed": 90,  "xp_reward": 40},
+    "stone_golem":  {"hp": 30, "attack": 10, "defence": 8, "speed": 20, "xp_reward": 50},
+    "eagle":        {"hp": 8,  "attack": 5, "defence": 2, "speed": 120, "xp_reward": 15},
+    "cave_troll":   {"hp": 22, "attack": 8, "defence": 5, "speed": 35,  "xp_reward": 35},
+    "boar":         {"hp": 10, "attack": 5, "defence": 3, "speed": 70,  "xp_reward": 16},
+    "snake":        {"hp": 5,  "attack": 4, "defence": 1, "speed": 90,  "xp_reward": 12},
+    "hawk":         {"hp": 4,  "attack": 3, "defence": 1, "speed": 130, "xp_reward": 15},
+    "crab":         {"hp": 6,  "attack": 2, "defence": 4, "speed": 40,  "xp_reward": 10},
     "sea_serpent":  {"hp": 14, "attack": 6, "defence": 3, "speed": 80,  "xp": 25},
 }
 
@@ -121,7 +121,7 @@ class Monster:
         monster_def = monster_def or {}
         base = dict(_MONSTER_HP_TABLE.get(monster_id, {
             "hp": 10, "attack": 3, "defence": 2,
-            "speed": 60, "xp": 15,
+            "speed": 60, "xp_reward": 15,
         }))
         if monster_def:
             for key in ("hp", "attack", "defence", "speed", "xp_reward"):
@@ -148,7 +148,7 @@ class Monster:
             aggression_range=float(aggression) if aggression is not None else 150.0,
             flee_range=float(flee) if flee is not None else 300.0,
             attack_cooldown=float(cooldown) if cooldown is not None else float(base.get("attack_cooldown", 1.5)),
-            xp_reward=float(base.get("xp_reward", base.get("xp"))),
+            xp_reward=float(base["xp_reward"]),
             loot_table=effective_loot,
             sprite_key=monster_def.get("sprite_key", f"monster/{monster_id}"),
             is_hostile=bool(monster_def.get("is_hostile", True)) if monster_def else True,
