@@ -15,7 +15,8 @@
       "requires_campfire": false,
       "requires_structure": "",
       "skill": null,
-      "season": "all"
+      "season": "all",
+      "skill_affects_yield": "woodcutting"
     },
     {
       "recipe_id": "charcoal",
@@ -29,7 +30,8 @@
       "requires_campfire": true,
       "requires_structure": "",
       "skill": null,
-      "season": "all"
+      "season": "all",
+      "skill_affects_yield": "woodcutting"
     },
     {
       "recipe_id": "grass_rope",
@@ -43,7 +45,8 @@
       "requires_campfire": false,
       "requires_structure": "",
       "skill": null,
-      "season": "all"
+      "season": "all",
+      "skill_affects_yield": "foraging"
     },
     {
       "recipe_id": "paper",
@@ -57,7 +60,8 @@
       "requires_campfire": false,
       "requires_structure": "",
       "skill": null,
-      "season": "all"
+      "season": "all",
+      "skill_affects_yield": "foraging"
     }
   ]
 }

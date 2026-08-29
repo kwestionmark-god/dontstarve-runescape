@@ -10,7 +10,8 @@
       "xp_reward": 25.0,
       "processing_chain": "food_chain",
       "tier": 1,
-      "skill_affects_yield": "cooking"
+      "skill_affects_yield": "cooking",
+      "is_food": true
     },
     {
       "recipe_id": "cook_fish",
@@ -22,7 +23,8 @@
       "xp_reward": 20.0,
       "processing_chain": "food_chain",
       "tier": 1,
-      "skill_affects_yield": "cooking"
+      "skill_affects_yield": "cooking",
+      "is_food": true
     },
     {
       "recipe_id": "cook_meat",
@@ -34,7 +36,8 @@
       "xp_reward": 30.0,
       "processing_chain": "food_chain",
       "tier": 1,
-      "skill_affects_yield": "cooking"
+      "skill_affects_yield": "cooking",
+      "is_food": true
     }
   ]
 }
