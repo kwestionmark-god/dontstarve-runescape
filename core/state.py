@@ -59,11 +59,3 @@ PANEL_STATES = (
     GameState.BUILDING_PANEL, GameState.GEAR_PANEL, GameState.TRADE_PANEL,
     GameState.QUEST_PANEL, GameState.RECRUIT_PANEL, GameState.DIPLOMACY_PANEL,
 )
-
-
-# PANEL_STATES — all panel-open states where update logic is frozen
-PANEL_STATES = (
-    GameState.INVENTORY_OPEN, GameState.SKILL_PANEL, GameState.CRAFTING_PANEL,
-    GameState.BUILDING_PANEL, GameState.GEAR_PANEL, GameState.TRADE_PANEL,
-    GameState.QUEST_PANEL, GameState.RECRUIT_PANEL, GameState.DIPLOMACY_PANEL,
-)
