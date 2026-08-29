@@ -22,6 +22,7 @@ from input.panel_dispatcher import PanelDispatcher
 from interactions.npc_flows import NPCFlows
 from ui.title_screen import render_title_screen, handle_title_event
 from ui.loading_screen import render_loading_screen, handle_loading_event
+from ui.character_select import CharacterSelectPanel, render_character_select, handle_character_select_event
 
 from world.biome import BiomeRegistry
 from world.world_gen import generate as generate_world
@@ -70,6 +71,7 @@ class Game:
         "_tile_renderer", "_sprite_renderer",
         "_title_selection_index", "_save_slots", "_flavor_text",
         "_build_cursor", "_input_router", "_npc_flows", "_bootstrap",
+        "_character_select_panel", "_pending_character_def",
     )
 
     def __init__(self, seed: int = 42) -> None:
@@ -114,6 +116,8 @@ class Game:
         self._building_panel = None
         self._gear_panel = None
         self._trade_panel = None
+        self._character_select_panel = None
+        self._pending_character_def = None
         self.quest_system = None
         self.faction_system = None
         self._quest_panel = None
@@ -172,6 +176,11 @@ class Game:
             # wiping it here would leave the panel open with no recruit data.
         elif new_state == GameState.DIPLOMACY_PANEL:
             self._diplomacy_panel.visible = True
+        elif new_state == GameState.CHARACTER_SELECT:
+            if self._character_select_panel is None:
+                self._character_select_panel = CharacterSelectPanel()
+                self._character_select_panel.set_confirm_callback(lambda cd: None)  # handled via event
+            self._character_select_panel.visible = True
         if old_state == GameState.TITLE and new_state == GameState.LOADING:
             self._bootstrap.begin_world_gen()
         elif old_state == GameState.TITLE and new_state == GameState.LOADING_SAVE:
@@ -252,6 +261,8 @@ class Game:
     def render(self, screen: pygame.Surface) -> None:
         if self.state == GameState.TITLE:
             render_title_screen(self, screen)
+        elif self.state == GameState.CHARACTER_SELECT:
+            render_character_select(self, screen)
         elif self.state in (GameState.LOADING, GameState.LOADING_SAVE, GameState.ERROR):
             render_loading_screen(self, screen)
         else:
@@ -411,6 +422,8 @@ class Game:
     def handle_event(self, event) -> None:
         if self.state == GameState.TITLE:
             handle_title_event(self, event)
+        elif self.state == GameState.CHARACTER_SELECT:
+            handle_character_select_event(self, event)
         elif self.state in (GameState.LOADING, GameState.LOADING_SAVE, GameState.ERROR):
             handle_loading_event(self, event)
         else:

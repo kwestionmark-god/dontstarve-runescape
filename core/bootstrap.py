@@ -411,9 +411,11 @@ class Bootstrap:
             spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
             self.game.player = Player(spawn_px_x, spawn_px_y)
 
-            # Initialize starter pack definition (pack applied after subsystem init)
+            # Use pending character definition from character selection, or default
             from survival.starter_pack import CharacterDefinition
-            character_def = CharacterDefinition()
+            character_def = getattr(self.game, "_pending_character_def", None)
+            if character_def is None:
+                character_def = CharacterDefinition()
 
             # Initialize all subsystems via bootstrap
             self.initialize()
@@ -422,6 +424,14 @@ class Bootstrap:
             # Apply starter pack AFTER inventory is created
             from survival.starter_pack import apply_starter_pack
             apply_starter_pack(self.game.inventory, character_def.starter_pack_id)
+
+            # Apply starting stat bonuses from background
+            if character_def.starting_stats:
+                from skills.skill_manager import SkillManager
+                for skill_id, bonuses in character_def.starting_stats.items():
+                    for sub_stat, points in bonuses.items():
+                        self.game.skill_manager.allocate_stat(skill_id, sub_stat, points)
+
             self.game.loading_progress = 1.0
 
             # Transition to playing state

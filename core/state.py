@@ -52,10 +52,14 @@ class GameState(Enum):
     ERROR = "error"
     """World generation or save load failed. Shows error message."""
 
+    CHARACTER_SELECT = "character_select"
+    """Character/background selection screen before world generation."""
+
 
 # PANEL_STATES — all panel-open states where update logic is frozen
 PANEL_STATES = (
     GameState.INVENTORY_OPEN, GameState.SKILL_PANEL, GameState.CRAFTING_PANEL,
     GameState.BUILDING_PANEL, GameState.GEAR_PANEL, GameState.TRADE_PANEL,
     GameState.QUEST_PANEL, GameState.RECRUIT_PANEL, GameState.DIPLOMACY_PANEL,
+    GameState.CHARACTER_SELECT,
 )

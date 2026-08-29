@@ -61,7 +61,7 @@ def handle_title_event(game: "Game", event) -> None:
     """Handle events during the TITLE state."""
     if event.type == pygame.KEYDOWN:
         if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-            game.set_state(GameState.LOADING)
+            game.set_state(GameState.CHARACTER_SELECT)
         elif event.key == pygame.K_c:
             if game._save_slots:
                 game.set_state(GameState.LOADING_SAVE)
