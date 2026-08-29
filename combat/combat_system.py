@@ -413,9 +413,23 @@ class CombatSystem:
         if hasattr(self.game, "save_system") and self.game.save_system:
             self.game.save_system.save(self.game, slot=0)
 
-        # Remove all monsters from map
-        for monster in self.monsters[:]:
-            self.remove_monster(monster)
+        # Remove monsters from map based on config
+        from config import DEATH_CLEAR_MONSTERS_RADIUS
+        if DEATH_CLEAR_MONSTERS_RADIUS > 0:
+            # Only remove monsters within radius of spawn point
+            spawn_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2
+            spawn_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
+            radius_px = DEATH_CLEAR_MONSTERS_RADIUS * TILE_SIZE
+            radius_sq = radius_px * radius_px
+            for monster in self.monsters[:]:
+                dx = monster.world_x - spawn_x
+                dy = monster.world_y - spawn_y
+                if dx * dx + dy * dy <= radius_sq:
+                    self.remove_monster(monster)
+        else:
+            # Remove all monsters (default behavior)
+            for monster in self.monsters[:]:
+                self.remove_monster(monster)
 
     # ── NPC Combat ────────────────────────────────────────────────
 

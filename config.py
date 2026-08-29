@@ -85,6 +85,7 @@ PLAYER_HP_PER_COMBAT_LEVEL = 1  # HP gain per Combat level (stub)
 COMBAT_BASE_ATTACK_COOLDOWN = 1.5  # Base attack cooldown in seconds (unarmed)
 COMBAT_SPEED_STAT_COOLDOWN_REDUCTION = 0.3  # Cooldown reduction per speed stat point
 COMBAT_DAMAGE_NUMBER_RISE_RATE = 30.0  # Damage number rise rate (px/s)
+DEATH_CLEAR_MONSTERS_RADIUS = 0.0  # Radius in tiles to clear monsters on death (0 = all)
 
 # ─── Firemaking ──────────────────────────────────────────────────────
 
