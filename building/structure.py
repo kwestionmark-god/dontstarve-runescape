@@ -10,12 +10,15 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple
 
 from config import DATA_DIR
 
 if TYPE_CHECKING:
     from typing import Any
+
+StructureType = Literal["portable", "fixed", "advanced"]
+ConstructionSubStat = Literal["common", "defensive", "offensive", "decorative"]
 
 
 @dataclass
@@ -41,8 +44,8 @@ class StructureDef:
 
     structure_id: str
     name: str
-    structure_type: str  # "portable", "fixed", "advanced"
-    construction_sub_stat: str  # "common", "defensive", "offensive", "decorative"
+    structure_type: StructureType
+    construction_sub_stat: ConstructionSubStat
     hp: int
     materials: List[Tuple[str, int]]
     requires_structure_level: int
