@@ -15,7 +15,7 @@ optional SeasonSystem, then used to place all resources on the map.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from world.resource_node import ResourceNode
@@ -86,7 +86,12 @@ class ResourcePlacer:
                         continue
 
                     if self.rng.random() < adjusted_density:
-                        tile.resource_node = resource
+                        # Place a COPY of the definition, never the shared
+                        # instance: `_resource_cache` holds ONE ResourceNode
+                        # per resource_id, and harvest state (current_depletions)
+                        # is per-node — sharing the object would make every
+                        # tree/rock of a type deplete and regrow in lockstep.
+                        tile.resource_node = replace(resource)
 
     def _precompute_available(self) -> set[str]:
         """
