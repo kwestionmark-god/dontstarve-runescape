@@ -139,6 +139,11 @@ class RecruitPanel(PanelWindow):
         self._load_guard_post_info()
         return True
 
+    def close(self) -> None:
+        """Close the recruit panel and clean up session state."""
+        self.close_session()
+        super().close()
+
     def close_session(self) -> None:
         self._recruit_info = None
         self._selected_behavior = ""

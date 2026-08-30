@@ -180,6 +180,11 @@ class TradePanel(PanelWindow):
 
         return True
 
+    def close(self) -> None:
+        """Close the trade panel and clean up session state."""
+        self.close_session()
+        super().close()
+
     def close_session(self) -> None:
         """Close the current trade session and reset all state."""
         if self.trade_system is not None:

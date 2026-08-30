@@ -187,6 +187,11 @@ class QuestPanel(PanelWindow):
         self._load_item_names()
         return True
 
+    def close(self) -> None:
+        """Close the quest panel and clean up session state."""
+        self.close_session()
+        super().close()
+
     def close_session(self) -> None:
         """Reset all runtime state (scroll, selection, status). Clear NPC scope."""
         self._giver_npc = None

@@ -132,6 +132,11 @@ class DiplomacyPanel(PanelWindow):
         self.select(0)
         return True
 
+    def close(self) -> None:
+        """Close the diplomacy panel and clean up session state."""
+        self.close_session()
+        super().close()
+
     def close_session(self) -> None:
         self._faction_info = None
         self._selected_faction_leader = None

@@ -455,6 +455,16 @@ class PanelWindow:
     def on_scroll(self, delta: int) -> None:
         """Panel-specific scroll notification. Default no-op."""
 
+    def close(self) -> None:
+        """
+        Close the panel and perform any necessary cleanup.
+
+        Default implementation just hides the panel. Panels that manage
+        external session state (e.g., NPC interactions) should override
+        this to clean up their session before hiding.
+        """
+        self.visible = False
+
     # ── Rendering ────────────────────────────────────────────────────────
     def render(self, screen: Surface) -> None:
         """
