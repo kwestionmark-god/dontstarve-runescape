@@ -182,16 +182,21 @@ class InputRouter:
         elif event.key == pygame.K_ESCAPE:
             if is_state.close_panel and game.state != GameState.PLAYING:
                 is_state.close_panel = False
-                if game.state == GameState.TRADE_PANEL:
-                    if game._trade_panel is not None:
-                        game._trade_panel.close_session()
-                elif game.state == GameState.QUEST_PANEL:
-                    if game._quest_panel is not None:
-                        game._quest_panel.close_session()
-                elif game.state == GameState.RECRUIT_PANEL:
-                    self._npc_flows.close_recruit_panel()
-                elif game.state == GameState.DIPLOMACY_PANEL:
-                    self._npc_flows.close_diplomacy_panel()
+                # Use the unified close() method on the active panel
+                panel_map = {
+                    GameState.TRADE_PANEL: game._trade_panel,
+                    GameState.QUEST_PANEL: game._quest_panel,
+                    GameState.RECRUIT_PANEL: game._recruit_panel,
+                    GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+                    GameState.INVENTORY_OPEN: game._inventory_panel,
+                    GameState.SKILL_PANEL: game._skill_panel,
+                    GameState.CRAFTING_PANEL: game._crafting_panel,
+                    GameState.BUILDING_PANEL: game._building_panel,
+                    GameState.GEAR_PANEL: game._gear_panel,
+                }
+                panel = panel_map.get(game.state)
+                if panel is not None:
+                    panel.close()
                 game.set_state(GameState.PLAYING)
         elif event.key == pygame.K_F5:
             if game.save_system:
@@ -385,24 +390,20 @@ class InputRouter:
 
     def _close_all_panels(self) -> None:
         game = self._game
-        if game._inventory_panel is not None:
-            game._inventory_panel.visible = False
-        if game._skill_panel is not None:
-            game._skill_panel.visible = False
-        if game._crafting_panel is not None:
-            game._crafting_panel.visible = False
-        if game._building_panel is not None:
-            game._building_panel.visible = False
-        if game._gear_panel is not None:
-            game._gear_panel.visible = False
-        if game._trade_panel is not None:
-            game._trade_panel.visible = False
-        if game._quest_panel is not None:
-            game._quest_panel.visible = False
-        if game._recruit_panel is not None:
-            game._recruit_panel.visible = False
-        if game._diplomacy_panel is not None:
-            game._diplomacy_panel.visible = False
+        panel_map = {
+            GameState.INVENTORY_OPEN: game._inventory_panel,
+            GameState.SKILL_PANEL: game._skill_panel,
+            GameState.CRAFTING_PANEL: game._crafting_panel,
+            GameState.BUILDING_PANEL: game._building_panel,
+            GameState.GEAR_PANEL: game._gear_panel,
+            GameState.TRADE_PANEL: game._trade_panel,
+            GameState.QUEST_PANEL: game._quest_panel,
+            GameState.RECRUIT_PANEL: game._recruit_panel,
+            GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+        }
+        for panel in panel_map.values():
+            if panel is not None:
+                panel.close()
 
     def _is_panel_state(self, state: GameState) -> bool:
         return state in PANEL_STATES

@@ -140,25 +140,41 @@ class PanelDispatcher:
 
     def _handle_close(self, state: "GameState") -> None:
         game = self._game
-        if state == GameState.TRADE_PANEL and game._trade_panel is not None:
-            game._trade_panel.close_session()
-        elif state == GameState.QUEST_PANEL and game._quest_panel is not None:
-            game._quest_panel.close_session()
-        elif state == GameState.RECRUIT_PANEL:
-            self._npc_flows.close_recruit_panel()
-        elif state == GameState.DIPLOMACY_PANEL:
-            self._npc_flows.close_diplomacy_panel()
-        else:
-            game.set_state(GameState.PLAYING)
+        # Use the unified close() method on the active panel
+        panel_map = {
+            GameState.TRADE_PANEL: game._trade_panel,
+            GameState.QUEST_PANEL: game._quest_panel,
+            GameState.RECRUIT_PANEL: game._recruit_panel,
+            GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+            GameState.INVENTORY_OPEN: game._inventory_panel,
+            GameState.SKILL_PANEL: game._skill_panel,
+            GameState.CRAFTING_PANEL: game._crafting_panel,
+            GameState.BUILDING_PANEL: game._building_panel,
+            GameState.GEAR_PANEL: game._gear_panel,
+        }
+        panel = panel_map.get(state)
+        if panel is not None:
+            panel.close()
+        game.set_state(GameState.PLAYING)
 
     def _handle_cancel(self, state: "GameState") -> None:
         game = self._game
-        if state == GameState.RECRUIT_PANEL:
-            self._npc_flows.close_recruit_panel()
-        elif state == GameState.DIPLOMACY_PANEL:
-            self._npc_flows.close_diplomacy_panel()
-        else:
-            game.set_state(GameState.PLAYING)
+        # Use the unified close() method on the active panel
+        panel_map = {
+            GameState.TRADE_PANEL: game._trade_panel,
+            GameState.QUEST_PANEL: game._quest_panel,
+            GameState.RECRUIT_PANEL: game._recruit_panel,
+            GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+            GameState.INVENTORY_OPEN: game._inventory_panel,
+            GameState.SKILL_PANEL: game._skill_panel,
+            GameState.CRAFTING_PANEL: game._crafting_panel,
+            GameState.BUILDING_PANEL: game._building_panel,
+            GameState.GEAR_PANEL: game._gear_panel,
+        }
+        panel = panel_map.get(state)
+        if panel is not None:
+            panel.close()
+        game.set_state(GameState.PLAYING)
 
     def _handle_skill_allocation(self, *args) -> None:
         game = self._game
