@@ -82,6 +82,15 @@ class ResourcePlacer:
     )
     VEIN_SIZE_RANGE: tuple[int, int] = (3, 7)
 
+    # Poisson disc sampling for common/ubiquitous resources
+    POISSON_RADIUS: dict[str, int] = field(
+        default_factory=lambda: {
+            "ubiquitous": 3,
+            "common": 4,
+        },
+        repr=False,
+    )
+
     # Clustering bonus
     CLUSTER_BONUS = 0.02
 
@@ -92,6 +101,7 @@ class ResourcePlacer:
         Flow:
         1. Load resource definitions and precompute available resources
         2. Precompute spawn distances for progression zones (if enforcing)
+        3. **Poisson disc pass**: Place common/ubiquitous resources with even distribution
         3. Iterate tiles, attempt placement with zone/biome/season checks
         4. Handle vein placement for ore/stone categories
 
@@ -120,6 +130,14 @@ class ResourcePlacer:
 
         # Track which tiles have been assigned (for vein placement)
         self._assigned_tiles: set[tuple[int, int]] = set()
+
+        # --- Landmark resources pass: guaranteed special nodes per biome region ---
+        if enforce_zones:
+            self._landmark_pass(tile_map)
+
+        # --- Poisson disc pass for common/ubiquitous resources ---
+        if enforce_zones:
+            self._poisson_disc_pass(tile_map)
 
         for x in range(tile_map.width):
             for y in range(tile_map.height):
@@ -174,6 +192,166 @@ class ResourcePlacer:
                         # Single-tile placement
                         tile.resource_node = replace(resource)
                         self._assigned_tiles.add((x, y))
+
+    def _landmark_pass(self, tile_map: TileMap) -> None:
+        """
+        Place landmark resources - guaranteed special nodes per biome region.
+        
+        Identifies distinct biome regions using flood fill, then places
+        one landmark resource (rare/epic/legendary) per region.
+        """
+        # Define landmark resources per biome (rare/epic/legendary that define the biome)
+        LANDMARK_RESOURCES = {
+            "forest": ["silk_nest", "elder_wood", "phoenix_feather"],
+            "plains": ["water_source"],
+            "coastal": ["celestial_crystal", "driftwood"],
+            "swamp": ["dragonbone", "void_essence", "reed_bed"],
+            "mountains": ["star_metal", "ancient_rune", "mithril_vein", "ghost_iron_deposit", "void_crystal", "obsidian_vein"],
+            "desert": ["amber_deposit", "dead_tree", "rare_ore"],
+        }
+        
+        visited = [[False] * tile_map.height for _ in range(tile_map.width)]
+        
+        for x in range(tile_map.width):
+            for y in range(tile_map.height):
+                if visited[x][y] or tile_map.tiles[x][y].biome is None:
+                    continue
+                
+                biome_id = tile_map.tiles[x][y].biome.id
+                landmarks = LANDMARK_RESOURCES.get(biome_id, [])
+                if not landmarks:
+                    continue
+                
+                # Flood fill to find this biome region
+                region_tiles = []
+                stack = [(x, y)]
+                while stack:
+                    cx, cy = stack.pop()
+                    if visited[cx][cy]:
+                        continue
+                    visited[cx][cy] = True
+                    tile = tile_map.tiles[cx][cy]
+                    if tile.biome is None or tile.biome.id != biome_id:
+                        continue
+                    region_tiles.append((cx, cy))
+                    for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
+                        nx, ny = cx + dx, cy + dy
+                        if 0 <= nx < tile_map.width and 0 <= ny < tile_map.height:
+                            if not visited[nx][ny]:
+                                stack.append((nx, ny))
+                
+                if len(region_tiles) < 10:  # Too small for a landmark
+                    continue
+                
+                # Pick a landmark resource
+                landmark_id = self.rng.choice(landmarks)
+                resource = self._resource_cache.get(landmark_id)
+                if resource is None:
+                    continue
+                
+                # Pick a central tile in the region
+                cx, cy = region_tiles[len(region_tiles) // 2]
+                tile = tile_map.tiles[cx][cy]
+                
+                # Only place if tile is empty
+                if tile.resource_node is not None:
+                    # Find nearby empty tile
+                    placed = False
+                    for rx, ry in region_tiles:
+                        t = tile_map.tiles[rx][ry]
+                        if t.resource_node is None:
+                            t.resource_node = replace(resource)
+                            self._assigned_tiles.add((rx, ry))
+                            placed = True
+                            break
+                    if not placed:
+                        continue
+                else:
+                    tile.resource_node = replace(resource)
+                    self._assigned_tiles.add((cx, cy))
+
+    def _poisson_disc_pass(self, tile_map: TileMap) -> None:
+        """
+        Place common/ubiquitous resources using Poisson disc sampling
+        for even distribution without clumping.
+        
+        This runs as a separate pass before regular placement to ensure
+        common resources are evenly distributed.
+        """
+        # Collect common/ubiquitous resources per biome
+        biome_resources: dict[str, list[str]] = {}
+        for x in range(tile_map.width):
+            for y in range(tile_map.height):
+                tile = tile_map.tiles[x][y]
+                biome_id = tile.biome.id
+                if biome_id not in biome_resources:
+                    biome_resources[biome_id] = []
+                for res_id in tile.biome.resource_spawns:
+                    if res_id not in self._available_resources:
+                        continue
+                    resource = self._resource_cache.get(res_id)
+                    if resource and resource.rarity in ("ubiquitous", "common"):
+                        biome_resources[biome_id].append(res_id)
+        
+        # Deduplicate
+        for biome_id, res_list in biome_resources.items():
+            biome_resources[biome_id] = list(set(res_list))
+        
+        # For each biome, place resources using Poisson disc
+        for biome_id, res_list in biome_resources.items():
+            if not res_list:
+                continue
+            
+            # Collect all tiles of this biome
+            biome_tiles = []
+            for x in range(tile_map.width):
+                for y in range(tile_map.height):
+                    tile = tile_map.tiles[x][y]
+                    if tile.biome.id == biome_id and tile.resource_node is None:
+                        biome_tiles.append((x, y))
+            
+            if not biome_tiles:
+                continue
+            
+            # Use the smallest Poisson radius among these resources
+            min_radius = min(self.POISSON_RADIUS.get(r, 4) for r in res_list)
+            
+            # Poisson disc sampling: shuffle tiles, then place with minimum distance
+            self.rng.shuffle(biome_tiles)
+            placed: list[tuple[int, int]] = []
+            
+            for x, y in biome_tiles:
+                # Check distance to already placed tiles
+                too_close = False
+                for px, py in placed:
+                    dx, dy = x - px, y - py
+                    if dx * dx + dy * dy < min_radius * min_radius:
+                        too_close = True
+                        break
+                
+                if too_close:
+                    continue
+                
+                # Try to place one of the resources
+                tile = tile_map.tiles[x][y]
+                if tile.resource_node is not None:
+                    continue
+                
+                # Pick a random resource from the list
+                resource_id = self.rng.choice(res_list)
+                resource = self._resource_cache.get(resource_id)
+                if resource is None:
+                    continue
+                
+                # Compute density with zone 0 (center)
+                density = self._compute_density(resource, tile, biome_id, tile_map, 0)
+                if density <= 0:
+                    continue
+                
+                if self.rng.random() < density:
+                    tile.resource_node = replace(resource)
+                    self._assigned_tiles.add((x, y))
+                    placed.append((x, y))
 
     def _get_zone(self, distance: float) -> int:
         """Get progression zone index from spawn distance."""
