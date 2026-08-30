@@ -188,6 +188,15 @@ Each resource has multiple value signals that are **not** used for spawn rarity:
 - All resources are single-tile
 - Real ore veins, tree clusters, water bodies would feel more natural
 
+### P8: Heightmap & Shading Limitations (Medium)
+- **Elevation resolution too coarse**: Only 8 elevation levels (0–7) from Perlin noise quantization, limiting terrain variety
+- **No ridgeline/valley detection**: Perlin noise creates smooth hills but no sharp geological features
+- **Shading is flat**: Simple NW light dot product with single `SHADING_STRENGTH` constant; no ambient occlusion, no rim lighting, no seasonal variation
+- **No erosion simulation**: Terrain lacks realistic water flow patterns, alluvial fans, scree slopes
+- **Cliff/ledge rendering missing**: Sharp elevation changes (delta > 2) render as smooth slopes instead of visible cliffs
+- **No biome-specific terrain texturing**: All biomes use same noise parameters; mountains should be jagged, plains smooth
+- **Elevation-band biome classification is rigid**: Hard thresholds create visible biome boundaries instead of natural transitions
+
 ---
 
 ## Resource Value Assessment
@@ -298,7 +307,37 @@ Regrowth_Penalty = min(1.0, 300 / regrow_time)  (fast regrow = more available)
 
 ---
 
-## Implementation Details
+### Phase 5: Heightmap & Terrain Generation Overhaul
+**Goal:** Realistic, varied terrain with geological features.
+
+| Task | Description | Files |
+|------|-------------|-------|
+| 5.1 | **Multi-octave elevation with ridgeline preservation**: Use domain-warping + ridge noise for sharp ridges/valleys; separate base elevation from detail noise | `world/world_gen.py` |
+| 5.2 | **Erosion simulation (hydraulic/thermal)**: Fast GPU-style cellular automaton for water flow, sediment transport, talus formation; run 10-50 iterations post-generation | `world/world_gen.py` (new `erosion.py`) |
+| 5.3 | **Biome-specific noise parameters**: Mountains = high frequency + ridged; Plains = low frequency + billow; Swamps = low elevation + high moisture; Deserts = dune noise | `world/world_gen.py`, `config/constants.py` |
+| 5.4 | **Soft biome transitions**: Replace hard elevation thresholds with weighted blending using moisture + elevation gradients; add ecotone biome variants | `world/world_gen.py`, `world/biome.py` |
+| 5.5 | **Cliff/ledge detection**: Tag elevation deltas > 2 for special rendering; add scree/scree slope tiles at cliff bases | `world/tile_map.py`, `render/tile_renderer.py` |
+| 5.6 | **Water body generation**: River networks from erosion flow maps; lakes in depressions; coastal smoothing | `world/world_gen.py` |
+| 5.7 | **Configurable elevation resolution**: 16/32/64 levels via `ELEVATION_LEVELS` config; auto-scale Z_SCALE | `config/constants.py`, `world/tile_map.py` |
+
+**Validation:** Generated worlds show distinct geological features; biome boundaries feel organic; cliffs render correctly.
+
+---
+
+### Phase 6: Advanced Shading & Lighting
+**Goal:** Cinematic terrain lighting with depth and atmosphere.
+
+| Task | Description | Files |
+|------|-------------|-------|
+| 6.1 | **Multi-directional lighting**: Replace single NW light with configurable sun position (time-of-day); add ambient sky light | `world/tile_map.py`, `config/constants.py` |
+| 6.2 | **Ambient occlusion (SSAO-style)**: Pre-bake corner occlusion from elevation neighbors; store per-tile AO factor | `world/tile_map.py`, `render/tile_renderer.py` |
+| 6.3 | **Rim lighting / fresnel**: Brighten slopes facing camera at grazing angles for depth perception | `render/tile_renderer.py` |
+| 6.4 | **Seasonal lighting variation**: Winter = cooler, lower sun; Summer = warmer, higher sun; Autumn = golden hour tint | `seasons/season_system.py`, `world/tile_map.py` |
+| 6.5 | **Volumetric fog integration**: Fog density varies with elevation (valleys foggier); height-based fog planes | `render/tile_renderer.py`, `seasons/weather_system.py` |
+| 6.6 | **Dynamic weather lighting**: Cloud shadows, rain darkening, snow brightening; lightning flashes | `render/tile_renderer.py`, `seasons/weather_system.py` |
+| 6.7 | **Configurable shading presets**: "stylized", "realistic", "performance" presets in constants | `config/constants.py` |
+
+**Validation:** Terrain reads clearly at all zoom levels; seasonal mood conveyed through lighting; performance within budget.
 
 ### Phase 1 — Code Changes
 
@@ -516,6 +555,20 @@ python -m tools.analyze_resource_distribution --worlds 1000 --output dist.csv
 - [ ] Phase 3: Add Poisson disc for common resources
 - [ ] Phase 3: Add landmark guaranteed placement
 - [ ] Phase 4: Add analytics hooks and designer analysis tool
+- [ ] Phase 5: Multi-octave elevation with ridgeline preservation
+- [ ] Phase 5: Erosion simulation (hydraulic/thermal)
+- [ ] Phase 5: Biome-specific noise parameters
+- [ ] Phase 5: Soft biome transitions with ecotones
+- [ ] Phase 5: Cliff/ledge detection and rendering
+- [ ] Phase 5: Water body generation (rivers, lakes)
+- [ ] Phase 5: Configurable elevation resolution
+- [ ] Phase 6: Multi-directional lighting + time-of-day
+- [ ] Phase 6: Ambient occlusion (SSAO-style)
+- [ ] Phase 6: Rim lighting / fresnel
+- [ ] Phase 6: Seasonal lighting variation
+- [ ] Phase 6: Volumetric fog integration
+- [ ] Phase 6: Dynamic weather lighting
+- [ ] Phase 6: Configurable shading presets
 - [ ] All phases: Run full test suite, verify no regressions
 - [ ] All phases: Playtest 5+ worlds, verify feel
 
@@ -574,10 +627,11 @@ python -m tools.analyze_resource_distribution --worlds 1000 --output dist.csv
 ## Next Steps
 
 1. **Review this document** — confirm rarity assignments match your design intent
-2. **Prioritize phases** — Phase 1+2 are critical; Phase 3+4 are polish
-3. **Assign ownership** — who updates `resources.json` (57 entries)?
+2. **Prioritize phases** — Phase 1+2 are critical; Phase 3+4 are polish; Phase 5+6 are major visual upgrades
+3. **Assign ownership** — who updates `resources.json` (65 entries)?
 4. **Create tracking issues** — one per phase for project management
 5. **Schedule playtest** — after Phase 2 complete, before Phase 3
+6. **Prototype heightmap** — Phase 5 needs R&D for erosion algorithm performance
 
 ---
 
