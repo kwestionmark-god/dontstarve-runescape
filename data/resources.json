@@ -16,7 +16,15 @@
       "depletion_count": 4,
       "regrow_time": 180.0,
       "sprite_key": "trees/oak",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "forest": 1.5,
+        "plains": 0.5,
+        "coastal": 0.3,
+        "mountains": 0.2,
+        "swamp": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "berry_bush",
@@ -32,7 +40,15 @@
       "depletion_count": 3,
       "regrow_time": 120.0,
       "sprite_key": "trees/berry_bush",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "forest": 1.5,
+        "plains": 0.5,
+        "swamp": 0.3,
+        "coastal": 0.2,
+        "mountains": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "herb",
@@ -48,7 +64,15 @@
       "depletion_count": 3,
       "regrow_time": 150.0,
       "sprite_key": "world/herb",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "forest": 1.2,
+        "plains": 1.0,
+        "swamp": 1.0,
+        "coastal": 0.5,
+        "mountains": 0.3,
+        "desert": 0.2
+      }
     },
     {
       "id": "fiber_plant",
@@ -64,7 +88,15 @@
       "depletion_count": 5,
       "regrow_time": 90.0,
       "sprite_key": "world/fiber",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "forest": 1.5,
+        "swamp": 1.0,
+        "plains": 0.5,
+        "coastal": 0.3,
+        "mountains": 0.2,
+        "desert": 0.0
+      }
     },
     {
       "id": "grass_patch",
@@ -80,7 +112,15 @@
       "depletion_count": 5,
       "regrow_time": 60.0,
       "sprite_key": "world/grass",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "plains": 2.0,
+        "forest": 1.0,
+        "coastal": 0.5,
+        "mountains": 0.3,
+        "swamp": 0.2,
+        "desert": 0.1
+      }
     },
     {
       "id": "wheat_field",
@@ -96,7 +136,15 @@
       "depletion_count": 3,
       "regrow_time": 120.0,
       "sprite_key": "world/wheat",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "plains": 2.0,
+        "forest": 0.5,
+        "coastal": 0.3,
+        "swamp": 0.1,
+        "mountains": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "water_source",
@@ -112,7 +160,15 @@
       "depletion_count": -1,
       "regrow_time": 0.0,
       "sprite_key": "world/water",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "plains": 1.5,
+        "swamp": 1.2,
+        "forest": 0.8,
+        "coastal": 1.0,
+        "mountains": 0.5,
+        "desert": 0.3
+      }
     },
     {
       "id": "driftwood",
@@ -128,7 +184,15 @@
       "depletion_count": 3,
       "regrow_time": 240.0,
       "sprite_key": "world/driftwood",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "coastal": 2.0,
+        "swamp": 0.5,
+        "forest": 0.2,
+        "plains": 0.1,
+        "mountains": 0.0,
+        "desert": 0.0
+      }
     },
     {
       "id": "shell_beach",
@@ -144,7 +208,15 @@
       "depletion_count": 5,
       "regrow_time": 90.0,
       "sprite_key": "world/shell",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "coastal": 2.0,
+        "swamp": 0.5,
+        "plains": 0.1,
+        "forest": 0.0,
+        "mountains": 0.0,
+        "desert": 0.0
+      }
     },
     {
       "id": "fish_spot",
@@ -160,7 +232,15 @@
       "depletion_count": 2,
       "regrow_time": 60.0,
       "sprite_key": "world/fish",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "coastal": 2.0,
+        "swamp": 1.0,
+        "plains": 0.5,
+        "forest": 0.3,
+        "mountains": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "salt_deposit",
@@ -176,7 +256,15 @@
       "depletion_count": 4,
       "regrow_time": 300.0,
       "sprite_key": "world/salt",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "coastal": 2.0,
+        "desert": 1.5,
+        "plains": 0.3,
+        "swamp": 0.2,
+        "forest": 0.1,
+        "mountains": 0.1
+      }
     },
     {
       "id": "peat_mound",
@@ -192,7 +280,15 @@
       "depletion_count": 4,
       "regrow_time": 180.0,
       "sprite_key": "world/peat",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "swamp": 2.0,
+        "forest": 0.3,
+        "coastal": 0.2,
+        "plains": 0.1,
+        "mountains": 0.0,
+        "desert": 0.0
+      }
     },
     {
       "id": "toxic_reed",
@@ -208,7 +304,15 @@
       "depletion_count": 3,
       "regrow_time": 120.0,
       "sprite_key": "world/toxic_reed",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "swamp": 2.0,
+        "forest": 0.2,
+        "coastal": 0.2,
+        "plains": 0.1,
+        "mountains": 0.0,
+        "desert": 0.0
+      }
     },
     {
       "id": "iron_rock",
@@ -224,7 +328,15 @@
       "depletion_count": 5,
       "regrow_time": 300.0,
       "sprite_key": "rocks/iron",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.5,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "copper_rock",
@@ -240,7 +352,15 @@
       "depletion_count": 5,
       "regrow_time": 300.0,
       "sprite_key": "rocks/copper",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.3,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "gold_vein",
@@ -256,7 +376,15 @@
       "depletion_count": 3,
       "regrow_time": 600.0,
       "sprite_key": "rocks/gold",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.3,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "stone_quarry",
@@ -272,7 +400,15 @@
       "depletion_count": 8,
       "regrow_time": 200.0,
       "sprite_key": "rocks/stone",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.8,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "gemstone",
@@ -288,7 +424,15 @@
       "depletion_count": 2,
       "regrow_time": 900.0,
       "sprite_key": "rocks/gem",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.3,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "sand_deposit",
@@ -304,7 +448,15 @@
       "depletion_count": 8,
       "regrow_time": 120.0,
       "sprite_key": "world/sand",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "desert": 2.0,
+        "coastal": 1.5,
+        "plains": 0.3,
+        "forest": 0.1,
+        "mountains": 0.1,
+        "swamp": 0.0
+      }
     },
     {
       "id": "salt_crystal",
@@ -320,7 +472,15 @@
       "depletion_count": 4,
       "regrow_time": 300.0,
       "sprite_key": "world/salt_crystal",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "desert": 2.0,
+        "coastal": 1.5,
+        "plains": 0.3,
+        "swamp": 0.2,
+        "forest": 0.1,
+        "mountains": 0.1
+      }
     },
     {
       "id": "cactus",
@@ -336,7 +496,15 @@
       "depletion_count": 3,
       "regrow_time": 240.0,
       "sprite_key": "world/cactus",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "desert": 2.0,
+        "plains": 0.3,
+        "coastal": 0.2,
+        "forest": 0.0,
+        "mountains": 0.1,
+        "swamp": 0.0
+      }
     },
     {
       "id": "rare_ore",
@@ -352,7 +520,15 @@
       "depletion_count": 2,
       "regrow_time": 600.0,
       "sprite_key": "rocks/rare",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "desert": 2.0,
+        "mountains": 1.0,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "tin_rock",
@@ -368,7 +544,15 @@
       "depletion_count": 6,
       "regrow_time": 300.0,
       "sprite_key": "rocks/tin",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.2,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "void_crystal",
@@ -389,7 +573,15 @@
         "spring",
         "summer",
         "autumn"
-      ]
+      ],
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.3,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "obsidian_vein",
@@ -409,7 +601,15 @@
       "seasons_available": [
         "spring",
         "summer"
-      ]
+      ],
+      "biome_affinity": {
+        "mountains": 2.0,
+        "desert": 0.5,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "dragonbone",
@@ -429,7 +629,15 @@
       "seasons_available": [
         "autumn",
         "winter"
-      ]
+      ],
+      "biome_affinity": {
+        "swamp": 2.0,
+        "mountains": 0.5,
+        "forest": 0.2,
+        "coastal": 0.1,
+        "plains": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "mithril_vein",
@@ -448,7 +656,15 @@
       "requires_tool": "pickaxe",
       "seasons_available": [
         "winter"
-      ]
+      ],
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "silk_nest",
@@ -468,7 +684,15 @@
       "seasons_available": [
         "spring",
         "summer"
-      ]
+      ],
+      "biome_affinity": {
+        "forest": 2.0,
+        "swamp": 0.5,
+        "plains": 0.2,
+        "coastal": 0.1,
+        "mountains": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "amber_deposit",
@@ -488,7 +712,15 @@
       "seasons_available": [
         "summer",
         "autumn"
-      ]
+      ],
+      "biome_affinity": {
+        "desert": 2.0,
+        "mountains": 0.5,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "moonstone_deposit",
@@ -504,7 +736,15 @@
       "depletion_count": 2,
       "regrow_time": 1500.0,
       "sprite_key": "rocks/moonstone",
-      "requires_tool": "pickaxe"
+      "requires_tool": "pickaxe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.3,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "ghost_iron_deposit",
@@ -523,7 +763,15 @@
       "requires_tool": "pickaxe",
       "seasons_available": [
         "winter"
-      ]
+      ],
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "star_metal",
@@ -542,7 +790,15 @@
       "requires_tool": "pickaxe",
       "seasons_available": [
         "winter"
-      ]
+      ],
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "void_essence",
@@ -562,7 +818,15 @@
       "seasons_available": [
         "autumn",
         "winter"
-      ]
+      ],
+      "biome_affinity": {
+        "swamp": 2.0,
+        "mountains": 0.3,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "phoenix_feather",
@@ -581,7 +845,15 @@
       "requires_tool": null,
       "seasons_available": [
         "spring"
-      ]
+      ],
+      "biome_affinity": {
+        "forest": 2.0,
+        "mountains": 0.3,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "ancient_rune",
@@ -600,7 +872,15 @@
       "requires_tool": "pickaxe",
       "seasons_available": [
         "winter"
-      ]
+      ],
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.1,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "elder_wood",
@@ -620,7 +900,15 @@
       "seasons_available": [
         "spring",
         "summer"
-      ]
+      ],
+      "biome_affinity": {
+        "forest": 2.0,
+        "mountains": 0.3,
+        "plains": 0.1,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "celestial_crystal",
@@ -639,7 +927,15 @@
       "requires_tool": "pickaxe",
       "seasons_available": [
         "summer"
-      ]
+      ],
+      "biome_affinity": {
+        "coastal": 2.0,
+        "mountains": 0.5,
+        "forest": 0.1,
+        "plains": 0.1,
+        "swamp": 0.1,
+        "desert": 0.1
+      }
     },
     {
       "id": "birch_tree",
@@ -655,7 +951,15 @@
       "depletion_count": 4,
       "regrow_time": 180.0,
       "sprite_key": "trees/birch",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "forest": 1.5,
+        "plains": 0.8,
+        "coastal": 0.5,
+        "mountains": 0.2,
+        "swamp": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "maple_tree",
@@ -671,7 +975,15 @@
       "depletion_count": 4,
       "regrow_time": 200.0,
       "sprite_key": "trees/maple",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "forest": 1.5,
+        "plains": 0.5,
+        "coastal": 0.3,
+        "mountains": 0.3,
+        "swamp": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "pine_tree",
@@ -687,7 +999,15 @@
       "depletion_count": 4,
       "regrow_time": 220.0,
       "sprite_key": "trees/pine",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "forest": 1.2,
+        "mountains": 1.0,
+        "plains": 0.3,
+        "coastal": 0.2,
+        "swamp": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "spruce_tree",
@@ -703,7 +1023,15 @@
       "depletion_count": 5,
       "regrow_time": 240.0,
       "sprite_key": "trees/spruce",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "mountains": 2.0,
+        "forest": 0.5,
+        "plains": 0.2,
+        "coastal": 0.1,
+        "swamp": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "willow_tree",
@@ -719,7 +1047,15 @@
       "depletion_count": 4,
       "regrow_time": 200.0,
       "sprite_key": "trees/willow",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "swamp": 2.0,
+        "coastal": 1.5,
+        "forest": 0.5,
+        "plains": 0.2,
+        "mountains": 0.1,
+        "desert": 0.0
+      }
     },
     {
       "id": "dead_tree",
@@ -735,7 +1071,15 @@
       "depletion_count": 2,
       "regrow_time": 600.0,
       "sprite_key": "trees/dead_tree",
-      "requires_tool": "axe"
+      "requires_tool": "axe",
+      "biome_affinity": {
+        "desert": 2.0,
+        "coastal": 0.5,
+        "plains": 0.3,
+        "forest": 0.1,
+        "mountains": 0.1,
+        "swamp": 0.1
+      }
     },
     {
       "id": "reed_bed",
@@ -751,7 +1095,15 @@
       "depletion_count": 4,
       "regrow_time": 150.0,
       "sprite_key": "world/reed",
-      "requires_tool": null
+      "requires_tool": null,
+      "biome_affinity": {
+        "swamp": 2.0,
+        "coastal": 1.5,
+        "forest": 0.3,
+        "plains": 0.2,
+        "mountains": 0.0,
+        "desert": 0.0
+      }
     }
   ]
 }
