@@ -132,4 +132,16 @@ WEATHER_WEIGHTS: dict[str, tuple[float, float, float, float, float]] = {
 }
 WEATHER_CHANGE_INTERVAL = 120.0     # Seconds between weather rolls
 
+# ─── Proc-Gen Rarity System (Phase 1) ──────────────────────────────────
+
+# Rarity → (min_density, max_density) for base_density clamping
+RARITY_DENSITY_RANGE: dict[str, tuple[float, float]] = {
+    "ubiquitous": (0.15, 0.30),   # water, grass
+    "common":     (0.08, 0.15),   # oak, iron, fiber, berry, birch, maple, pine, reed
+    "uncommon":   (0.03, 0.08),   # copper, gold, gem, tin, spruce, willow, dead_tree
+    "rare":       (0.01, 0.03),   # void_crystal, obsidian, silk, elder_wood, moonstone
+    "epic":       (0.003, 0.01),  # mithril, ghost_iron, dragonbone, void_essence, phoenix
+    "legendary":  (0.001, 0.003), # star_metal, ancient_rune, celestial_crystal
+}
+
 

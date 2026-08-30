@@ -43,6 +43,8 @@ from config.constants import (
     DATA_DIR, ITEMS_FILE,
     # Weather
     WEATHER_CHANGE_INTERVAL, WEATHER_WEIGHTS,
+    # Proc-Gen Rarity
+    RARITY_DENSITY_RANGE,
 )
 
 # Keybindings

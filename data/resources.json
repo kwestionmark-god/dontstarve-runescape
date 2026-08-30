@@ -1,13 +1,13 @@
 {
   "_description": "Resource node definitions for world generation.",
-  "_note": "Tier 1 = Phase 1. Tier 3 = Phase 4 Step 8. Tier 4 = Phase 4 Step 9.",
-
+  "_note": "Tier 1 = Phase 1. Tier 3 = Phase 4 Step 8. Tier 4 = Phase 4 Step 9. Rarity field added for Phase 1 proc-gen overhaul.",
   "resources": [
     {
       "id": "oak_tree",
       "name": "Oak Tree",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "wood",
       "base_density": 0.15,
       "yield_item": "oak_logs",
@@ -23,8 +23,9 @@
       "name": "Berry Bush",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
-      "base_density": 0.10,
+      "base_density": 0.1,
       "yield_item": "berries",
       "yield_quantity": 1,
       "xp_reward": 10.0,
@@ -38,6 +39,7 @@
       "name": "Herb",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
       "base_density": 0.08,
       "yield_item": "herb",
@@ -53,6 +55,7 @@
       "name": "Fiber Plant",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
       "base_density": 0.12,
       "yield_item": "fibers",
@@ -68,8 +71,9 @@
       "name": "Grass Patch",
       "biome": "plains",
       "tier": 1,
+      "rarity": "ubiquitous",
       "category": "herb",
-      "base_density": 0.20,
+      "base_density": 0.2,
       "yield_item": "grass",
       "yield_quantity": 1,
       "xp_reward": 5.0,
@@ -83,6 +87,7 @@
       "name": "Wild Wheat",
       "biome": "plains",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
       "base_density": 0.08,
       "yield_item": "wheat",
@@ -98,6 +103,7 @@
       "name": "Water Source",
       "biome": "plains",
       "tier": 1,
+      "rarity": "ubiquitous",
       "category": "water",
       "base_density": 0.02,
       "yield_item": "water",
@@ -113,6 +119,7 @@
       "name": "Driftwood",
       "biome": "coastal",
       "tier": 1,
+      "rarity": "common",
       "category": "wood",
       "base_density": 0.08,
       "yield_item": "driftwood",
@@ -128,8 +135,9 @@
       "name": "Shell Beach",
       "biome": "coastal",
       "tier": 1,
+      "rarity": "common",
       "category": "special",
-      "base_density": 0.10,
+      "base_density": 0.1,
       "yield_item": "shells",
       "yield_quantity": 1,
       "xp_reward": 5.0,
@@ -143,6 +151,7 @@
       "name": "Fish Spot",
       "biome": "coastal",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "special",
       "base_density": 0.05,
       "yield_item": "raw_fish",
@@ -158,6 +167,7 @@
       "name": "Salt Deposit",
       "biome": "coastal",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "special",
       "base_density": 0.03,
       "yield_item": "salt",
@@ -173,6 +183,7 @@
       "name": "Peat Mound",
       "biome": "swamp",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
       "base_density": 0.12,
       "yield_item": "peat",
@@ -188,8 +199,9 @@
       "name": "Toxic Reed",
       "biome": "swamp",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
-      "base_density": 0.10,
+      "base_density": 0.1,
       "yield_item": "toxic_reed",
       "yield_quantity": 1,
       "xp_reward": 12.0,
@@ -203,6 +215,7 @@
       "name": "Iron Rock",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "common",
       "category": "ore",
       "base_density": 0.08,
       "yield_item": "iron_ore",
@@ -218,6 +231,7 @@
       "name": "Copper Rock",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "ore",
       "base_density": 0.05,
       "yield_item": "copper_ore",
@@ -233,6 +247,7 @@
       "name": "Gold Vein",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "ore",
       "base_density": 0.02,
       "yield_item": "gold_ore",
@@ -248,8 +263,9 @@
       "name": "Stone Quarry",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "common",
       "category": "stone",
-      "base_density": 0.10,
+      "base_density": 0.1,
       "yield_item": "stone",
       "yield_quantity": 1,
       "xp_reward": 15.0,
@@ -263,6 +279,7 @@
       "name": "Gemstone",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "rare",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "gemstone",
@@ -278,6 +295,7 @@
       "name": "Sand Deposit",
       "biome": "desert",
       "tier": 1,
+      "rarity": "common",
       "category": "stone",
       "base_density": 0.12,
       "yield_item": "sand",
@@ -293,6 +311,7 @@
       "name": "Salt Crystal",
       "biome": "desert",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "special",
       "base_density": 0.05,
       "yield_item": "salt",
@@ -308,6 +327,7 @@
       "name": "Cactus",
       "biome": "desert",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "herb",
       "base_density": 0.08,
       "yield_item": "cactus_flesh",
@@ -323,6 +343,7 @@
       "name": "Rare Ore",
       "biome": "desert",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "ore",
       "base_density": 0.02,
       "yield_item": "rare_ore",
@@ -338,6 +359,7 @@
       "name": "Tin Rock",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "ore",
       "base_density": 0.06,
       "yield_item": "tin_ore",
@@ -353,6 +375,7 @@
       "name": "Void Crystal",
       "biome": "mountains",
       "tier": 3,
+      "rarity": "rare",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "void_crystal",
@@ -362,13 +385,18 @@
       "regrow_time": 1500.0,
       "sprite_key": "rocks/void_crystal",
       "requires_tool": "pickaxe",
-      "seasons_available": ["spring", "summer", "autumn"]
+      "seasons_available": [
+        "spring",
+        "summer",
+        "autumn"
+      ]
     },
     {
       "id": "obsidian_vein",
       "name": "Obsidian Vein",
       "biome": "mountains",
       "tier": 3,
+      "rarity": "rare",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "obsidian",
@@ -378,13 +406,17 @@
       "regrow_time": 1200.0,
       "sprite_key": "rocks/obsidian",
       "requires_tool": "pickaxe",
-      "seasons_available": ["spring", "summer"]
+      "seasons_available": [
+        "spring",
+        "summer"
+      ]
     },
     {
       "id": "dragonbone",
       "name": "Dragonbone",
       "biome": "swamp",
       "tier": 3,
+      "rarity": "epic",
       "category": "special",
       "base_density": 0.02,
       "yield_item": "dragonbone",
@@ -394,13 +426,17 @@
       "regrow_time": 1500.0,
       "sprite_key": "world/dragonbone",
       "requires_tool": "pickaxe",
-      "seasons_available": ["autumn", "winter"]
+      "seasons_available": [
+        "autumn",
+        "winter"
+      ]
     },
     {
       "id": "mithril_vein",
       "name": "Mithril Vein",
       "biome": "mountains",
       "tier": 3,
+      "rarity": "epic",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "mithril_ore",
@@ -410,13 +446,16 @@
       "regrow_time": 1500.0,
       "sprite_key": "rocks/mithril",
       "requires_tool": "pickaxe",
-      "seasons_available": ["winter"]
+      "seasons_available": [
+        "winter"
+      ]
     },
     {
       "id": "silk_nest",
       "name": "Silk Nest",
       "biome": "forest",
       "tier": 3,
+      "rarity": "rare",
       "category": "special",
       "base_density": 0.02,
       "yield_item": "silk",
@@ -426,13 +465,17 @@
       "regrow_time": 900.0,
       "sprite_key": "world/silk_nest",
       "requires_tool": null,
-      "seasons_available": ["spring", "summer"]
+      "seasons_available": [
+        "spring",
+        "summer"
+      ]
     },
     {
       "id": "amber_deposit",
       "name": "Amber Deposit",
       "biome": "desert",
       "tier": 3,
+      "rarity": "epic",
       "category": "ore",
       "base_density": 0.02,
       "yield_item": "amber",
@@ -442,13 +485,17 @@
       "regrow_time": 1200.0,
       "sprite_key": "rocks/amber",
       "requires_tool": "pickaxe",
-      "seasons_available": ["summer", "autumn"]
+      "seasons_available": [
+        "summer",
+        "autumn"
+      ]
     },
     {
       "id": "moonstone_deposit",
       "name": "Moonstone Deposit",
       "biome": "mountains",
       "tier": 3,
+      "rarity": "rare",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "moonstone",
@@ -464,6 +511,7 @@
       "name": "Ghost Iron Deposit",
       "biome": "mountains",
       "tier": 3,
+      "rarity": "epic",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "ghost_iron",
@@ -473,13 +521,16 @@
       "regrow_time": 1500.0,
       "sprite_key": "rocks/ghost_iron",
       "requires_tool": "pickaxe",
-      "seasons_available": ["winter"]
+      "seasons_available": [
+        "winter"
+      ]
     },
     {
       "id": "star_metal",
       "name": "Star Metal",
       "biome": "mountains",
       "tier": 4,
+      "rarity": "legendary",
       "category": "ore",
       "base_density": 0.01,
       "yield_item": "star_metal",
@@ -489,13 +540,16 @@
       "regrow_time": 2000.0,
       "sprite_key": "rocks/star_metal",
       "requires_tool": "pickaxe",
-      "seasons_available": ["winter"]
+      "seasons_available": [
+        "winter"
+      ]
     },
     {
       "id": "void_essence",
       "name": "Void Essence",
       "biome": "swamp",
       "tier": 4,
+      "rarity": "epic",
       "category": "special",
       "base_density": 0.005,
       "yield_item": "void_essence",
@@ -505,13 +559,17 @@
       "regrow_time": 2200.0,
       "sprite_key": "world/void_essence",
       "requires_tool": null,
-      "seasons_available": ["autumn", "winter"]
+      "seasons_available": [
+        "autumn",
+        "winter"
+      ]
     },
     {
       "id": "phoenix_feather",
       "name": "Phoenix Feather",
       "biome": "forest",
       "tier": 4,
+      "rarity": "epic",
       "category": "special",
       "base_density": 0.005,
       "yield_item": "phoenix_feather",
@@ -521,13 +579,16 @@
       "regrow_time": 2500.0,
       "sprite_key": "world/phoenix_feather",
       "requires_tool": null,
-      "seasons_available": ["spring"]
+      "seasons_available": [
+        "spring"
+      ]
     },
     {
       "id": "ancient_rune",
       "name": "Ancient Rune",
       "biome": "mountains",
       "tier": 4,
+      "rarity": "legendary",
       "category": "ore",
       "base_density": 0.005,
       "yield_item": "ancient_rune",
@@ -537,13 +598,16 @@
       "regrow_time": 2500.0,
       "sprite_key": "rocks/ancient_rune",
       "requires_tool": "pickaxe",
-      "seasons_available": ["winter"]
+      "seasons_available": [
+        "winter"
+      ]
     },
     {
       "id": "elder_wood",
       "name": "Elder Wood",
       "biome": "forest",
       "tier": 4,
+      "rarity": "rare",
       "category": "wood",
       "base_density": 0.01,
       "yield_item": "elder_wood",
@@ -553,13 +617,17 @@
       "regrow_time": 2000.0,
       "sprite_key": "trees/elder_wood",
       "requires_tool": "axe",
-      "seasons_available": ["spring", "summer"]
+      "seasons_available": [
+        "spring",
+        "summer"
+      ]
     },
     {
       "id": "celestial_crystal",
       "name": "Celestial Crystal",
       "biome": "coastal",
       "tier": 4,
+      "rarity": "legendary",
       "category": "ore",
       "base_density": 0.005,
       "yield_item": "celestial_crystal",
@@ -569,13 +637,16 @@
       "regrow_time": 2500.0,
       "sprite_key": "rocks/celestial_crystal",
       "requires_tool": "pickaxe",
-      "seasons_available": ["summer"]
+      "seasons_available": [
+        "summer"
+      ]
     },
     {
       "id": "birch_tree",
       "name": "Birch Tree",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "wood",
       "base_density": 0.12,
       "yield_item": "birch_logs",
@@ -591,8 +662,9 @@
       "name": "Maple Tree",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "wood",
-      "base_density": 0.10,
+      "base_density": 0.1,
       "yield_item": "maple_logs",
       "yield_quantity": 1,
       "xp_reward": 25.0,
@@ -606,6 +678,7 @@
       "name": "Pine Tree",
       "biome": "forest",
       "tier": 1,
+      "rarity": "common",
       "category": "wood",
       "base_density": 0.08,
       "yield_item": "pine_logs",
@@ -621,6 +694,7 @@
       "name": "Spruce Tree",
       "biome": "mountains",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "wood",
       "base_density": 0.06,
       "yield_item": "spruce_logs",
@@ -636,6 +710,7 @@
       "name": "Willow Tree",
       "biome": "swamp",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "wood",
       "base_density": 0.08,
       "yield_item": "willow_logs",
@@ -651,6 +726,7 @@
       "name": "Dead Tree",
       "biome": "desert",
       "tier": 1,
+      "rarity": "uncommon",
       "category": "wood",
       "base_density": 0.03,
       "yield_item": "charcoal",
@@ -666,6 +742,7 @@
       "name": "Reed Bed",
       "biome": "swamp",
       "tier": 1,
+      "rarity": "common",
       "category": "herb",
       "base_density": 0.12,
       "yield_item": "reed",

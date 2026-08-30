@@ -9,9 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
-# Tier-based density multiplier (module-level constant, shared by all ResourceNodes)
-TIER_DENSITY_MULTIPLIER: dict[int, float] = {1: 1.0, 2: 0.7, 3: 0.4, 4: 0.2}
+from config import RARITY_DENSITY_RANGE
 
 
 @dataclass
@@ -20,7 +18,8 @@ class ResourceNode:
 
     resource_id: str         # "oak_tree", "iron_rock", etc.
     biome: str               # Biome this resource belongs to
-    tier: int                # 1–4
+    tier: int                # 1–4 (legacy, kept for compatibility)
+    rarity: str              # "ubiquitous", "common", "uncommon", "rare", "epic", "legendary"
     category: str            # "wood", "ore", "herb", "water", "stone", "special"
     base_density: float      # Base placement density (from resources.json)
     yield_item: str          # Item produced when harvested
@@ -36,8 +35,14 @@ class ResourceNode:
 
     @property
     def effective_density(self) -> float:
-        """Density adjusted by tier."""
-        return self.base_density * TIER_DENSITY_MULTIPLIER.get(self.tier, 1.0)
+        """Density clamped to rarity band.
+
+        The base_density from JSON is clamped to the min/max range for this
+        resource's rarity tier, ensuring consistent spawn rates regardless of
+        arbitrary base_density values.
+        """
+        min_d, max_d = RARITY_DENSITY_RANGE.get(self.rarity, (0.01, 0.05))
+        return max(min_d, min(max_d, self.base_density))
 
     @property
     def is_depleted(self) -> bool:
@@ -117,6 +122,7 @@ class ResourceNode:
             name=data.get("name", data["id"]),
             biome=biome_id,
             tier=data["tier"],
+            rarity=data.get("rarity", "common"),
             category=data.get("category", "special"),
             base_density=data.get("base_density", 0.05),
             yield_item=data["yield_item"],

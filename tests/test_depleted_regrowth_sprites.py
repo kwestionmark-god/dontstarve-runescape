@@ -31,6 +31,7 @@ def _make_node(
         resource_id=resource_id,
         biome="forest",
         tier=tier,
+        rarity="common" if tier == 1 else ("rare" if tier == 3 else "legendary"),
         category="wood",
         base_density=0.15,
         yield_item="wood",
