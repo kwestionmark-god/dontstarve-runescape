@@ -118,9 +118,9 @@ class NPCFlows:
         game = self._game
 
         if action[0] == "close":
-            game._trade_panel.close_session()
-            game._trade_panel.visible = False
-            game.state = GameState.PLAYING
+            if game._trade_panel is not None:
+                game._trade_panel.close()
+            game.set_state(GameState.PLAYING)
             return
 
         if game.player is None or game.player.action_system is None:
@@ -150,7 +150,7 @@ class NPCFlows:
 
         if action[0] == "close":
             if game._quest_panel is not None:
-                game._quest_panel.close_session()
+                game._quest_panel.close()
             game.set_state(GameState.PLAYING)
             return
 
@@ -319,14 +319,14 @@ class NPCFlows:
         """Close the recruit panel and return to PLAYING."""
         game = self._game
         if game._recruit_panel is not None:
-            game._recruit_panel.close_session()
+            game._recruit_panel.close()
         game.set_state(GameState.PLAYING)
 
     def close_diplomacy_panel(self) -> None:
         """Close the diplomacy panel and return to PLAYING."""
         game = self._game
         if game._diplomacy_panel is not None:
-            game._diplomacy_panel.close_session()
+            game._diplomacy_panel.close()
         game.set_state(GameState.PLAYING)
 
     # ── Keyboard confirm handlers (migrated from panel_dispatcher.py) ─
