@@ -14,6 +14,8 @@ from config import WINDOW_WIDTH, WINDOW_HEIGHT
 from ui.panel_window import PanelWindow
 from survival.starter_pack import CharacterDefinition, get_starter_pack
 
+from core.state import GameState
+
 if TYPE_CHECKING:
     from core.game import Game
 
@@ -373,7 +375,26 @@ def render_character_select(game: "Game", screen: pygame.Surface) -> None:
 def handle_character_select_event(game: "Game", event) -> None:
     """Handle events during CHARACTER_SELECT state."""
     if game._character_select_panel:
-        result = game._character_select_panel.handle_event(event)
+        result = None
+        # Delegate keyboard events to the panel's handle_key method
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                # Check if we can start the game (name is non-empty)
+                can_start = len(game._character_select_panel._player_name.strip()) > 0
+                if can_start:
+                    result = "start_game"
+                else:
+                    # If no name, just hide name input if active
+                    game._character_select_panel._name_active = False
+            else:
+                result = game._character_select_panel.handle_key(event.key)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            result = game._character_select_panel.handle_click(event.pos[0], event.pos[1])
+        elif event.type == pygame.MOUSEMOTION:
+            game._character_select_panel.handle_mouse_move(event.pos[0], event.pos[1])
+        else:
+            return
+        
         if result == "start_game":
             char_def = game._character_select_panel.get_character_definition()
             game._pending_character_def = char_def
