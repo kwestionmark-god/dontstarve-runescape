@@ -20,7 +20,7 @@
         "6": [100, 110, 45],
         "7": [120, 100, 40]
       },
-      "resource_spawns": ["oak_tree", "berry_bush", "herb", "fiber_plant", "silk_nest",
+      "resource_spawns": ["oak_tree", "birch_tree", "maple_tree", "pine_tree", "berry_bush", "herb", "fiber_plant", "silk_nest",
                           "phoenix_feather", "elder_wood"]
     },
     {
@@ -79,7 +79,7 @@
         "6": [80, 80, 70],
         "7": [75, 75, 75]
       },
-      "resource_spawns": ["peat_mound", "toxic_reed", "herb", "water_source", "dragonbone",
+      "resource_spawns": ["peat_mound", "toxic_reed", "herb", "water_source", "willow_tree", "reed_bed", "dragonbone",
                           "void_essence"]
     },
     {
@@ -101,7 +101,7 @@
       },
       "resource_spawns": ["iron_rock", "copper_rock", "tin_rock", "gold_vein", "stone_quarry", "gemstone",
                           "void_crystal", "obsidian_vein", "mithril_vein", "moonstone_deposit", "ghost_iron_deposit",
-                          "star_metal", "ancient_rune"]
+                          "star_metal", "ancient_rune", "spruce_tree"]
     },
     {
       "id": "desert",
@@ -120,7 +120,7 @@
         "6": [205, 185, 125],
         "7": [195, 175, 115]
       },
-      "resource_spawns": ["sand_deposit", "salt_crystal", "cactus", "rare_ore", "amber_deposit"]
+      "resource_spawns": ["sand_deposit", "salt_crystal", "cactus", "rare_ore", "amber_deposit", "dead_tree"]
     }
   ]
 }

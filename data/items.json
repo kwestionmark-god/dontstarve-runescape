@@ -13,6 +13,51 @@
       "sprite_key": "items/logs_oak"
     },
     {
+      "id": "birch_logs",
+      "name": "Birch Logs",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/logs_birch"
+    },
+    {
+      "id": "maple_logs",
+      "name": "Maple Logs",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/logs_maple"
+    },
+    {
+      "id": "pine_logs",
+      "name": "Pine Logs",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/logs_pine"
+    },
+    {
+      "id": "spruce_logs",
+      "name": "Spruce Logs",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/logs_spruce"
+    },
+    {
+      "id": "willow_logs",
+      "name": "Willow Logs",
+      "stack_size": 28,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/logs_willow"
+    },
+    {
       "id": "berries",
       "name": "Berries",
       "stack_size": 20,

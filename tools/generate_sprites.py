@@ -911,7 +911,35 @@ def generate_world_sprites() -> None:
     rectangle(cactus, (7, 5, 1, 9), PALETTE[2])
     save_surface(os.path.join(output_dir, "cactus.png"), cactus)
 
-    print("  Generated 15 world resource sprites")
+    # ── Reed Bed (16x16) ──
+    # Tall grass-like reeds for swamp/coastal
+    reed = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+    PALETTE = {
+        1: (90, 130, 50),    # Olive-green (reed stems)
+        2: (110, 160, 60),   # Light green (tips)
+        3: (60, 90, 35),     # Dark green (shadows)
+    }
+    # Multiple reed stems
+    rectangle(reed, (4, 6, 1, 9), PALETTE[1])
+    rectangle(reed, (6, 5, 1, 10), PALETTE[1])
+    rectangle(reed, (8, 6, 1, 9), PALETTE[1])
+    rectangle(reed, (10, 5, 1, 10), PALETTE[1])
+    rectangle(reed, (12, 6, 1, 9), PALETTE[1])
+    # Highlights on stems
+    reed.set_at((4, 6), PALETTE[2])
+    reed.set_at((6, 5), PALETTE[2])
+    reed.set_at((8, 6), PALETTE[2])
+    reed.set_at((10, 5), PALETTE[2])
+    reed.set_at((12, 6), PALETTE[2])
+    # Shadow bases
+    reed.set_at((4, 14), PALETTE[3])
+    reed.set_at((6, 14), PALETTE[3])
+    reed.set_at((8, 14), PALETTE[3])
+    reed.set_at((10, 14), PALETTE[3])
+    reed.set_at((12, 14), PALETTE[3])
+    save_surface(os.path.join(output_dir, "reed.png"), reed)
+
+    print("  Generated 16 world resource sprites")
 
 
 # ── Monster Sprites ───────────────────────────────────────────────────
@@ -1416,6 +1444,98 @@ def generate_item_sprites() -> None:
     logs.set_at((8, 7), PALETTE[3])
     logs.set_at((10, 8), PALETTE[3])
     save_surface(os.path.join(output_dir, "logs_oak.png"), logs)
+
+    # ── Log: Birch Logs (16x16) ──
+    # White/pale bark, light wood interior
+    logs_birch = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+    PALETTE = {
+        1: (200, 195, 185),  # Pale white-grey (bark)
+        2: (180, 175, 165),  # Light bark shadow
+        3: (220, 215, 205),  # Light interior
+        4: (160, 155, 145),  # Dark bark marks
+    }
+    rectangle(logs_birch, (3, 7, 10, 4), PALETTE[1])
+    rectangle(logs_birch, (3, 9, 10, 2), PALETTE[2])
+    circle(logs_birch, (3, 9), 2, PALETTE[4])
+    circle(logs_birch, (3, 8), 1, PALETTE[3])
+    # Horizontal bark marks (birch characteristic)
+    logs_birch.set_at((5, 8), PALETTE[4])
+    logs_birch.set_at((8, 8), PALETTE[4])
+    logs_birch.set_at((11, 8), PALETTE[4])
+    save_surface(os.path.join(output_dir, "logs_birch.png"), logs_birch)
+
+    # ── Log: Maple Logs (16x16) ──
+    # Reddish-brown bark, warm interior
+    logs_maple = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+    PALETTE = {
+        1: (160, 90, 50),    # Reddish-brown (bark)
+        2: (130, 70, 40),    # Dark bark
+        3: (200, 130, 70),   # Warm light interior
+        4: (100, 50, 30),    # Very dark (end grain)
+    }
+    rectangle(logs_maple, (3, 7, 10, 4), PALETTE[1])
+    rectangle(logs_maple, (3, 9, 10, 2), PALETTE[2])
+    circle(logs_maple, (3, 9), 2, PALETTE[4])
+    circle(logs_maple, (3, 8), 1, PALETTE[3])
+    # Bark texture
+    logs_maple.set_at((5, 7), PALETTE[3])
+    logs_maple.set_at((8, 7), PALETTE[3])
+    logs_maple.set_at((10, 8), PALETTE[3])
+    save_surface(os.path.join(output_dir, "logs_maple.png"), logs_maple)
+
+    # ── Log: Pine Logs (16x16) ──
+    # Yellowish-brown, resinous
+    logs_pine = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+    PALETTE = {
+        1: (170, 130, 60),   # Yellow-brown (bark)
+        2: (140, 100, 45),   # Dark bark
+        3: (210, 170, 80),   # Resinous light interior
+        4: (110, 80, 35),    # Very dark
+    }
+    rectangle(logs_pine, (3, 7, 10, 4), PALETTE[1])
+    rectangle(logs_pine, (3, 9, 10, 2), PALETTE[2])
+    circle(logs_pine, (3, 9), 2, PALETTE[4])
+    circle(logs_pine, (3, 8), 1, PALETTE[3])
+    # Resin spots
+    logs_pine.set_at((6, 7), (230, 200, 100))
+    logs_pine.set_at((9, 8), (220, 180, 90))
+    save_surface(os.path.join(output_dir, "logs_pine.png"), logs_pine)
+
+    # ── Log: Spruce Logs (16x16) ──
+    # Darker, grayish-brown
+    logs_spruce = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+    PALETTE = {
+        1: (120, 100, 70),   # Gray-brown (bark)
+        2: (90, 75, 50),     # Dark bark
+        3: (150, 130, 90),   # Muted interior
+        4: (70, 55, 35),     # Very dark
+    }
+    rectangle(logs_spruce, (3, 7, 10, 4), PALETTE[1])
+    rectangle(logs_spruce, (3, 9, 10, 2), PALETTE[2])
+    circle(logs_spruce, (3, 9), 2, PALETTE[4])
+    circle(logs_spruce, (3, 8), 1, PALETTE[3])
+    # Bark texture
+    logs_spruce.set_at((5, 7), PALETTE[3])
+    logs_spruce.set_at((8, 8), PALETTE[3])
+    save_surface(os.path.join(output_dir, "logs_spruce.png"), logs_spruce)
+
+    # ── Log: Willow Logs (16x16) ──
+    # Greenish-brown, flexible wood
+    logs_willow = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+    PALETTE = {
+        1: (130, 110, 60),   # Olive-brown (bark)
+        2: (100, 85, 45),    # Dark bark
+        3: (170, 150, 80),   # Greenish interior
+        4: (80, 65, 35),     # Very dark
+    }
+    rectangle(logs_willow, (3, 7, 10, 4), PALETTE[1])
+    rectangle(logs_willow, (3, 9, 10, 2), PALETTE[2])
+    circle(logs_willow, (3, 9), 2, PALETTE[4])
+    circle(logs_willow, (3, 8), 1, PALETTE[3])
+    # Bark texture
+    logs_willow.set_at((5, 7), PALETTE[3])
+    logs_willow.set_at((8, 8), PALETTE[3])
+    save_surface(os.path.join(output_dir, "logs_willow.png"), logs_willow)
 
     # ── Planks (16x16) ──
     planks = pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
