@@ -102,24 +102,24 @@ TIER_DENSITY_MULTIPLIER = {1: 1.0, 2: 0.7, 3: 0.4, 4: 0.2}
 
 | Category | Count | Tier 1 | Tier 3 | Tier 4 |
 |----------|-------|--------|--------|--------|
-| wood     | 4     | 2      | 0      | 2      |
+| wood     | 11    | 9      | 0      | 2      |
 | ore      | 14    | 8      | 4      | 2      |
-| herb     | 9     | 7      | 0      | 0      |
+| herb     | 10    | 8      | 0      | 0      |
 | water    | 2     | 2      | 0      | 0      |
 | stone    | 3     | 3      | 0      | 0      |
 | special  | 25    | 18     | 3      | 4      |
-| **Total**| **57**| **40** | **7**  | **8**  |
+| **Total**| **65**| **46** | **7**  | **8**  |
 
 ### Tier Distribution — **The Core Problem**
 
 ```
-Tier 1: 40 resources (70%) — includes both oak_tree AND gold_vein
+Tier 1: 46 resources (71%) — includes both oak_tree AND gold_vein + 6 new trees
 Tier 2: 0 resources  (0%)  — EMPTY TIER
-Tier 3: 7 resources  (12%) — void_crystal, obsidian_vein, dragonbone, mithril_vein, silk_nest, amber_deposit, moonstone_deposit, ghost_iron_deposit
-Tier 4: 8 resources  (14%) — star_metal, void_essence, phoenix_feather, ancient_rune, elder_wood, celestial_crystal, (etc.)
+Tier 3: 7 resources  (11%) — void_crystal, obsidian_vein, dragonbone, mithril_vein, silk_nest, amber_deposit, moonstone_deposit, ghost_iron_deposit
+Tier 4: 8 resources  (12%) — star_metal, void_essence, phoenix_feather, ancient_rune, elder_wood, celestial_crystal, (etc.)
 ```
 
-**Tier 2 is completely unused.** The tier system was clearly designed for 4 tiers but only 3 are populated, and the Tier 1 bucket is a dumping ground for everything from "Grass Patch" (5 XP) to "Gold Vein" (50 XP).
+**Tier 2 is completely unused.** The tier system was clearly designed for 4 tiers but only 3 are populated, and the Tier 1 bucket is a dumping ground for everything from "Grass Patch" (5 XP) to "Gold Vein" (50 XP). The 6 new tree variants (all Tier 1) further exacerbate the Tier 1 overcrowding.
 
 ### Resource Value Indicators (Current)
 
@@ -140,12 +140,12 @@ Each resource has multiple value signals that are **not** used for spawn rarity:
 
 | Biome | Mega-Cluster | Resources (count) | Notable |
 |-------|--------------|-------------------|---------|
-| forest | temperate | 7 | oak, berry, herb, fiber, silk_nest(T3), phoenix_feather(T4), elder_wood(T4) |
+| forest | temperate | 13 | oak, birch, maple, pine, berry, herb, fiber, silk_nest(T3), phoenix_feather(T4), elder_wood(T4) |
 | plains | temperate | 3 | grass, wheat, water |
 | coastal | temperate | 5 | driftwood, shell, fish, salt, celestial_crystal(T4) |
-| swamp | dangerous | 6 | peat, toxic_reed, herb, water, dragonbone(T3), void_essence(T4) |
-| mountains | extreme | 13 | iron, copper, tin, gold, stone, gem, void_crystal(T3), obsidian(T3), mithril(T3), moonstone(T3), ghost_iron(T3), star_metal(T4), ancient_rune(T4) |
-| desert | extreme | 5 | sand, salt_crystal, cactus, rare_ore, amber_deposit(T3) |
+| swamp | dangerous | 8 | peat, toxic_reed, herb, water, willow, reed_bed, dragonbone(T3), void_essence(T4) |
+| mountains | extreme | 14 | iron, copper, tin, gold, stone, gem, spruce, void_crystal(T3), obsidian(T3), mithril(T3), moonstone(T3), ghost_iron(T3), star_metal(T4), ancient_rune(T4) |
+| desert | extreme | 6 | sand, salt_crystal, cactus, rare_ore, amber_deposit(T3), dead_tree |
 
 **Mountains biome has 13 resources** — the most by far — including 6 tier 3/4 resources. This creates a "mountains = late game" dynamic but with no spawn control beyond density.
 
@@ -504,7 +504,7 @@ python -m tools.analyze_resource_distribution --worlds 1000 --output dist.csv
 
 ## Migration Checklist
 
-- [ ] Phase 1: Update all 57 resources in `resources.json` with `rarity` field
+- [ ] Phase 1: Update all 65 resources in `resources.json` with `rarity` field
 - [ ] Phase 1: Add `RARITY_DENSITY_RANGE` to `config/constants.py`
 - [ ] Phase 1: Update `ResourceNode` dataclass and `from_dict()`
 - [ ] Phase 1: Remove `TIER_DENSITY_MULTIPLIER` and `tier` field usage
@@ -528,6 +528,9 @@ python -m tools.analyze_resource_distribution --worlds 1000 --output dist.csv
 | water_source | 1 | ubiquitous | Infinite, essential, no tool |
 | grass_patch | 1 | ubiquitous | High density (0.20), fast regrow, no tool |
 | oak_tree | 1 | common | Staple wood, axe gate, good regrow |
+| **birch_tree** | **1** | **common** | **Forest variety, white bark, paper crafts** |
+| **maple_tree** | **1** | **common** | **Syrup potential, fine crafts** |
+| **pine_tree** | **1** | **common** | **Resinous, bow crafting** |
 | fiber_plant | 1 | common | High density (0.12), no tool, fast regrow |
 | berry_bush | 1 | common | Food source, no tool, medium regrow |
 | herb | 1 | common | Crafting staple, no tool |
@@ -547,6 +550,10 @@ python -m tools.analyze_resource_distribution --worlds 1000 --output dist.csv
 | gold_vein | 1 | uncommon | Valuable ore, low density (0.02) |
 | rare_ore | 1 | uncommon | Desert ore, density 0.02 |
 | gemstone | 1 | rare | Very low density (0.01), high XP (60) |
+| **spruce_tree** | **1** | **uncommon** | **High-altitude, durable wood** |
+| **willow_tree** | **1** | **uncommon** | **Swamp/coastal, flexible wood** |
+| **dead_tree** | **1** | **uncommon** | **Desert rare, direct charcoal source** |
+| **reed_bed** | **1** | **common** | **Swamp herb, paper crafting unlock** |
 | void_crystal | 3 | rare | T3, 3 seasons, density 0.01 |
 | obsidian_vein | 3 | rare | T3, 2 seasons, density 0.01 |
 | moonstone_deposit | 3 | rare | T3, all seasons, density 0.01 |
