@@ -378,7 +378,10 @@ def handle_character_select_event(game: "Game", event) -> None:
         result = None
         # Delegate keyboard events to the panel's handle_key method
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN:
+            if event.key == pygame.K_ESCAPE:
+                # Close character select, return to title
+                game.set_state(GameState.TITLE)
+            elif event.key == pygame.K_RETURN:
                 # Check if we can start the game (name is non-empty)
                 can_start = len(game._character_select_panel._player_name.strip()) > 0
                 if can_start:
@@ -399,3 +402,5 @@ def handle_character_select_event(game: "Game", event) -> None:
             char_def = game._character_select_panel.get_character_definition()
             game._pending_character_def = char_def
             game.set_state(GameState.LOADING)
+        elif result == ("close",) or (isinstance(result, tuple) and result[0] == "close"):
+            game.set_state(GameState.TITLE)

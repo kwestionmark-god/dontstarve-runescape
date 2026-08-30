@@ -17,9 +17,13 @@ import pygame
 from ui.diplomacy_panel import DiplomacyPanel, FactionInfo
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="module")
 def _pygame():
     pygame.init()
+    pygame.font.init()
+    yield
+    pygame.font.quit()
+    pygame.quit()
 
 
 def _session(panel, description=""):
@@ -153,6 +157,7 @@ def _game_with_spy_flows():
             description="", hostile_monster_types=[], base_hostility=0.5,
         ),
         "close_session": lambda self: None,
+        "close": lambda self: None,
     })()
     game = type("G", (), {
         "player": player,

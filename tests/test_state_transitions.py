@@ -238,12 +238,14 @@ class TestStateTransitions(unittest.TestCase):
             '_quest_panel': MockPanel(),
             '_recruit_panel': MockPanel(),
             '_diplomacy_panel': MockPanel(),
+            '_character_select_panel': MockPanel(),
         })()
 
         # Set all panels visible
         for attr in ('_inventory_panel', '_skill_panel', '_crafting_panel',
                      '_building_panel', '_gear_panel', '_trade_panel',
-                     '_quest_panel', '_recruit_panel', '_diplomacy_panel'):
+                     '_quest_panel', '_recruit_panel', '_diplomacy_panel',
+                     '_character_select_panel'):
             getattr(game, attr).visible = True
 
         # Create a minimal InputRouter with the game

@@ -400,6 +400,7 @@ class InputRouter:
             GameState.QUEST_PANEL: game._quest_panel,
             GameState.RECRUIT_PANEL: game._recruit_panel,
             GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+            GameState.CHARACTER_SELECT: game._character_select_panel,
         }
         for panel in panel_map.values():
             if panel is not None:

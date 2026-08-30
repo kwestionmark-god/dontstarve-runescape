@@ -151,11 +151,15 @@ class PanelDispatcher:
             GameState.CRAFTING_PANEL: game._crafting_panel,
             GameState.BUILDING_PANEL: game._building_panel,
             GameState.GEAR_PANEL: game._gear_panel,
+            GameState.CHARACTER_SELECT: game._character_select_panel,
         }
         panel = panel_map.get(state)
         if panel is not None:
             panel.close()
-        game.set_state(GameState.PLAYING)
+        if state == GameState.CHARACTER_SELECT:
+            game.set_state(GameState.TITLE)
+        else:
+            game.set_state(GameState.PLAYING)
 
     def _handle_cancel(self, state: "GameState") -> None:
         game = self._game
@@ -170,11 +174,15 @@ class PanelDispatcher:
             GameState.CRAFTING_PANEL: game._crafting_panel,
             GameState.BUILDING_PANEL: game._building_panel,
             GameState.GEAR_PANEL: game._gear_panel,
+            GameState.CHARACTER_SELECT: game._character_select_panel,
         }
         panel = panel_map.get(state)
         if panel is not None:
             panel.close()
-        game.set_state(GameState.PLAYING)
+        if state == GameState.CHARACTER_SELECT:
+            game.set_state(GameState.TITLE)
+        else:
+            game.set_state(GameState.PLAYING)
 
     def _handle_skill_allocation(self, *args) -> None:
         game = self._game
