@@ -22,6 +22,9 @@ class MockPanel:
     def __init__(self) -> None:
         self.visible: bool = False
 
+    def close(self) -> None:
+        self.visible = False
+
     def close_session(self) -> None:
         pass
 

@@ -182,7 +182,7 @@ class Game:
                 self._character_select_panel = CharacterSelectPanel()
                 self._character_select_panel.set_confirm_callback(lambda cd: None)  # handled via event
             self._character_select_panel.visible = True
-        if old_state == GameState.TITLE and new_state == GameState.LOADING:
+        if (old_state == GameState.TITLE or old_state == GameState.CHARACTER_SELECT) and new_state == GameState.LOADING:
             self._bootstrap.begin_world_gen()
         elif old_state == GameState.TITLE and new_state == GameState.LOADING_SAVE:
             self._bootstrap.load_save()
