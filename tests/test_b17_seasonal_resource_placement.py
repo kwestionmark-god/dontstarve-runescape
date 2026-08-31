@@ -20,7 +20,8 @@ from world import world_gen
 from world.biome import BiomeRegistry
 
 # Small map so generation is fast and deterministic.
-_SMALL = 64
+# Increased to 128 to generate sufficient elevation range for mountain biomes
+_SMALL = 128
 
 
 @contextlib.contextmanager

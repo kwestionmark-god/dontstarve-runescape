@@ -10,6 +10,7 @@ Encapsulates the logic for placing resource nodes on the tile map:
   - Vein/cluster placement for ore/stone
   - Seasonal availability gating and compensation
   - Clustering bonus for same-biome resources
+  - Analytics hooks for placement telemetry
 """
 
 from __future__ import annotations
@@ -18,6 +19,8 @@ import math
 import random
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from config import RARITY_DENSITY_RANGE
 from world.resource_node import ResourceNode
@@ -39,6 +42,8 @@ class ResourcePlacer:
         - Vein placement for ore/stone (multi-tile clusters)
         - Seasonal compensation (density boost for season-gated resources)
         - Clustering bonus for adjacent same-resource tiles
+        - Analytics hooks for placement telemetry
+        - Dynamic density scaling for multiplayer (player_count * density_multiplier)
 
     Fields:
         rng: Random instance seeded for deterministic placement.
@@ -51,10 +56,14 @@ class ResourcePlacer:
 
     rng: random.Random
     season_system: object | None = None
+    player_count: int = 1
+    density_multiplier: float = 1.0
 
     # Per-instance resource lookup (reloaded fresh each place()).
     _resource_cache: dict[str, ResourceNode] = field(default_factory=dict, repr=False)
     _available_resources: set[str] = field(default_factory=set, repr=False)
+    # Analytics: resource_id -> number of nodes placed in current generation
+    _placement_counts: dict[str, int] = field(default_factory=dict, repr=False)
 
     # Progression zone configuration: rarity -> max zone index
     # Zone 0: 0-30 tiles from spawn (common only)
@@ -116,15 +125,22 @@ class ResourcePlacer:
         """
         self._resource_cache = ResourcePlacer._load_resource_definitions()
         self._available_resources = self._precompute_available()
+        # Reset analytics counter for this generation
+        self._placement_counts = {}
 
         # Precompute spawn distances for progression zones (if enforcing)
         if enforce_zones:
             spawn_x, spawn_y = tile_map.spawn_x, tile_map.spawn_y
-            self._tile_distances = {}
-            for x in range(tile_map.width):
-                for y in range(tile_map.height):
-                    dx, dy = x - spawn_x, y - spawn_y
-                    self._tile_distances[(x, y)] = math.sqrt(dx * dx + dy * dy)
+            # Vectorized distance computation with NumPy
+            xs = np.arange(tile_map.width) - spawn_x
+            ys = np.arange(tile_map.height) - spawn_y
+            dist_grid = np.sqrt(xs[:, None] ** 2 + ys[None, :] ** 2)
+            # Convert to dict for compatibility with existing lookups
+            self._tile_distances = {
+                (x, y): float(dist_grid[x, y])
+                for x in range(tile_map.width)
+                for y in range(tile_map.height)
+            }
         else:
             self._tile_distances = {}
 
@@ -139,33 +155,64 @@ class ResourcePlacer:
         if enforce_zones:
             self._poisson_disc_pass(tile_map)
 
+        # Precompute available resources per biome to avoid dict lookups in hot loop
+        biome_available_resources: dict[str, list[ResourceNode]] = {}
+        for biome_id in set(tile_map.tiles[x][y].biome.id for x in range(tile_map.width) for y in range(tile_map.height) if tile_map.tiles[x][y].biome is not None):
+            biome_obj = tile_map.tiles[0][0].biome.__class__.__bases__[0]  # dummy to get type
+            # Find a tile with this biome to get its resource_spawns
+            spawns = []
+            for x in range(tile_map.width):
+                for y in range(tile_map.height):
+                    t = tile_map.tiles[x][y]
+                    if t.biome is not None and t.biome.id == biome_id:
+                        spawns = t.biome.resource_spawns
+                        break
+                if spawns:
+                    break
+            if spawns:
+                avail = [self._resource_cache[r] for r in spawns if r in self._available_resources and self._resource_cache.get(r) is not None]
+                biome_available_resources[biome_id] = avail
+
+        # Precompute zones for all tiles if enforcing zones
+        tile_zones: dict[tuple[int, int], int] = {}
+        if enforce_zones:
+            for x in range(tile_map.width):
+                for y in range(tile_map.height):
+                    tile_zones[(x, y)] = self._get_zone(self._tile_distances.get((x, y), 0))
+
+        # Cache frequently accessed attributes locally
+        rarity_max_zone = self.RARITY_MAX_ZONE
+        vein_categories = self.VEIN_CATEGORIES
+        assigned_tiles = self._assigned_tiles
+        rng = self.rng
+        compute_density = self._compute_density
+        try_place_vein = self._try_place_vein
+        record_placement = self._record_placement
+
         for x in range(tile_map.width):
             for y in range(tile_map.height):
-                if (x, y) in self._assigned_tiles:
+                if (x, y) in assigned_tiles:
                     continue
 
                 tile = tile_map.tiles[x][y]
                 biome_id = tile.biome.id
-                if not tile.biome.resource_spawns:
+                
+                # Get precomputed available resources for this biome
+                avail_resources = biome_available_resources.get(biome_id)
+                if not avail_resources:
                     continue
 
-                zone = self._get_zone(self._tile_distances.get((x, y), 0)) if enforce_zones else 0
+                zone = tile_zones.get((x, y), 0) if enforce_zones else 0
 
-                for resource_id in tile.biome.resource_spawns:
-                    if resource_id not in self._available_resources:
-                        continue
-
-                    resource = self._resource_cache.get(resource_id)
-                    if resource is None:
-                        continue
-
+                # Check if tile is empty (for non-overwrite mode)
+                tile_empty = tile.resource_node is None
+                
+                for resource in avail_resources:
                     # Check if we can place here
-                    can_place = tile.resource_node is None
+                    can_place = tile_empty
                     if not can_place and allow_overwrite:
-                        # Allow overwrite if existing resource is not the same
-                        # and the new resource is seasonal (has seasons_available)
                         existing = tile.resource_node
-                        if existing.resource_id != resource_id and resource.seasons_available:
+                        if existing.resource_id != resource.resource_id and resource.seasons_available:
                             can_place = True
 
                     if not can_place:
@@ -173,25 +220,25 @@ class ResourcePlacer:
 
                     # Check progression zone gating (only on initial generation)
                     if enforce_zones:
-                        max_zone = self.RARITY_MAX_ZONE.get(resource.rarity, 3)
+                        max_zone = rarity_max_zone.get(resource.rarity, 3)
                         if max_zone < zone:
                             continue  # Too rare for this zone
 
-                    adjusted_density = self._compute_density(
-                        resource, tile, biome_id, tile_map, zone
-                    )
+                    adjusted_density = compute_density(resource, tile, biome_id, tile_map, zone)
                     if adjusted_density <= 0:
                         continue
 
-                    if self.rng.random() < adjusted_density:
+                    if rng.random() < adjusted_density:
                         # Check if this resource should form a vein
-                        if resource.category in self.VEIN_CATEGORIES:
-                            if self._try_place_vein(resource, tile, tile_map, biome_id, zone):
+                        if resource.category in vein_categories:
+                            if try_place_vein(resource, tile, tile_map, biome_id, zone):
+                                record_placement(resource.resource_id)
                                 continue
 
                         # Single-tile placement
                         tile.resource_node = replace(resource)
-                        self._assigned_tiles.add((x, y))
+                        assigned_tiles.add((x, y))
+                        record_placement(resource.resource_id)
 
     def _landmark_pass(self, tile_map: TileMap) -> None:
         """
@@ -266,14 +313,16 @@ class ResourcePlacer:
                             break
                     if not placed:
                         continue
+                    self._record_placement(resource.resource_id)
                 else:
                     tile.resource_node = replace(resource)
                     self._assigned_tiles.add((cx, cy))
+                    self._record_placement(resource.resource_id)
 
     def _poisson_disc_pass(self, tile_map: TileMap) -> None:
         """
-        Place common/ubiquitous resources using Poisson disc sampling
-        for even distribution without clumping.
+        Place common/ubiquitous resources using Bridson's Poisson disc algorithm
+        with spatial grid for O(n) performance.
         
         This runs as a separate pass before regular placement to ensure
         common resources are evenly distributed.
@@ -297,36 +346,57 @@ class ResourcePlacer:
         for biome_id, res_list in biome_resources.items():
             biome_resources[biome_id] = list(set(res_list))
         
-        # For each biome, place resources using Poisson disc
+        # For each biome, place resources using Bridson's Poisson disc
         for biome_id, res_list in biome_resources.items():
             if not res_list:
                 continue
             
-            # Collect all tiles of this biome
-            biome_tiles = []
+            # Collect all candidate tiles of this biome
+            candidates = []
             for x in range(tile_map.width):
                 for y in range(tile_map.height):
                     tile = tile_map.tiles[x][y]
                     if tile.biome.id == biome_id and tile.resource_node is None:
-                        biome_tiles.append((x, y))
+                        candidates.append((x, y))
             
-            if not biome_tiles:
+            if not candidates:
                 continue
             
             # Use the smallest Poisson radius among these resources
             min_radius = min(self.POISSON_RADIUS.get(r, 4) for r in res_list)
+            min_dist_sq = min_radius * min_radius
             
-            # Poisson disc sampling: shuffle tiles, then place with minimum distance
-            self.rng.shuffle(biome_tiles)
-            placed: list[tuple[int, int]] = []
+            # Spatial grid cell size = min_radius / sqrt(2)
+            # Ensures at most one point per cell, and only need to check 3x3 neighbors
+            cell_size = max(1, int(min_radius / math.sqrt(2)))
+            grid_w = (tile_map.width + cell_size - 1) // cell_size
+            grid_h = (tile_map.height + cell_size - 1) // cell_size
+            grid: list[list[tuple[int, int] | None]] = [
+                [None] * grid_h for _ in range(grid_w)
+            ]
             
-            for x, y in biome_tiles:
-                # Check distance to already placed tiles
+            self.rng.shuffle(candidates)
+            
+            for x, y in candidates:
+                # Check 3x3 neighboring grid cells for existing points
+                gx, gy = x // cell_size, y // cell_size
                 too_close = False
-                for px, py in placed:
-                    dx, dy = x - px, y - py
-                    if dx * dx + dy * dy < min_radius * min_radius:
-                        too_close = True
+                
+                for dx in (-1, 0, 1):
+                    nx = gx + dx
+                    if nx < 0 or nx >= grid_w:
+                        continue
+                    for dy in (-1, 0, 1):
+                        ny = gy + dy
+                        if ny < 0 or ny >= grid_h:
+                            continue
+                        other = grid[nx][ny]
+                        if other is not None:
+                            px, py = other
+                            if (x - px) * (x - px) + (y - py) * (y - py) < min_dist_sq:
+                                too_close = True
+                                break
+                    if too_close:
                         break
                 
                 if too_close:
@@ -351,7 +421,8 @@ class ResourcePlacer:
                 if self.rng.random() < density:
                     tile.resource_node = replace(resource)
                     self._assigned_tiles.add((x, y))
-                    placed.append((x, y))
+                    grid[gx][gy] = (x, y)
+                    self._record_placement(resource.resource_id)
 
     def _get_zone(self, distance: float) -> int:
         """Get progression zone index from spawn distance."""
@@ -440,6 +511,15 @@ class ResourcePlacer:
         if zone < len(zone_multipliers):
             density *= zone_multipliers[zone]
 
+        # Dynamic density scaling for multiplayer
+        # Scale by player_count * density_multiplier, but cap to avoid overcrowding
+        if self.player_count > 1:
+            scale = self.player_count * self.density_multiplier
+            # Cap scaling: max 2x for 4 players, sqrt scaling for more
+            if scale > 2.0:
+                scale = 1.0 + (scale - 1.0) * 0.5  # Diminishing returns
+            density *= scale
+
         # Clustering bonus
         density += self._get_clustering_bonus(tile, resource.resource_id, tile_map)
 
@@ -519,6 +599,7 @@ class ResourcePlacer:
             for t in vein_tiles:
                 t.resource_node = replace(resource)
                 self._assigned_tiles.add((t.x, t.y))
+            self._record_placement(resource.resource_id, len(vein_tiles))
             return True
 
         return False
@@ -551,3 +632,11 @@ class ResourcePlacer:
             )
             traceback.print_exc()
             return {}
+
+    def _record_placement(self, resource_id: str, count: int = 1) -> None:
+        """Record a resource placement for analytics."""
+        self._placement_counts[resource_id] = self._placement_counts.get(resource_id, 0) + count
+
+    def get_placement_counts(self) -> dict[str, int]:
+        """Return a copy of the placement counts for this generation."""
+        return dict(self._placement_counts)

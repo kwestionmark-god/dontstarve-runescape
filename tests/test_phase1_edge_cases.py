@@ -101,6 +101,7 @@ class TestMiningDepletedResource(unittest.TestCase):
             resource_id="iron_rock",
             biome="mountains",
             tier=1,
+            rarity="common",
             category="ore",
             base_density=0.08,
             yield_item="iron_ore",

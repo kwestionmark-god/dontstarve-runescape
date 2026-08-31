@@ -23,7 +23,7 @@ class Tile:
     __slots__ = (
         "x", "y", "biome", "elevation",
         "resource_node", "depleted", "regrow_timer",
-        "terrain_color",
+        "terrain_color", "fog_density",
     )
 
     def __init__(
@@ -41,6 +41,7 @@ class Tile:
         self.depleted = False
         self.regrow_timer = 0.0  # Seconds until regrowth (0 if not regrowing)
         self.terrain_color = (128, 128, 128)  # Default grey (placeholder)
+        self.fog_density: float = 1.0  # Precomputed exp(-elev / scale) for volumetric fog
 
     def update(self, dt: float, regrowth_mod: float = 1.0) -> None:
         """
@@ -85,7 +86,7 @@ class TileMap:
     Indexed as tiles[x][y] for column-major access.
     """
 
-    __slots__ = ("width", "height", "tiles", "spawn_x", "spawn_y", "_season_system")
+    __slots__ = ("width", "height", "tiles", "spawn_x", "spawn_y", "_season_system", "corner_ao")
 
     def __init__(
         self,
@@ -99,6 +100,7 @@ class TileMap:
         self.spawn_x = spawn_x
         self.spawn_y = spawn_y
         self._season_system: object | None = None
+        self.corner_ao: list[list[float]] = []  # (width+1) x (height+1) AO factors per corner
 
         # Build grid column-major: tiles[x][y]
         # Tiles are initialized with placeholder biome; actual biome
@@ -307,3 +309,113 @@ class TileMap:
         brightness = 1.0 + max(-SHADING_STRENGTH, min(SHADING_STRENGTH, light_dot * SHADING_STRENGTH * 2.0))
 
         return (brightness, min(slope_mag / 2.0, 1.0))
+
+    def get_surface_normal(self, x: int, y: int) -> tuple[float, float, float]:
+        """
+        Returns unnormalized surface normal (grad_x, grad_y, 1.0) for tile center.
+        
+        Used for rim/fresnel lighting.
+        """
+        nw = self.get_raw_corner_elevation(x, y)
+        ne = self.get_raw_corner_elevation(x + 1, y)
+        sw = self.get_raw_corner_elevation(x, y + 1)
+        se = self.get_raw_corner_elevation(x + 1, y + 1)
+        grad_x = (ne + se - nw - sw) / 2.0
+        grad_y = (sw + se - nw - ne) / 2.0
+        return (grad_x, grad_y, 1.0)
+
+    def bake_ambient_occlusion(self) -> None:
+        """
+        Pre-compute per-corner AO factor [0.0, 1.0] using the 12-tile kernel.
+        1.0 = no occlusion (convex), <1.0 = occluded (concave).
+        Stores result in self.corner_ao as (width+1) x (height+1) grid.
+        
+        Uses Taichi acceleration if available, otherwise falls back to CPU.
+        """
+        try:
+            from render.lighting_system import _get_ao_kernel
+            import numpy as np
+            
+            w, h = self.width, self.height
+            elev = np.zeros((w, h), dtype=np.int32)
+            for x in range(w):
+                for y in range(h):
+                    elev[x, y] = self.tiles[x][y].elevation
+            
+            corner_ao = np.ones((w + 1, h + 1), dtype=np.float32)
+            
+            from config import AO_STRENGTH, AO_BLUR_RADIUS
+            kernel = _get_ao_kernel()
+            kernel(elev, corner_ao, w, h, AO_STRENGTH, AO_BLUR_RADIUS)
+            
+            self.corner_ao = corner_ao.tolist()
+            return
+        except Exception:
+            pass  # Fall back to CPU implementation
+        
+        # CPU fallback (original implementation)
+        from config import AO_STRENGTH, AO_BLUR_RADIUS
+        
+        w, h = self.width, self.height
+        self.corner_ao = [[1.0] * (h + 1) for _ in range(w + 1)]
+        
+        # 12-tile kernel matching get_corner_height
+        kernel = [
+            (-1, -1, 4.0), (0, -1, 4.0), (-1, 0, 4.0), (0, 0, 4.0),
+            (-2, -1, 1.0), (1, -2, 1.0), (2, 1, 1.0), (-1, 2, 1.0),
+            (-2, -2, 0.25), (2, -2, 0.25), (2, 2, 0.25), (-2, 2, 0.25),
+        ]
+        
+        for cx in range(w + 1):
+            for cy in range(h + 1):
+                ref_elev = 0.0
+                ref_count = 0
+                for dx, dy in [(-1, -1), (0, -1), (-1, 0), (0, 0)]:
+                    tx, ty = cx + dx, cy + dy
+                    if 0 <= tx < w and 0 <= ty < h:
+                        ref_elev += self.tiles[tx][ty].elevation
+                        ref_count += 1
+                if ref_count > 0:
+                    ref_elev /= ref_count
+                else:
+                    ref_elev = 0.0
+                
+                concave_weight = 0.0
+                total_weight = 0.0
+                for dx, dy, weight in kernel:
+                    nx, ny = cx + dx, cy + dy
+                    if 0 <= nx < w and 0 <= ny < h:
+                        total_weight += weight
+                        if self.tiles[nx][ny].elevation > ref_elev:
+                            delta = self.tiles[nx][ny].elevation - ref_elev
+                            concave_weight += weight * min(1.0, delta / 2.0)
+                
+                if total_weight > 0:
+                    occlusion = concave_weight / total_weight
+                    self.corner_ao[cx][cy] = max(0.0, 1.0 - occlusion * AO_STRENGTH)
+                else:
+                    self.corner_ao[cx][cy] = 1.0
+        
+        if AO_BLUR_RADIUS > 0:
+            blurred = [[1.0] * (h + 1) for _ in range(w + 1)]
+            for cx in range(w + 1):
+                for cy in range(h + 1):
+                    s = 0.0
+                    c = 0
+                    for dx in range(-AO_BLUR_RADIUS, AO_BLUR_RADIUS + 1):
+                        for dy in range(-AO_BLUR_RADIUS, AO_BLUR_RADIUS + 1):
+                            nx, ny = cx + dx, cy + dy
+                            if 0 <= nx <= w and 0 <= ny <= h:
+                                s += self.corner_ao[nx][ny]
+                                c += 1
+                    blurred[cx][cy] = s / c if c > 0 else 1.0
+            self.corner_ao = blurred
+
+    def get_tile_ao(self, x: int, y: int) -> float:
+        """Bilinear interpolation of 4 corner AO values for a tile."""
+        if not self.corner_ao:
+            return 1.0
+        return (
+            self.corner_ao[x][y] + self.corner_ao[x + 1][y] +
+            self.corner_ao[x][y + 1] + self.corner_ao[x + 1][y + 1]
+        ) / 4.0
