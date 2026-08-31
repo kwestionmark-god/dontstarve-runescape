@@ -7,6 +7,7 @@ Does NOT own pygame drawing or input.
 
 from __future__ import annotations
 from typing import Any
+import math
 
 # Defaults (can be overridden from config)
 DEFAULT_SEASON_DURATION = 600.0
@@ -36,9 +37,27 @@ DEFAULT_RESOURCE_MULTIPLIERS: dict[str, dict[str, float]] = {
     "winter": {"herbs": 0.5, "water": 0.6, "wood": 0.7, "stone": 1.0, "ore": 0.8},
 }
 
+# Day/night cycle defaults
+DEFAULT_DAY_DURATION = 1200.0        # Full day/night cycle (20 min)
+DEFAULT_SUNRISE_HOUR = 6.0           # Time-of-day 0.25
+DEFAULT_SUNSET_HOUR = 18.0           # Time-of-day 0.75
+DEFAULT_SUN_ALTITUDE_MIN = -30.0     # Degrees at midnight
+DEFAULT_SUN_ALTITUDE_MAX = 30.0      # Degrees at noon
+DEFAULT_SUN_AZIMUTH = 45.0           # Degrees from north (0=N, 90=E)
+DEFAULT_NIGHT_AMBIENT_LEVEL = 0.15   # Minimum ambient at night (0-1)
+DEFAULT_DAY_AMBIENT_LEVEL = 0.45     # Maximum ambient at noon (0-1)
+
+# Seasonal lighting profiles
+DEFAULT_SEASON_LIGHTING: dict[str, dict[str, tuple[int, int, int]]] = {
+    "spring":  {"ambient": (230, 240, 220), "sun_color": (255, 240, 200), "fog_tint": (180, 210, 190)},
+    "summer":  {"ambient": (245, 235, 210), "sun_color": (255, 245, 220), "fog_tint": (200, 190, 160)},
+    "autumn":  {"ambient": (235, 220, 190), "sun_color": (255, 200, 140), "fog_tint": (180, 160, 130)},
+    "winter":  {"ambient": (200, 220, 240), "sun_color": (220, 235, 255), "fog_tint": (160, 180, 200)},
+}
+
 
 class SeasonSystem:
-    """Manages the four-season cycle, progress, and transitions."""
+    """Manages the four-season cycle, progress, transitions, and time-of-day."""
 
     def __init__(
         self,
@@ -49,6 +68,15 @@ class SeasonSystem:
         season_transitions: dict[str, str] | None = None,
         survival_modifiers: dict[str, dict[str, float]] | None = None,
         resource_multipliers: dict[str, dict[str, float]] | None = None,
+        day_duration: float = DEFAULT_DAY_DURATION,
+        sunrise_hour: float = DEFAULT_SUNRISE_HOUR,
+        sunset_hour: float = DEFAULT_SUNSET_HOUR,
+        sun_altitude_min: float = DEFAULT_SUN_ALTITUDE_MIN,
+        sun_altitude_max: float = DEFAULT_SUN_ALTITUDE_MAX,
+        sun_azimuth: float = DEFAULT_SUN_AZIMUTH,
+        night_ambient_level: float = DEFAULT_NIGHT_AMBIENT_LEVEL,
+        day_ambient_level: float = DEFAULT_DAY_AMBIENT_LEVEL,
+        season_lighting: dict[str, dict[str, tuple[int, int, int]]] | None = None,
     ) -> None:
         self.seed = seed
         self.season_duration = season_duration
@@ -62,7 +90,7 @@ class SeasonSystem:
         self.transition_blend: float = 0.0
         self.previous_season: str | None = None
 
-        # Survival and resource modifiers (use defaults if not provided)
+        # Survival and resource modifiers
         self.survival_modifiers: dict[str, dict[str, float]] = (
             survival_modifiers if survival_modifiers is not None else DEFAULT_SURVIVAL_MODIFIERS
         )
@@ -71,20 +99,39 @@ class SeasonSystem:
         )
         self.availability: dict[str, list[str]] = {}
 
-        # Season-change callbacks (registered by other systems)
+        # Day/night cycle
+        self.day_duration = day_duration
+        self.sunrise_hour = sunrise_hour
+        self.sunset_hour = sunset_hour
+        self.sun_altitude_min = sun_altitude_min
+        self.sun_altitude_max = sun_altitude_max
+        self.sun_azimuth = sun_azimuth
+        self.night_ambient_level = night_ambient_level
+        self.day_ambient_level = day_ambient_level
+        self.season_lighting = season_lighting if season_lighting is not None else DEFAULT_SEASON_LIGHTING
+
+        # Time-of-day state
+        self.time_of_day: float = 0.5  # Start at noon
+        self.day_elapsed: float = self.day_duration * 0.5
+
+        # Season-change callbacks
         self._on_season_changed: list[callable] = []
 
     def tick(self, dt: float) -> None:
-        """Advance elapsed/progress; handle season rollover; update transition_blend."""
+        """Advance elapsed/progress; handle season rollover; update time-of-day."""
+        # Season tick
         self.season_elapsed += dt
         self.season_progress = min(self.season_elapsed / self.season_duration, 1.0)
 
         if self.season_elapsed >= self.season_duration and self.transition_blend <= 0.0:
             self._on_season_rollover()
 
-        # Animate transition blend back to 0 after rollover
         if self.transition_blend > 0.0:
             self.transition_blend = max(0.0, self.transition_blend - dt / self.season_transition)
+
+        # Time-of-day tick (independent of season)
+        self.day_elapsed = (self.day_elapsed + dt) % self.day_duration
+        self.time_of_day = self.day_elapsed / self.day_duration
 
     def _on_season_rollover(self) -> None:
         """Handle transition to the next season."""
@@ -95,18 +142,16 @@ class SeasonSystem:
         self.season_progress = 0.0
         self.transition_blend = 1.0
 
-        # Fire season-change callbacks
         for callback in self._on_season_changed:
             try:
                 callback(self.current_season, self.previous_season)
             except Exception:
-                pass  # Don't let callback errors break the season cycle
+                pass
 
     def get_survival_modifiers(self) -> dict[str, float]:
         """Return survival modifiers for the current season."""
         if self.survival_modifiers:
             return self.survival_modifiers.get(self.current_season, {})
-        # Default modifiers
         return {
             "hunger_drain": 1.0,
             "regrowth": 1.0,
@@ -117,37 +162,14 @@ class SeasonSystem:
         }
 
     def get_resource_multiplier(self, category: str) -> float:
-        """Return spawn/yield scalar for a resource category.
-
-        Looks up the category directly in the season's resource_multipliers.
-        Valid categories: 'wood', 'ore', 'herb', 'water', 'stone', 'special'.
-        Falls back to 1.0 for unknown categories.
-
-        Args:
-            category: The resource category (e.g. 'wood', 'ore', 'herb').
-
-        Returns:
-            Density/yield multiplier for the current season.
-        """
+        """Return spawn/yield scalar for a resource category."""
         if self.resource_multipliers:
             season_data = self.resource_multipliers.get(self.current_season, {})
             return season_data.get(category, 1.0)
         return 1.0
 
     def is_resource_available(self, resource_id: str) -> bool:
-        """Check if a resource is available in the current season.
-
-        This is a runtime override mechanism. The primary season gate is
-        the ``seasons_available`` field on each ResourceNode in resources.json.
-        This method checks the ``availability`` dict for dynamic overrides
-        (e.g. events, quests, or developer testing).
-
-        Args:
-            resource_id: The resource ID to check.
-
-        Returns:
-            True if available, False otherwise.
-        """
+        """Check if a resource is available in the current season."""
         if not self.availability:
             return True
         allowed_seasons = self.availability.get(resource_id, [])
@@ -156,12 +178,64 @@ class SeasonSystem:
         return self.current_season in allowed_seasons
 
     def on_season_changed(self, callback: callable) -> None:
-        """Register a callback to be called when a season changes.
-
-        Args:
-            callback: Function that receives (new_season, previous_season).
-        """
+        """Register a callback to be called when a season changes."""
         self._on_season_changed.append(callback)
+
+    def get_lighting_params(self) -> dict:
+        """
+        Returns lighting parameters for current season + time-of-day.
+        
+        Returns dict with:
+            sun_direction: (x, y, z) world-space unit vector
+            sun_altitude: radians
+            ambient_color: (r, g, b)
+            ambient_level: 0.0-1.0
+            sun_color: (r, g, b)
+            fog_tint: (r, g, b)
+        """
+        profile = self.season_lighting[self.current_season]
+        t = self.time_of_day
+        
+        # Sun altitude: -30° at midnight (0), 0° at sunrise (0.25), +30° at noon (0.5),
+        # 0° at sunset (0.75), -30° at midnight (1.0)
+        alt_min = math.radians(self.sun_altitude_min)
+        alt_max = math.radians(self.sun_altitude_max)
+        
+        if t < 0.25:
+            sun_alt = alt_min + (alt_max - alt_min) * (t / 0.25)
+        elif t < 0.5:
+            sun_alt = (alt_max - alt_min) * ((t - 0.25) / 0.25)
+        elif t < 0.75:
+            sun_alt = (alt_max - alt_min) * (1.0 - (t - 0.5) / 0.25)
+        else:
+            sun_alt = alt_min * ((t - 0.75) / 0.25)
+        
+        azimuth = math.radians(self.sun_azimuth)
+        sun_dir = (
+            math.cos(sun_alt) * math.sin(azimuth),
+            math.cos(sun_alt) * math.cos(azimuth),
+            math.sin(sun_alt),
+        )
+        
+        # Ambient lerp with dawn/dusk transitions
+        if 0.125 <= t <= 0.375:
+            day_frac = (t - 0.125) / 0.25
+        elif 0.625 <= t <= 0.875:
+            day_frac = 1.0 - (t - 0.625) / 0.25
+        elif 0.25 < t < 0.625:
+            day_frac = 1.0
+        else:
+            day_frac = 0.0
+        ambient_level = self.night_ambient_level + day_frac * (self.day_ambient_level - self.night_ambient_level)
+        
+        return {
+            "sun_direction": sun_dir,
+            "sun_altitude": sun_alt,
+            "ambient_color": profile["ambient"],
+            "ambient_level": ambient_level,
+            "sun_color": profile["sun_color"],
+            "fog_tint": profile["fog_tint"],
+        }
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize season state for save/load."""
@@ -171,6 +245,8 @@ class SeasonSystem:
             "elapsed": self.season_elapsed,
             "previous": self.previous_season,
             "transition_blend": self.transition_blend,
+            "time_of_day": self.time_of_day,
+            "day_elapsed": self.day_elapsed,
             "survival_modifiers": self.survival_modifiers,
             "resource_multipliers": self.resource_multipliers,
             "availability": self.availability,

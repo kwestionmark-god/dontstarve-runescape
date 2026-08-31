@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from config import WEATHER_CHANGE_INTERVAL, WEATHER_WEIGHTS
+from config import WEATHER_CHANGE_INTERVAL, WEATHER_WEIGHTS, CLOUD_SHADOW_STRENGTH, LIGHTNING_FLASH_DURATION_MS, LIGHTNING_FLASH_ALPHA
 
 DEFAULT_WEATHER_TYPES = ("clear", "rain", "snow", "storm", "fog")
 
@@ -65,33 +65,48 @@ class WeatherSystem:
             self.weather_history.pop(0)
 
     def get_effects(self) -> dict[str, float]:
-        """Return weather effects as multipliers."""
+        """Return weather effects as multipliers (including lighting)."""
         effects: dict[str, float] = {
             "movement_speed": 1.0,
             "visibility": 1.0,
             "outdoor_crafting": 1.0,
             "spawn_mod": 1.0,
+            "light_level": 1.0,
+            "cloud_coverage": 0.0,
+            "rain_intensity": 0.0,
+            "lightning_chance": 0.0,
         }
         if self.current_weather == "rain":
             effects["movement_speed"] = 0.9
             effects["visibility"] = 0.85
             effects["outdoor_crafting"] = 0.0
             effects["spawn_mod"] = 1.2
+            effects["light_level"] = 0.7
+            effects["cloud_coverage"] = 0.8
+            effects["rain_intensity"] = 0.6
         elif self.current_weather == "snow":
             effects["movement_speed"] = 0.8
             effects["visibility"] = 0.70
             effects["outdoor_crafting"] = 0.0
             effects["spawn_mod"] = 0.7
+            effects["light_level"] = 1.1   # Snow brightens
+            effects["cloud_coverage"] = 0.9
         elif self.current_weather == "storm":
             effects["movement_speed"] = 0.7
             effects["visibility"] = 0.50
             effects["outdoor_crafting"] = 0.3
             effects["spawn_mod"] = 0.5
+            effects["light_level"] = 0.4
+            effects["cloud_coverage"] = 1.0
+            effects["rain_intensity"] = 1.0
+            effects["lightning_chance"] = 0.02   # Per frame at 60fps ≈ 1.2/sec
         elif self.current_weather == "fog":
             effects["movement_speed"] = 0.9
             effects["visibility"] = 0.40
             effects["outdoor_crafting"] = 1.0
             effects["spawn_mod"] = 1.1
+            effects["light_level"] = 0.85
+            effects["cloud_coverage"] = 0.3
         return effects
 
     def set_season_system(

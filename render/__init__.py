@@ -11,5 +11,6 @@ from render.sprite_renderer import SpriteRenderer
 from render.seasonal_renderer import SeasonalRenderer
 from render.particle_system import ParticleSystem
 from render.npc_renderer import NPCRenderer
+from render.lighting_system import LightingSystem
 
-__all__ = ["TileRenderer", "SpriteRenderer", "SeasonalRenderer", "ParticleSystem", "NPCRenderer"]
+__all__ = ["TileRenderer", "SpriteRenderer", "SeasonalRenderer", "ParticleSystem", "NPCRenderer", "LightingSystem"]

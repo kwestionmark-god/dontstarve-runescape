@@ -45,7 +45,7 @@ class SpriteRenderer:
     """
 
     __slots__ = ("sprite_dir", "_sprite_cache", "_font", "tile_map", "seasonal_renderer",
-                 "_anim_timer", "_anim_frame", "_anim_speed")
+                 "_anim_timer", "_anim_frame", "_anim_speed", "lighting_system")
 
     def __init__(
         self,

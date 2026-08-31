@@ -72,6 +72,7 @@ class Game:
         "_title_selection_index", "_save_slots", "_flavor_text",
         "_build_cursor", "_input_router", "_npc_flows", "_bootstrap",
         "_character_select_panel", "_pending_character_def",
+        "lighting_system",
         "woodcutting", "mining", "foraging",
     )
 
@@ -143,6 +144,11 @@ class Game:
         from interactions.interact import InteractSystem
         self._fire_interaction = FireInteraction(self)
         self._interact_system = InteractSystem(self)
+
+        # Phase 6: Lighting coordinator
+        from render.lighting_system import LightingSystem
+        self.lighting_system = None  # Set by Bootstrap._wire_phase4
+
         from core.bootstrap import Bootstrap
         self._bootstrap = Bootstrap(self, None)
 
@@ -258,6 +264,12 @@ class Game:
             if self.particle_system is not None and self.weather_system is not None:
                 self.particle_system.sync(self.weather_system.current_weather)
                 self.particle_system.update(dt)
+            # Phase 6: Update lighting from season + weather
+            if self.lighting_system is not None:
+                if self.season_system is not None:
+                    self.lighting_system.update_from_season(self.season_system)
+                if self.weather_system is not None:
+                    self.lighting_system.update_from_weather(self.weather_system)
 
     def render(self, screen: pygame.Surface) -> None:
         if self.state == GameState.TITLE:

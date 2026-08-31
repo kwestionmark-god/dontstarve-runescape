@@ -630,3 +630,21 @@ class Bootstrap:
         # Wire SpriteRenderer → SeasonalRenderer (for sprite tinting)
         if self.game._sprite_renderer is not None:
             self.game._sprite_renderer.seasonal_renderer = self.game.seasonal_renderer
+
+        # Create LightingSystem (Phase 6)
+        from render import LightingSystem
+        from config import DEFAULT_SHADING_PRESET
+        self.game.lighting_system = LightingSystem(preset=DEFAULT_SHADING_PRESET)
+
+        # Wire LightingSystem → TileRenderer, SpriteRenderer, ParticleSystem
+        if self.game._tile_renderer is not None:
+            self.game._tile_renderer.lighting_system = self.game.lighting_system
+
+        if self.game._sprite_renderer is not None:
+            self.game._sprite_renderer.lighting_system = self.game.lighting_system
+
+        if self.game.particle_system is not None:
+            self.game.particle_system.lighting_system = self.game.lighting_system
+
+        # Wire WeatherSystem → LightingSystem
+        self.game.lighting_system.weather_system = self.game.weather_system
