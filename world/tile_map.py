@@ -268,17 +268,28 @@ class TileMap:
                 count += 1
         return total / count if count > 0 else 0.0
 
-    def compute_slope_shading(self, x: int, y: int) -> Tuple[float, float]:
+    def compute_slope_shading(
+        self,
+        x: int,
+        y: int,
+        light_dir: tuple[float, float, float] | None = None,
+    ) -> Tuple[float, float]:
         """
         Compute slope-based brightness factor and slope magnitude for a tile.
 
         Uses raw corner elevations to determine the gradient of the terrain
-        around this tile, then computes a brightness modifier based on a
-        fixed light direction from the north-west (screen-space).
+        around this tile, then computes a brightness modifier based on the
+        dot product of that gradient with a light direction.
 
         Args:
             x: Tile grid column.
             y: Tile grid row.
+            light_dir: Optional ``(lx, ly, lz)`` light vector. When ``None``
+                (default), the legacy fixed north-west light ``(-1, -1)`` is
+                used and the math is byte-for-byte identical to the original
+                implementation. When provided, the first two components
+                parameterize the light direction (z is ignored here; the
+                gradient lives in the x/y plane).
 
         Returns:
             ``(brightness_factor, slope_magnitude)`` where:
@@ -300,12 +311,18 @@ class TileMap:
         # Slope magnitude (0 = flat, 1+ = very steep)
         slope_mag = math.sqrt(grad_x * grad_x + grad_y * grad_y)
 
-        # Light direction from north-west (screen-space: -1, -1)
-        # Dot product of gradient with light direction
-        light_dot = (-1.0 * grad_x) + (-1.0 * grad_y)
+        # Light direction. None → legacy fixed NW (-1, -1) for byte-for-byte
+        # parity with the original implementation.
+        if light_dir is None:
+            lx, ly = -1.0, -1.0
+        else:
+            lx, ly = light_dir[0], light_dir[1]
 
-        # Normalize light response: slopes facing the light (NW) brighten,
-        # slopes facing away (SE) darken. Clamp to [-SHADING_STRENGTH, +SHADING_STRENGTH] range.
+        # Dot product of gradient with light direction
+        light_dot = (lx * grad_x) + (ly * grad_y)
+
+        # Normalize light response: slopes facing the light brighten,
+        # slopes facing away darken. Clamp to [-SHADING_STRENGTH, +SHADING_STRENGTH] range.
         brightness = 1.0 + max(-SHADING_STRENGTH, min(SHADING_STRENGTH, light_dot * SHADING_STRENGTH * 2.0))
 
         return (brightness, min(slope_mag / 2.0, 1.0))
