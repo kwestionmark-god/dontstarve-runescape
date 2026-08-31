@@ -28,6 +28,14 @@ wheels/
 *.manifest
 *.spec
 
+# World gen experiment artifacts (one-off, not source)
+test_game.py
+world/parallel_gen.py
+world/parallel_gen.py.bak
+world/taichi_kernels.py
+test_*.csv
+resource_distribution.csv
+
 # IDE
 .idea/
 .vscode/
