@@ -10,7 +10,9 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Tuple
 
-from config import SHADING_STRENGTH
+import numpy as np
+
+from config import FOG_SCALE_HEIGHT, SHADING_STRENGTH
 
 if TYPE_CHECKING:
     from world.biome import Biome
@@ -86,7 +88,10 @@ class TileMap:
     Indexed as tiles[x][y] for column-major access.
     """
 
-    __slots__ = ("width", "height", "tiles", "spawn_x", "spawn_y", "_season_system", "corner_ao")
+    __slots__ = (
+        "width", "height", "tiles", "spawn_x", "spawn_y", "_season_system",
+        "corner_ao", "corner_height", "corner_fog",
+    )
 
     def __init__(
         self,
@@ -101,6 +106,8 @@ class TileMap:
         self.spawn_y = spawn_y
         self._season_system: object | None = None
         self.corner_ao: list[list[float]] = []  # (width+1) x (height+1) AO factors per corner
+        self.corner_height: list[list[float]] = []  # (width+1) x (height+1) smoothed corner heights
+        self.corner_fog: list[list[float]] = []  # (width+1) x (height+1) exp(-h/scale) per corner
 
         # Build grid column-major: tiles[x][y]
         # Tiles are initialized with placeholder biome; actual biome
@@ -189,13 +196,15 @@ class TileMap:
 
     def get_corner_height(self, cx: int, cy: int) -> float:
         """
-        Compute the interpolated height at corner (cx, cy).
+        Compute (or look up) the interpolated height at corner (cx, cy).
 
-        The corner sits between four tiles. Height is a weighted average
-        of the elevation values of surrounding tiles using a rotationally
-        symmetric kernel (12 unique tiles, no overlap).
+        When ``self.corner_height`` has been populated by
+        ``bake_corner_heights()`` (and the index is in bounds for that
+        grid), this returns the cached value. Otherwise it falls back to
+        the on-demand 12-tile kernel compute so any caller that bypasses
+        the bake (e.g. tests on tiny maps, edge cases) keeps working.
 
-        Kernel:
+        Kernel (when computing on demand):
             4 center tiles (the 2x2 around corner): weight 4 each
             4 ortho neighbors (90° rotation orbit): weight 1 each
             4 diag neighbors (90° rotation orbit): weight 0.25 each
@@ -205,6 +214,11 @@ class TileMap:
         Returns:
             The interpolated corner height as a float.
         """
+        # Fast path: serve from the baked grid when available and in range.
+        grid = self.corner_height
+        if grid and 0 <= cx < len(grid) and 0 <= cy < len(grid[0]):
+            return grid[cx][cy]
+
         # Rotationally symmetric kernel around corner (cx, cy).
         # Orbit 1 (center 2x2): (-1,-1), (0,-1), (-1,0), (0,0) — weight 4
         # Orbit 2 (ortho): (-2,-1), (1,-2), (2,1), (-1,2) — weight 1
@@ -427,6 +441,66 @@ class TileMap:
                                 c += 1
                     blurred[cx][cy] = s / c if c > 0 else 1.0
             self.corner_ao = blurred
+
+    def bake_corner_heights(self) -> None:
+        """
+        Pre-compute the smoothed corner-height grid using the 12-tile kernel.
+
+        Populates ``self.corner_height`` as a ``(width+1) x (height+1)`` list
+        of lists. The kernel, OOB-as-zero handling, and total-weight
+        normalization are byte-for-byte identical to ``get_corner_height``,
+        so consumers (and existing tests) see no change in values.
+        """
+        w, h = self.width, self.height
+
+        # 12-tile kernel matching get_corner_height (center, ortho, diag orbits).
+        kernel_dx = np.array([-1, 0, -1, 0, -2, 1, 2, -1, -2, 2, 2, -2], dtype=np.int32)
+        kernel_dy = np.array([-1, -1, 0, 0, -1, -2, 1, 2, -2, -2, 2, 2], dtype=np.int32)
+        kernel_w = np.array(
+            [4.0, 4.0, 4.0, 4.0, 1.0, 1.0, 1.0, 1.0, 0.25, 0.25, 0.25, 0.25],
+            dtype=np.float32,
+        )
+        total_weight = float(kernel_w.sum())
+
+        # Convert elevations to a NumPy grid for fast indexed lookups.
+        elev = np.zeros((w, h), dtype=np.float32)
+        for x in range(w):
+            for y in range(h):
+                elev[x, y] = self.tiles[x][y].elevation
+
+        # OOB masks: per (cx, cy), mask[i] is True when the i-th kernel sample
+        # is out-of-bounds. Those samples contribute 0 height but full weight,
+        # matching the OOB-as-zero semantics of get_corner_height.
+        grid = np.zeros((w + 1, h + 1), dtype=np.float32)
+        for cx in range(w + 1):
+            tx = cx + kernel_dx  # shape (12,)
+            in_x = (tx >= 0) & (tx < w)
+            for cy in range(h + 1):
+                ty = cy + kernel_dy
+                in_xy = in_x & (ty >= 0) & (ty < h)
+                heights = np.where(in_xy, elev[tx.clip(0, w - 1), ty.clip(0, h - 1)], 0.0)
+                total_height = float(np.dot(heights, kernel_w))
+                grid[cx, cy] = total_height / total_weight
+
+        # Convert to list-of-lists for natural Python indexing.
+        self.corner_height = grid.tolist()
+
+    def bake_corner_fog(self) -> None:
+        """
+        Pre-compute per-corner fog density ``exp(-corner_height / FOG_SCALE_HEIGHT)``.
+
+        Populates ``self.corner_fog`` as a ``(width+1) x (height+1)`` list of
+        lists. Reads from ``self.corner_height``, which must already be
+        populated by ``bake_corner_heights()``.
+        """
+        if not self.corner_height:
+            raise ValueError(
+                "bake_corner_fog() requires bake_corner_heights() to run first"
+            )
+
+        grid = np.array(self.corner_height, dtype=np.float32)
+        fog = np.exp(-grid / FOG_SCALE_HEIGHT)
+        self.corner_fog = fog.tolist()
 
     def get_tile_ao(self, x: int, y: int) -> float:
         """Bilinear interpolation of 4 corner AO values for a tile."""
