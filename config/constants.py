@@ -201,6 +201,8 @@ SHADING_PRESETS: dict[str, dict] = {
         "ambient_overlay_alpha": 20,
         "sky_mode": "solid",
         "terrain_style": "textured",
+        "terrain_subdiv": 2,
+        "terrain_lod": True,
     },
     "realistic": {
         "slope_shading": True,
@@ -216,6 +218,8 @@ SHADING_PRESETS: dict[str, dict] = {
         "ambient_overlay_alpha": 40,
         "sky_mode": "gradient",
         "terrain_style": "flat",
+        "terrain_subdiv": 4,
+        "terrain_lod": True,
     },
     "performance": {
         "slope_shading": False,
@@ -231,6 +235,8 @@ SHADING_PRESETS: dict[str, dict] = {
         "ambient_overlay_alpha": 0,
         "sky_mode": "solid",
         "terrain_style": "textured",
+        "terrain_subdiv": 2,
+        "terrain_lod": True,
     },
 }
 DEFAULT_SHADING_PRESET = "stylized"

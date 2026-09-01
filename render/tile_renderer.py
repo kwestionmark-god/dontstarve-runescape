@@ -101,6 +101,17 @@ class TileRenderer:
         if lighting is not None:
             terrain_style = lighting.preset_config.get("terrain_style", "textured")
 
+        # LOD threshold: beyond this fraction of fog cull distance, fall back to flat
+        lod_fallback_dist = FOG_CULL_DISTANCE * 0.66
+        use_lod = False
+        if lighting is not None and lighting.preset_config.get("terrain_lod", True):
+            use_lod = True
+
+        # Terrain subdivision from preset (for textured mode)
+        terrain_subdiv = TILE_SUBDIVISIONS
+        if lighting is not None:
+            terrain_subdiv = lighting.preset_config.get("terrain_subdiv", TILE_SUBDIVISIONS)
+
         left, top, right, bottom = camera.get_view_rect()
         if left == right or top == bottom:
             return
@@ -179,6 +190,15 @@ class TileRenderer:
             if fog_alpha < 0:
                 continue  # Culled
 
+            # LOD: fall back to flat rendering beyond lod_fallback_dist
+            use_gouraud = (terrain_style == "flat" and corner_brightness is not None)
+            if use_lod and player_pos:
+                tile_cx = x * tile_size + tile_size / 2
+                tile_cy = y * tile_size + tile_size / 2
+                dist = math.hypot(tile_cx - player_pos[0], tile_cy - player_pos[1])
+                if dist > lod_fallback_dist:
+                    use_gouraud = False
+
             # Per-tile fog modulation by corner_fog density (Phase 7 P1)
             if use_height_fog and tile_map.corner_fog:
                 # Average the 4 corner fog densities
@@ -198,7 +218,7 @@ class TileRenderer:
                 base_color = self.seasonal_renderer.get_tile_color(biome_name, base_color)
 
             # ── Choose rendering path ───────────────────────────────
-            if terrain_style == "flat" and corner_brightness is not None:
+            if use_gouraud:
                 self._render_tile_gouraud(
                     x, y, tile, camera, tile_size,
                     base_color, corner_brightness, corner_normal,
@@ -215,6 +235,7 @@ class TileRenderer:
                     tile_map.corner_fog if use_height_fog else None,
                     fog_alpha, FOG_COLOR,
                     use_rim,
+                    terrain_subdiv,
                 )
 
     def _render_tile_gouraud(
@@ -350,6 +371,7 @@ class TileRenderer:
         corner_fog: list[list[float]] | None,
         fog_alpha: int, fog_color: tuple[int, int, int],
         use_rim: bool,
+        terrain_subdiv: int = TILE_SUBDIVISIONS,
     ) -> None:
         """Render tile using biome sprite with sub-tile interpolated shading."""
         # Load terrain sprite
@@ -403,6 +425,7 @@ class TileRenderer:
                 x, y, rect, terrain_sprite.get_size(),
                 base_color, corner_brightness, corner_ao, corner_fog,
                 fog_alpha, fog_color,
+                terrain_subdiv,
             )
         else:
             # Flat shading fallback
@@ -421,9 +444,10 @@ class TileRenderer:
         corner_ao: list[list[float]] | None,
         corner_fog: list[list[float]] | None,
         fog_alpha: int, fog_color: tuple[int, int, int],
+        terrain_subdiv: int = TILE_SUBDIVISIONS,
     ) -> None:
-        """Apply Gouraud-like shading via TILE_SUBDIVISIONS x TILE_SUBDIVISIONS sub-tiles."""
-        subdiv = TILE_SUBDIVISIONS
+        """Apply Gouraud-like shading via terrain_subdiv x terrain_subdiv sub-tiles."""
+        subdiv = terrain_subdiv
         if subdiv < 2:
             subdiv = 2
 
