@@ -8,11 +8,14 @@ stats before beginning a new game.
 from __future__ import annotations
 
 import pygame
+import math
+import random
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
 from config import WINDOW_WIDTH, WINDOW_HEIGHT
 from ui.panel_window import PanelWindow
 from survival.starter_pack import CharacterDefinition, get_starter_pack
+from render.font_cache import get_monospace, get_monospace_bold, get_monospace_italic
 
 from core.state import GameState
 
@@ -27,24 +30,32 @@ BACKGROUND_DEFINITIONS: Dict[str, Dict] = {
         "description": "Skilled with axe and bow. Starts with woodcutting knowledge.",
         "starter_pack": "forester",
         "stat_bonuses": {"woodcutting": {"harvest_boost": 1, "stamina": 1}},
+        "icon": "axe",
+        "color": (100, 180, 100),
     },
     "prospector": {
         "name": "Prospector",
         "description": "Knows the earth's secrets. Starts with mining expertise.",
         "starter_pack": "prospector",
         "stat_bonuses": {"mining": {"success_rate": 1, "extra_resources": 1}},
+        "icon": "pickaxe",
+        "color": (180, 150, 80),
     },
     "scavenger": {
         "name": "Scavenger",
         "description": "Survives on what others discard. Starts with foraging skill.",
         "starter_pack": "scavenger",
         "stat_bonuses": {"foraging": {"harvest_boost": 1, "success_rate": 1}},
+        "icon": "torch",
+        "color": (180, 100, 100),
     },
     "default": {
         "name": "Default",
         "description": "No special background. Balanced start.",
         "starter_pack": "default",
         "stat_bonuses": {},
+        "icon": "sword",
+        "color": (150, 150, 150),
     },
 }
 
@@ -73,41 +84,41 @@ class CharacterSelectPanel(PanelWindow):
     └──────────────────────────────────────────┘
     """
 
-    PANEL_WIDTH = 500
-    PANEL_HEIGHT = 520
-    CARD_WIDTH = 140
-    CARD_HEIGHT = 130
-    CARD_GAP = 15
+    PANEL_WIDTH = 540
+    PANEL_HEIGHT = 560
+    CARD_WIDTH = 150
+    CARD_HEIGHT = 150
+    CARD_GAP = 18
 
-    BG_COLOR = (25, 25, 35)
+    BG_COLOR = (20, 20, 30)
     BORDER_COLOR = (100, 100, 140)
-    CARD_BG = (40, 40, 55)
-    CARD_HOVER = (60, 60, 80)
-    CARD_SELECTED = (80, 100, 60)
+    CARD_BG = (35, 35, 50)
+    CARD_HOVER = (55, 55, 75)
+    CARD_SELECTED = (70, 100, 60)
     BTN_COLOR = (60, 100, 160)
     BTN_HOVER = (80, 130, 200)
-    TEXT_COLOR = (200, 200, 220)
-    TEXT_DIM = (150, 150, 170)
-    INPUT_BG = (35, 35, 45)
-    INPUT_ACTIVE = (50, 50, 65)
+    TEXT_COLOR = (220, 220, 230)
+    TEXT_DIM = (140, 140, 160)
+    INPUT_BG = (30, 30, 40)
+    INPUT_ACTIVE = (45, 45, 60)
 
     def __init__(self) -> None:
         super().__init__(
             title="Character Selection",
-            x=(WINDOW_WIDTH - 500) // 2,
-            y=30,
-            width=500,
-            height=520,
-            title_height=26,
+            x=(WINDOW_WIDTH - 540) // 2,
+            y=20,
+            width=540,
+            height=560,
+            title_height=30,
             footer_height=0,
             has_scrollbar=False,
             show_close=True,
             selection_mode="grid",
             grid_cols=3,
-            row_gap=15,
+            row_gap=18,
         )
         self.visible: bool = False
-        self._selected_background: str = "default"
+        self._selected_background: str = "forester"
         self._player_name: str = ""
         self._name_active: bool = False
         self._name_rect: pygame.Rect = pygame.Rect(0, 0, 0, 0)
@@ -115,6 +126,28 @@ class CharacterSelectPanel(PanelWindow):
         self._start_btn_rect: pygame.Rect = pygame.Rect(0, 0, 0, 0)
         self._desc_rect: pygame.Rect = pygame.Rect(0, 0, 0, 0)
         self._on_confirm_callback = None
+        self._time: float = 0.0
+        self._bg_particles: list[dict] = []
+        self._init_bg_particles()
+
+    def _init_bg_particles(self) -> None:
+        """Initialize background particles for ambient effect."""
+        for _ in range(15):
+            self._bg_particles.append({
+                "x": random.uniform(0, self.PANEL_WIDTH),
+                "y": random.uniform(0, self.PANEL_HEIGHT),
+                "vx": random.uniform(-3, 3),
+                "vy": random.uniform(-8, -2),
+                "life": random.uniform(0.5, 1.5),
+                "max_life": random.uniform(0.5, 1.5),
+                "color": random.choice([
+                    (100, 180, 100, 80),
+                    (180, 150, 80, 80),
+                    (180, 100, 100, 80),
+                    (150, 150, 150, 60),
+                ]),
+                "size": random.uniform(1.5, 3.0),
+            })
 
     def set_confirm_callback(self, callback) -> None:
         """Set callback when START GAME is clicked. Receives CharacterDefinition."""
@@ -127,10 +160,32 @@ class CharacterSelectPanel(PanelWindow):
         # Name input + 3 background cards + start button
         return 5
 
+    def update(self, dt: float) -> None:
+        """Update animations and particles."""
+        self._time += dt
+        
+        # Update background particles
+        for p in self._bg_particles:
+            p["x"] += p["vx"] * dt
+            p["y"] += p["vy"] * dt
+            p["vy"] += 5 * dt
+            p["life"] -= dt
+            if p["life"] <= 0:
+                # Respawn at bottom
+                p["x"] = random.uniform(0, self.PANEL_WIDTH)
+                p["y"] = self.PANEL_HEIGHT + 10
+                p["vx"] = random.uniform(-3, 3)
+                p["vy"] = random.uniform(-15, -8)
+                p["life"] = random.uniform(0.5, 1.5)
+                p["max_life"] = p["life"]
+
     def draw_contents(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Draw character selection UI inside the clipped viewport."""
         self._interactive_rects.clear()
         self._card_rects.clear()
+
+        # Draw background particles
+        self._draw_bg_particles(screen, content_rect)
 
         left = content_rect.x + 20
         y = content_rect.y + 10
@@ -138,27 +193,33 @@ class CharacterSelectPanel(PanelWindow):
         # Player name input
         name_label = self.font_normal.render("Character Name:", True, self.TEXT_COLOR)
         screen.blit(name_label, (left, y))
-        y += 22
+        y += 24
 
-        name_rect = pygame.Rect(left, y, content_rect.width - 40, 30)
+        name_rect = pygame.Rect(left, y, content_rect.width - 40, 34)
         self._name_rect = name_rect
         bg_color = self.INPUT_ACTIVE if self._name_active else self.INPUT_BG
-        pygame.draw.rect(screen, bg_color, name_rect, border_radius=3)
-        pygame.draw.rect(screen, self.BORDER_COLOR, name_rect, 1, border_radius=3)
+        pygame.draw.rect(screen, bg_color, name_rect, border_radius=4)
+        border_color = (120, 160, 220) if self._name_active else self.BORDER_COLOR
+        pygame.draw.rect(screen, border_color, name_rect, 2, border_radius=4)
 
         # Render name text (or placeholder)
         display_name = self._player_name if self._player_name else "Enter name..."
         name_color = self.TEXT_COLOR if self._player_name else self.TEXT_DIM
         name_surf = self.font_normal.render(display_name, True, name_color)
-        screen.blit(name_surf, (name_rect.x + 8, name_rect.y + 5))
+        screen.blit(name_surf, (name_rect.x + 10, name_rect.y + 6))
+
+        # Blinking cursor when active
+        if self._name_active and int(self._time * 2) % 2 == 0:
+            cursor_x = name_rect.x + 10 + name_surf.get_width() + 2
+            pygame.draw.line(screen, (200, 220, 255), (cursor_x, name_rect.y + 6), (cursor_x, name_rect.y + 26), 2)
 
         self._interactive_rects.append((name_rect, "name_input"))
-        y += 40
+        y += 42
 
         # Background selection header
         bg_label = self.font_normal.render("Select Background:", True, self.TEXT_COLOR)
         screen.blit(bg_label, (left, y))
-        y += 28
+        y += 30
 
         # Background cards
         total_cards_width = 3 * self.CARD_WIDTH + 2 * self.CARD_GAP
@@ -175,91 +236,166 @@ class CharacterSelectPanel(PanelWindow):
             is_selected = bg_id == self._selected_background
             is_hovered = self._is_card_hovered(bg_id)
 
+            # Card background with selection glow
             if is_selected:
                 card_bg = self.CARD_SELECTED
+                # Pulsing glow
+                glow_alpha = int(40 + 20 * math.sin(self._time * 4))
+                glow_surf = pygame.Surface((self.CARD_WIDTH + 8, self.CARD_HEIGHT + 8), pygame.SRCALPHA)
+                pygame.draw.rect(glow_surf, (*bg_def["color"][:3], glow_alpha), (0, 0, self.CARD_WIDTH + 8, self.CARD_HEIGHT + 8), border_radius=9)
+                screen.blit(glow_surf, (card_rect.x - 4, card_rect.y - 4))
             elif is_hovered:
                 card_bg = self.CARD_HOVER
             else:
                 card_bg = self.CARD_BG
 
-            pygame.draw.rect(screen, card_bg, card_rect, border_radius=5)
-            pygame.draw.rect(screen, self.BORDER_COLOR, card_rect, 1, border_radius=5)
+            pygame.draw.rect(screen, card_bg, card_rect, border_radius=6)
+            border_c = bg_def["color"] if is_selected else self.BORDER_COLOR
+            pygame.draw.rect(screen, border_c, card_rect, 2 if is_selected else 1, border_radius=6)
+
+            # Background icon area
+            icon_y = card_rect.y + 12
+            self._draw_background_icon(screen, bg_def, card_rect.centerx, icon_y, is_selected)
 
             # Background name
-            name_surf = self.font_normal.render(bg_def["name"], True, self.TEXT_COLOR)
-            screen.blit(name_surf, (card_rect.x + 10, card_rect.y + 8))
+            name_surf = self.font_bold.render(bg_def["name"], True, self.TEXT_COLOR)
+            name_rect = name_surf.get_rect(centerx=card_rect.centerx, y=icon_y + 32)
+            screen.blit(name_surf, name_rect)
 
-            # Starter item icon (text representation)
+            # Starter items
             tool, torch, food = get_starter_pack(bg_def["starter_pack"])
             items_text = f"[{tool}] + [{torch}] + [{food}]"
             items_surf = self.font_small.render(items_text, True, self.TEXT_DIM)
-            screen.blit(items_surf, (card_rect.x + 10, card_rect.y + 30))
+            items_rect = items_surf.get_rect(centerx=card_rect.centerx, y=name_rect.bottom + 6)
+            screen.blit(items_surf, items_rect)
 
             # Stat bonuses
-            bonus_y = 52
+            bonus_y = items_rect.bottom + 8
             for skill_id, bonuses in bg_def["stat_bonuses"].items():
                 for sub_stat, points in bonuses.items():
                     bonus_text = f"+{points} {skill_id}.{sub_stat}"
-                    bonus_surf = self.font_small.render(bonus_text, True, (150, 200, 150))
-                    screen.blit(bonus_surf, (card_rect.x + 10, card_rect.y + bonus_y))
-                    bonus_y += 14
-
-            # Description
-            desc_surf = self.font_small.render(bg_def["description"], True, self.TEXT_DIM)
-            # Wrap description if needed
-            desc_lines = self._wrap_description(bg_def["description"], self.CARD_WIDTH - 20)
-            for j, line in enumerate(desc_lines[:2]):
-                line_surf = self.font_small.render(line, True, self.TEXT_DIM)
-                screen.blit(line_surf, (card_rect.x + 10, card_rect.y + 70 + j * 14))
+                    bonus_surf = self.font_small.render(bonus_text, True, (130, 200, 130))
+                    bonus_rect = bonus_surf.get_rect(centerx=card_rect.centerx, y=bonus_y)
+                    screen.blit(bonus_surf, bonus_rect)
+                    bonus_y += 16
 
             self._card_rects.append((bg_id, card_rect))
             self._interactive_rects.append((card_rect, f"background:{bg_id}"))
 
-        y += self.CARD_HEIGHT + 20
+        y += self.CARD_HEIGHT + 24
 
         # Description area for selected background
+        self._draw_background_details(screen, content_rect, left, y)
+
+    def _draw_bg_particles(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
+        """Draw ambient background particles."""
+        clip_rect = content_rect
+        for p in self._bg_particles:
+            px = content_rect.x + p["x"]
+            py = content_rect.y + p["y"]
+            if clip_rect.collidepoint(px, py):
+                alpha = int(255 * (p["life"] / p["max_life"]))
+                color = (*p["color"][:3], alpha)
+                surf = pygame.Surface((int(p["size"] * 2), int(p["size"] * 2)), pygame.SRCALPHA)
+                pygame.draw.circle(surf, color, (int(p["size"]), int(p["size"])), int(p["size"]))
+                screen.blit(surf, (int(px - p["size"]), int(py - p["size"])))
+
+    def _draw_background_icon(self, screen: pygame.Surface, bg_def: dict, cx: int, y: int, selected: bool) -> None:
+        """Draw a stylized icon for the background."""
+        icon_type = bg_def["icon"]
+        color = bg_def["color"] if selected else tuple(c // 2 for c in bg_def["color"][:3])
+        size = 24 if selected else 20
+        
+        if icon_type == "axe":
+            # Draw axe
+            pygame.draw.rect(screen, color, (cx - 2, y, 4, size), border_radius=2)
+            pygame.draw.rect(screen, color, (cx - 10, y + 2, 18, 4), border_radius=2)
+        elif icon_type == "pickaxe":
+            # Draw pickaxe
+            pygame.draw.line(screen, color, (cx - 10, y + size), (cx + 10, y), 4)
+            pygame.draw.line(screen, color, (cx, y - 2), (cx + 8, y + 8), 4)
+        elif icon_type == "torch":
+            # Draw torch
+            pygame.draw.rect(screen, (120, 80, 40), (cx - 3, y + 4, 6, size - 4), border_radius=3)
+            # Flame
+            for i in range(3):
+                flame_x = cx + random.randint(-4, 4)
+                flame_y = y - i * 4
+                flame_surf = pygame.Surface((10, 10), pygame.SRCALPHA)
+                pygame.draw.circle(flame_surf, (255, 150, 50, 180), (5, 5), 5 - i)
+                screen.blit(flame_surf, (flame_x - 5, flame_y - 5))
+        else:  # sword/default
+            pygame.draw.rect(screen, color, (cx - 2, y + 2, 4, size), border_radius=2)
+            pygame.draw.rect(screen, color, (cx - 8, y, 16, 4), border_radius=2)
+            pygame.draw.polygon(screen, color, [(cx, y - 6), (cx - 4, y), (cx + 4, y)])
+
+    def _draw_background_details(self, screen: pygame.Surface, content_rect: pygame.Rect, left: int, y: int) -> None:
+        """Draw detailed info for the selected background."""
+        selected_def = BACKGROUND_DEFINITIONS[self._selected_background]
+        
+        # Description header
         desc_label = self.font_normal.render("Background Details:", True, self.TEXT_COLOR)
         screen.blit(desc_label, (left, y))
-        y += 22
+        y += 24
 
-        selected_def = BACKGROUND_DEFINITIONS[self._selected_background]
+        # Full description (wrapped)
         desc_lines = self._wrap_description(selected_def["description"], content_rect.width - 40)
-        for line in desc_lines[:3]:
-            line_surf = self.font_small.render(line, True, self.TEXT_DIM)
+        for line in desc_lines:
+            line_surf = self.font_normal.render(line, True, self.TEXT_DIM)
             screen.blit(line_surf, (left + 5, y))
-            y += 16
+            y += 20
 
-        y += 10
+        y += 8
 
         # Stat bonuses summary
         if selected_def["stat_bonuses"]:
             bonus_label = self.font_normal.render("Starting Stat Bonuses:", True, self.TEXT_COLOR)
             screen.blit(bonus_label, (left, y))
-            y += 20
+            y += 22
             for skill_id, bonuses in selected_def["stat_bonuses"].items():
                 for sub_stat, points in bonuses.items():
-                    bonus_text = f"  +{points} {skill_id}.{sub_stat}"
-                    bonus_surf = self.font_small.render(bonus_text, True, (150, 200, 150))
+                    bonus_text = f"  +{points} {skill_id.capitalize()}.{sub_stat.replace('_', ' ').title()}"
+                    bonus_surf = self.font_small.render(bonus_text, True, (130, 200, 130))
                     screen.blit(bonus_surf, (left + 10, y))
-                    y += 16
+                    y += 18
+
+        # Starter pack preview
+        y += 8
+        pack_label = self.font_normal.render("Starting Equipment:", True, self.TEXT_COLOR)
+        screen.blit(pack_label, (left, y))
+        y += 22
+        
+        tool, torch, food = get_starter_pack(selected_def["starter_pack"])
+        for item_name, item_color in [(tool, (180, 150, 80)), (torch, (255, 150, 50)), (food, (100, 200, 100))]:
+            item_surf = self.font_small.render(f"  • {item_name}", True, item_color)
+            screen.blit(item_surf, (left + 10, y))
+            y += 18
 
         y += 10
 
         # Start button
-        btn_width = 200
-        btn_height = 40
+        btn_width = 240
+        btn_height = 48
         btn_x = left + (content_rect.width - 40 - btn_width) // 2
         start_rect = pygame.Rect(btn_x, y, btn_width, btn_height)
         self._start_btn_rect = start_rect
 
         can_start = len(self._player_name.strip()) > 0
-        btn_color = self.BTN_COLOR if can_start else (60, 60, 80)
-        btn_hover = self.BTN_HOVER if can_start else (60, 60, 80)
+        btn_color = self.BTN_COLOR if can_start else (50, 50, 60)
+        btn_hover = self.BTN_HOVER if can_start else (50, 50, 60)
 
         is_btn_hovered = start_rect.collidepoint(pygame.mouse.get_pos())
         final_color = btn_hover if is_btn_hovered else btn_color
 
-        pygame.draw.rect(screen, final_color, start_rect, border_radius=4)
+        # Button background with subtle gradient
+        pygame.draw.rect(screen, final_color, start_rect, border_radius=6)
+        # Highlight
+        highlight_rect = pygame.Rect(start_rect.x, start_rect.y, start_rect.width, start_rect.height // 2)
+        highlight_surf = pygame.Surface((start_rect.width, start_rect.height // 2), pygame.SRCALPHA)
+        pygame.draw.rect(highlight_surf, (255, 255, 255, 30), (0, 0, start_rect.width, start_rect.height // 2), border_radius=6)
+        # Only top half rounded
+        screen.blit(highlight_surf, (start_rect.x, start_rect.y))
+        
         btn_text = self.font_bold.render("START GAME", True, (240, 240, 255))
         text_rect = btn_text.get_rect(center=start_rect.center)
         screen.blit(btn_text, text_rect)
@@ -307,7 +443,6 @@ class CharacterSelectPanel(PanelWindow):
             else:
                 # Add character (limit to reasonable length)
                 if len(self._player_name) < 20:
-                    # Only allow printable characters
                     try:
                         char = pygame.key.name(key)
                         if len(char) == 1 and char.isprintable():
@@ -348,7 +483,6 @@ class CharacterSelectPanel(PanelWindow):
 
     def on_mouse_move(self, mx: int, my: int) -> None:
         """Track hover for visual feedback."""
-        # Selection via keyboard is not used here, hover is visual only
         pass
 
     def get_character_definition(self) -> CharacterDefinition:
@@ -367,9 +501,48 @@ class CharacterSelectPanel(PanelWindow):
 
 def render_character_select(game: "Game", screen: pygame.Surface) -> None:
     """Render the character selection screen (title screen integration)."""
+    # Draw animated background behind panel
+    _draw_character_select_background(screen, game)
+    
     # This function can be called from game.py during CHARACTER_SELECT state
     if game._character_select_panel:
+        game._character_select_panel.update(game.dt)  # Update animations
         game._character_select_panel.render(screen)
+
+
+def _draw_character_select_background(screen: pygame.Surface, game: "Game") -> None:
+    """Draw animated background for character select screen."""
+    # Dark gradient
+    width, height = screen.get_size()
+    for y in range(height):
+        ratio = y / height
+        r = int(18 + ratio * 12)
+        g = int(15 + ratio * 10)
+        b = int(25 + ratio * 15)
+        pygame.draw.line(screen, (r, g, b), (0, y), (width, y))
+    
+    # Subtle geometric pattern
+    time = pygame.time.get_ticks() / 1000.0
+    for i in range(6):
+        x = (width // 6) * i + int(math.sin(time + i) * 20)
+        y = height // 2 + int(math.cos(time * 0.7 + i) * 40)
+        alpha = int(30 + 20 * math.sin(time * 2 + i))
+        color = (100, 140, 180, alpha)
+        surf = pygame.Surface((4, 4), pygame.SRCALPHA)
+        pygame.draw.circle(surf, color, (2, 2), 2)
+        screen.blit(surf, (x - 2, y - 2))
+    
+    # Title text
+    font = get_monospace_bold(32)
+    title_surf = font.render("Create Your Character", True, (200, 180, 130))
+    title_rect = title_surf.get_rect(center=(width // 2, 50))
+    screen.blit(title_surf, title_rect)
+    
+    # Subtitle
+    font_small = get_monospace(16)
+    sub_surf = font_small.render("Choose a background that defines your early survival strategy", True, (130, 120, 100))
+    sub_rect = sub_surf.get_rect(center=(width // 2, 90))
+    screen.blit(sub_surf, sub_rect)
 
 
 def handle_character_select_event(game: "Game", event) -> None:
