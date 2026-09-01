@@ -29,8 +29,15 @@ def run(game) -> None:
                 break
             game.handle_event(event)
 
-        # ── Update: skip during TITLE and LOADING states ────────────
-        if game.state not in (GameState.TITLE, GameState.LOADING, GameState.LOADING_SAVE):
+        # ── Update: skip during TITLE state ──────────────────────────
+        # During LOADING/LOADING_SAVE, check for world gen completion
+        if game.state == GameState.TITLE:
+            # Update title screen animations
+            from ui.title_screen import _get_title_state
+            _get_title_state().update(dt)
+        elif game.state in (GameState.LOADING, GameState.LOADING_SAVE):
+            game.check_world_gen_complete()
+        else:
             game.update(dt)
 
         # ── Render: dispatch based on state ─────────────────────────

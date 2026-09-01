@@ -188,7 +188,12 @@ def _generate_moisture_map(seed: int, width: int | None = None, height: int | No
     return moisture
 
 
-def generate(seed: int, biome_registry: BiomeRegistry, season_system: object | None = None) -> TileMap:
+def generate(
+    seed: int,
+    biome_registry: BiomeRegistry,
+    season_system: object | None = None,
+    progress_callback: object | None = None,
+) -> TileMap:
     """
     Main entry point — generate a complete TileMap from seed and biomes.
 
@@ -196,57 +201,75 @@ def generate(seed: int, biome_registry: BiomeRegistry, season_system: object | N
         seed: Deterministic seed for procedural generation.
         biome_registry: Registry of available biomes loaded from JSON.
         season_system: Optional SeasonSystem for seasonal resource gating.
+        progress_callback: Optional callable(progress: float) -> None, called with 0.0-1.0.
 
     Returns:
         A fully constructed TileMap with biomes, resources, and spawn point.
     """
+    def _report(progress: float) -> None:
+        if progress_callback is not None:
+            progress_callback(progress)
+
     # Use module-level MAP_WIDTH/MAP_HEIGHT (may be patched by tests)
     width = MAP_WIDTH
     height = MAP_HEIGHT
     
     # Generate base elevation with ridge noise and domain warping
+    _report(0.05)
     elevation_map = _generate_elevation_map(seed, width, height)
+    _report(0.10)
     moisture_map = _generate_moisture_map(seed, width, height)
+    _report(0.15)
     
     # Apply hydraulic erosion simulation
     from config import EROSION_ITERATIONS
     if EROSION_ITERATIONS > 0:
         elevation_map = _simulate_erosion(elevation_map, width, height, seed)
+    _report(0.30)
     
     # Apply biome-specific noise refinement
     elevation_map = _apply_biome_noise(elevation_map, moisture_map, width, height, seed)
+    _report(0.40)
     
     # Generate water bodies (rivers, lakes, coastal smoothing)
     from config import RIVER_THRESHOLD, LAKE_MIN_SIZE
     water_map = _generate_water_bodies(elevation_map, moisture_map, width, height, seed, RIVER_THRESHOLD, LAKE_MIN_SIZE)
+    _report(0.50)
     
     # Detect cliffs and generate scree slopes
     from config import CLIFF_THRESHOLD
     cliff_mask, scree_map = _detect_cliffs_and_scree(elevation_map, width, height, CLIFF_THRESHOLD)
+    _report(0.55)
     
     # Build tile grid with biomes
     tile_map = _build_tile_grid(elevation_map, moisture_map, biome_registry, width, height, water_map)
+    _report(0.60)
 
     # Bake per-corner height + fog grids (Phase 7 P1).
     # Heights must be baked first because fog reads from them.
     tile_map.bake_corner_heights()
     tile_map.bake_corner_fog()
+    _report(0.65)
 
     # Bake ambient occlusion (Phase 6.2)
     tile_map.bake_ambient_occlusion()
+    _report(0.70)
     
     # Precompute fog density for volumetric fog (Phase 6.5)
     from render.lighting_system import LightingSystem
     _lighting_sys = LightingSystem()
     _lighting_sys.precompute_fog_density(tile_map)
+    _report(0.75)
     
     # Build biome transition zones (ecotones) - blend resource spawns at biome borders
     from data import load_json_list
     resource_defs = {r["id"]: r for r in load_json_list("resources.json", "resources")}
     _build_biome_transitions(tile_map, biome_registry, resource_defs)
+    _report(0.85)
     
     # Place resources with progression zones, veins, seasonal gating
     ResourcePlacer(rng=random.Random(seed), season_system=season_system).place(tile_map)
+    _report(0.95)
     
     # Seasonal gating would otherwise leave in-season-only resources unplaced:
     # the world is generated once in spring, so winter/summer/autumn resources
@@ -257,6 +280,7 @@ def generate(seed: int, biome_registry: BiomeRegistry, season_system: object | N
     spawn_x, spawn_y = _find_spawn_point(tile_map, seed)
     tile_map.spawn_x = spawn_x
     tile_map.spawn_y = spawn_y
+    _report(1.0)
 
     return tile_map
 

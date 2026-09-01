@@ -74,6 +74,7 @@ class Game:
         "_character_select_panel", "_pending_character_def",
         "lighting_system",
         "woodcutting", "mining", "foraging",
+        "_world_gen_thread", "_world_gen_result", "_world_gen_error",
     )
 
     def __init__(self, seed: int = 42) -> None:
@@ -136,6 +137,9 @@ class Game:
         self.seasonal_renderer = None
         self._flavor_text = ""
         self._build_cursor = None
+        self._world_gen_thread = None
+        self._world_gen_result = None
+        self._world_gen_error = None
         from core.save_system import SaveSystem
         self.save_system = SaveSystem()
         self._npc_flows = NPCFlows(self)
@@ -194,6 +198,23 @@ class Game:
             self._bootstrap.load_save()
         elif new_state == GameState.PLAYING and old_state in (GameState.LOADING, GameState.LOADING_SAVE):
             self._bootstrap.on_world_gen_complete()
+
+    def check_world_gen_complete(self) -> None:
+        """Check if background world generation has completed and transition state."""
+        if self.state not in (GameState.LOADING, GameState.LOADING_SAVE):
+            return
+        if self._world_gen_thread is not None and self._world_gen_thread.is_alive():
+            return  # Still running
+        
+        # Thread has finished (or never started)
+        if self._world_gen_error is not None:
+            self.state = GameState.ERROR
+        elif self._world_gen_result == "success":
+            self.set_state(GameState.PLAYING)
+        else:
+            # Thread finished but no result (shouldn't happen)
+            self.state = GameState.ERROR
+            self._world_gen_error = "World generation failed silently"
 
     def update(self, dt: float) -> None:
         self.dt = dt

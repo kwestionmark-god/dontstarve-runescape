@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import threading
 from config import WINDOW_WIDTH, WINDOW_HEIGHT, TILE_SIZE
 from data import load_json, load_json_list
 from world.biome import BiomeRegistry
@@ -393,134 +394,159 @@ class Bootstrap:
 
     def begin_world_gen(self) -> None:
         """
-        Start procedural world generation.
+        Start procedural world generation in a background thread.
         Called when transitioning from TITLE → LOADING.
         """
         self.game.loading_progress = 0.0
+        self.game._world_gen_thread = None
+        self.game._world_gen_result = None
+        self.game._world_gen_error = None
 
-        try:
-            # Load biome data
-            biome_data = load_json_list("biomes.json", "biomes")
-            biome_registry = BiomeRegistry(biome_data)
-            # Update our stored biome_registry (caller may have passed None)
-            self.biome_registry = biome_registry
+        def _run_generation():
+            try:
+                # Load biome data
+                biome_data = load_json_list("biomes.json", "biomes")
+                biome_registry = BiomeRegistry(biome_data)
+                self.biome_registry = biome_registry
 
-            # Create SeasonSystem before world generation so seasonal
-            # tier 3/4 resources can be gated correctly during placement.
-            from seasons import SeasonSystem
-            self.game.season_system = SeasonSystem()
+                # Create SeasonSystem before world generation so seasonal
+                # tier 3/4 resources can be gated correctly during placement.
+                from seasons import SeasonSystem
+                self.game.season_system = SeasonSystem()
 
-            # Generate world (with progress updates)
-            self.game.loading_progress = 0.2
-            self.game.world = generate_world(
-                self.game.seed, biome_registry, self.game.season_system
-            )
-            self.game.loading_progress = 0.6
+                # Generate world with progress callback
+                def _progress_callback(progress: float) -> None:
+                    # Map world gen progress (0.0-1.0) to loading screen range (0.0-0.6)
+                    self.game.loading_progress = progress * 0.6
 
-            # Create player at spawn point
-            from core.player import Player
-            spawn_px_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2  # Center of tile
-            spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
-            self.game.player = Player(spawn_px_x, spawn_px_y)
+                self.game.world = generate_world(
+                    self.game.seed, biome_registry, self.game.season_system,
+                    progress_callback=_progress_callback,
+                )
 
-            # Use pending character definition from character selection, or default
-            from survival.starter_pack import CharacterDefinition
-            character_def = getattr(self.game, "_pending_character_def", None)
-            if character_def is None:
-                character_def = CharacterDefinition()
+                # Create player at spawn point
+                from core.player import Player
+                spawn_px_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2  # Center of tile
+                spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
+                self.game.player = Player(spawn_px_x, spawn_px_y)
 
-            # Initialize all subsystems via bootstrap
-            self.initialize()
-            self.game.loading_progress = 0.8
+                # Use pending character definition from character selection, or default
+                from survival.starter_pack import CharacterDefinition
+                character_def = getattr(self.game, "_pending_character_def", None)
+                if character_def is None:
+                    character_def = CharacterDefinition()
 
-            # Apply starter pack AFTER inventory is created
-            from survival.starter_pack import apply_starter_pack
-            apply_starter_pack(self.game.inventory, character_def.starter_pack_id)
+                # Initialize all subsystems via bootstrap (this runs on background thread)
+                self.initialize()
+                self.game.loading_progress = 0.8
 
-            # Apply starting stat bonuses from background
-            if character_def.starting_stats:
-                from skills.skill_manager import SkillManager
-                for skill_id, bonuses in character_def.starting_stats.items():
-                    for sub_stat, points in bonuses.items():
-                        self.game.skill_manager.allocate_stat(skill_id, sub_stat, points)
+                # Apply starter pack AFTER inventory is created
+                from survival.starter_pack import apply_starter_pack
+                apply_starter_pack(self.game.inventory, character_def.starter_pack_id)
 
-            self.game.loading_progress = 1.0
+                # Apply starting stat bonuses from background
+                if character_def.starting_stats:
+                    from skills.skill_manager import SkillManager
+                    for skill_id, bonuses in character_def.starting_stats.items():
+                        for sub_stat, points in bonuses.items():
+                            self.game.skill_manager.allocate_stat(skill_id, sub_stat, points)
 
-            # Transition to playing state
-            self.game.set_state(GameState.PLAYING)
+                self.game.loading_progress = 1.0
+                self.game._world_gen_result = "success"
 
-        except Exception as e:
-            # On error, transition to ERROR state
-            print(f"World generation error: {e}")
-            self.game.world = None
-            self.game.player = None
-            self.game.state = GameState.ERROR
-            self.game.loading_progress = 1.0
+            except Exception as e:
+                # On error, store error for main thread to handle
+                print(f"World generation error: {e}")
+                import traceback
+                traceback.print_exc()
+                self.game.world = None
+                self.game.player = None
+                self.game._world_gen_error = str(e)
+                self.game.loading_progress = 1.0
+
+        # Start generation in background thread
+        self.game._world_gen_thread = threading.Thread(target=_run_generation, daemon=True)
+        self.game._world_gen_thread.start()
 
     def load_save(self) -> None:
         """
         Load save file when TITLE -> LOADING_SAVE.
+        Runs in a background thread to keep loading screen responsive.
         """
         self.game.loading_progress = 0.0
+        self.game._world_gen_thread = None
+        self.game._world_gen_result = None
+        self.game._world_gen_error = None
 
-        # Find first non-empty slot (or slot 0)
-        slot = 0
-        for i in range(self.game.save_system.slot_count):
-            if self.game.save_system.has_save(i):
-                slot = i
-                break
+        def _run_load():
+            try:
+                # Find first non-empty slot (or slot 0)
+                slot = 0
+                for i in range(self.game.save_system.slot_count):
+                    if self.game.save_system.has_save(i):
+                        slot = i
+                        break
 
-        save_data = self.game.save_system.load(slot)
-        if save_data is None:
-            self.game.world = None
-            self.game.player = None
-            self.game.state = GameState.ERROR
-            self.game.loading_progress = 1.0
-            return
+                save_data = self.game.save_system.load(slot)
+                if save_data is None:
+                    self.game.world = None
+                    self.game.player = None
+                    self.game._world_gen_error = "No save data found"
+                    self.game.loading_progress = 1.0
+                    return
 
-        self.game.seed = save_data["seed"]
-        self.game.death_count = save_data.get("death_count", 0)
+                self.game.seed = save_data["seed"]
+                self.game.death_count = save_data.get("death_count", 0)
 
-        try:
-            # Regenerate world from saved seed
-            biome_data = load_json_list("biomes.json", "biomes")
-            biome_registry = BiomeRegistry(biome_data)
-            self.biome_registry = biome_registry
+                # Regenerate world from saved seed
+                biome_data = load_json_list("biomes.json", "biomes")
+                biome_registry = BiomeRegistry(biome_data)
+                self.biome_registry = biome_registry
 
-            self.game.loading_progress = 0.2
+                self.game.loading_progress = 0.1
 
-            # Create SeasonSystem before world generation so seasonal
-            # tier 3/4 resources are gated consistently with a fresh game.
-            from seasons import SeasonSystem
-            self.game.season_system = SeasonSystem()
+                # Create SeasonSystem before world generation so seasonal
+                # tier 3/4 resources are gated consistently with a fresh game.
+                from seasons import SeasonSystem
+                self.game.season_system = SeasonSystem()
 
-            self.game.world = generate_world(
-                self.game.seed, biome_registry, self.game.season_system
-            )
-            self.game.loading_progress = 0.6
+                def _progress_callback(progress: float) -> None:
+                    self.game.loading_progress = 0.1 + progress * 0.5
 
-            # Create player at spawn point
-            from core.player import Player
-            spawn_px_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2
-            spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
-            self.game.player = Player(spawn_px_x, spawn_px_y)
+                self.game.world = generate_world(
+                    self.game.seed, biome_registry, self.game.season_system,
+                    progress_callback=_progress_callback,
+                )
+                self.game.loading_progress = 0.6
 
-            # Initialize subsystems via bootstrap
-            self.initialize()
+                # Create player at spawn point
+                from core.player import Player
+                spawn_px_x = self.game.world.spawn_x * TILE_SIZE + TILE_SIZE // 2
+                spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
+                self.game.player = Player(spawn_px_x, spawn_px_y)
 
-            # Restore state from save (order: skills -> survival -> inventory -> gear -> position -> structures -> fires)
-            self.game.save_system.load_into_game(save_data, self.game)
+                # Initialize subsystems via bootstrap
+                self.initialize()
+                self.game.loading_progress = 0.8
 
-            self.game.loading_progress = 1.0
+                # Restore state from save (order: skills -> survival -> inventory -> gear -> position -> structures -> fires)
+                self.game.save_system.load_into_game(save_data, self.game)
 
-            # Transition to playing state
-            self.game.set_state(GameState.PLAYING)
-        except Exception as e:
-            print(f"Save load error: {e}")
-            self.game.world = None
-            self.game.player = None
-            self.game.state = GameState.ERROR
-            self.game.loading_progress = 1.0
+                self.game.loading_progress = 1.0
+                self.game._world_gen_result = "success"
+
+            except Exception as e:
+                print(f"Save load error: {e}")
+                import traceback
+                traceback.print_exc()
+                self.game.world = None
+                self.game.player = None
+                self.game._world_gen_error = str(e)
+                self.game.loading_progress = 1.0
+
+        # Start load in background thread
+        self.game._world_gen_thread = threading.Thread(target=_run_load, daemon=True)
+        self.game._world_gen_thread.start()
 
     def on_world_gen_complete(self) -> None:
         """
