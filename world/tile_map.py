@@ -10,7 +10,9 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Tuple
 
-from config import SHADING_STRENGTH
+import numpy as np
+
+from config import FOG_SCALE_HEIGHT, SHADING_STRENGTH
 
 if TYPE_CHECKING:
     from world.biome import Biome
@@ -86,7 +88,10 @@ class TileMap:
     Indexed as tiles[x][y] for column-major access.
     """
 
-    __slots__ = ("width", "height", "tiles", "spawn_x", "spawn_y", "_season_system", "corner_ao")
+    __slots__ = (
+        "width", "height", "tiles", "spawn_x", "spawn_y", "_season_system",
+        "corner_ao", "corner_height", "corner_fog",
+    )
 
     def __init__(
         self,
@@ -101,6 +106,8 @@ class TileMap:
         self.spawn_y = spawn_y
         self._season_system: object | None = None
         self.corner_ao: list[list[float]] = []  # (width+1) x (height+1) AO factors per corner
+        self.corner_height: list[list[float]] = []  # (width+1) x (height+1) smoothed corner heights
+        self.corner_fog: list[list[float]] = []  # (width+1) x (height+1) exp(-h/scale) per corner
 
         # Build grid column-major: tiles[x][y]
         # Tiles are initialized with placeholder biome; actual biome
@@ -189,13 +196,15 @@ class TileMap:
 
     def get_corner_height(self, cx: int, cy: int) -> float:
         """
-        Compute the interpolated height at corner (cx, cy).
+        Compute (or look up) the interpolated height at corner (cx, cy).
 
-        The corner sits between four tiles. Height is a weighted average
-        of the elevation values of surrounding tiles using a rotationally
-        symmetric kernel (12 unique tiles, no overlap).
+        When ``self.corner_height`` has been populated by
+        ``bake_corner_heights()`` (and the index is in bounds for that
+        grid), this returns the cached value. Otherwise it falls back to
+        the on-demand 12-tile kernel compute so any caller that bypasses
+        the bake (e.g. tests on tiny maps, edge cases) keeps working.
 
-        Kernel:
+        Kernel (when computing on demand):
             4 center tiles (the 2x2 around corner): weight 4 each
             4 ortho neighbors (90° rotation orbit): weight 1 each
             4 diag neighbors (90° rotation orbit): weight 0.25 each
@@ -205,6 +214,11 @@ class TileMap:
         Returns:
             The interpolated corner height as a float.
         """
+        # Fast path: serve from the baked grid when available and in range.
+        grid = self.corner_height
+        if grid and 0 <= cx < len(grid) and 0 <= cy < len(grid[0]):
+            return grid[cx][cy]
+
         # Rotationally symmetric kernel around corner (cx, cy).
         # Orbit 1 (center 2x2): (-1,-1), (0,-1), (-1,0), (0,0) — weight 4
         # Orbit 2 (ortho): (-2,-1), (1,-2), (2,1), (-1,2) — weight 1
@@ -268,17 +282,28 @@ class TileMap:
                 count += 1
         return total / count if count > 0 else 0.0
 
-    def compute_slope_shading(self, x: int, y: int) -> Tuple[float, float]:
+    def compute_slope_shading(
+        self,
+        x: int,
+        y: int,
+        light_dir: tuple[float, float, float] | None = None,
+    ) -> Tuple[float, float]:
         """
         Compute slope-based brightness factor and slope magnitude for a tile.
 
         Uses raw corner elevations to determine the gradient of the terrain
-        around this tile, then computes a brightness modifier based on a
-        fixed light direction from the north-west (screen-space).
+        around this tile, then computes a brightness modifier based on the
+        dot product of that gradient with a light direction.
 
         Args:
             x: Tile grid column.
             y: Tile grid row.
+            light_dir: Optional ``(lx, ly, lz)`` light vector. When ``None``
+                (default), the legacy fixed north-west light ``(-1, -1)`` is
+                used and the math is byte-for-byte identical to the original
+                implementation. When provided, the first two components
+                parameterize the light direction (z is ignored here; the
+                gradient lives in the x/y plane).
 
         Returns:
             ``(brightness_factor, slope_magnitude)`` where:
@@ -300,12 +325,18 @@ class TileMap:
         # Slope magnitude (0 = flat, 1+ = very steep)
         slope_mag = math.sqrt(grad_x * grad_x + grad_y * grad_y)
 
-        # Light direction from north-west (screen-space: -1, -1)
-        # Dot product of gradient with light direction
-        light_dot = (-1.0 * grad_x) + (-1.0 * grad_y)
+        # Light direction. None → legacy fixed NW (-1, -1) for byte-for-byte
+        # parity with the original implementation.
+        if light_dir is None:
+            lx, ly = -1.0, -1.0
+        else:
+            lx, ly = light_dir[0], light_dir[1]
 
-        # Normalize light response: slopes facing the light (NW) brighten,
-        # slopes facing away (SE) darken. Clamp to [-SHADING_STRENGTH, +SHADING_STRENGTH] range.
+        # Dot product of gradient with light direction
+        light_dot = (lx * grad_x) + (ly * grad_y)
+
+        # Normalize light response: slopes facing the light brighten,
+        # slopes facing away darken. Clamp to [-SHADING_STRENGTH, +SHADING_STRENGTH] range.
         brightness = 1.0 + max(-SHADING_STRENGTH, min(SHADING_STRENGTH, light_dot * SHADING_STRENGTH * 2.0))
 
         return (brightness, min(slope_mag / 2.0, 1.0))
@@ -313,7 +344,7 @@ class TileMap:
     def get_surface_normal(self, x: int, y: int) -> tuple[float, float, float]:
         """
         Returns unnormalized surface normal (grad_x, grad_y, 1.0) for tile center.
-        
+
         Used for rim/fresnel lighting.
         """
         nw = self.get_raw_corner_elevation(x, y)
@@ -323,6 +354,94 @@ class TileMap:
         grad_x = (ne + se - nw - sw) / 2.0
         grad_y = (sw + se - nw - ne) / 2.0
         return (grad_x, grad_y, 1.0)
+
+    def compute_corner_normal(self, cx: int, cy: int) -> tuple[float, float, float]:
+        """
+        Compute the unnormalized surface normal at a corner lattice point.
+
+        Reads from the baked ``corner_height`` grid (``(W+1) x (H+1)``)
+        populated by ``bake_corner_heights``. Falls back to on-demand
+        ``get_corner_height`` samples when the grid is empty.
+
+        Uses central differences of ``corner_height``:
+            gx = (corner_height[cx+1][cy]  - corner_height[cx-1][cy]) / 2
+            gy = (corner_height[cx][cy+1]  - corner_height[cx][cy-1]) / 2
+
+        Edge clamping: at the west edge (cx-1 < 0) the "left" sample falls
+        back to ``corner_height[cx][cy]`` (forward difference). Symmetric
+        handling at east, north, and south edges. This matches the OOB-as-
+        zero semantics used elsewhere — at the very corner of the world
+        there's no neighbor, so we treat the self-sample as a zero gradient.
+
+        Returns:
+            ``(gx, gy, 1.0)`` — unnormalized normal pointing "up" out of
+            the terrain (z component is constant 1.0 by convention).
+        """
+        h_cx_cy = self.get_corner_height(cx, cy)
+
+        # Edge-clamped horizontal samples.
+        if cx - 1 < 0:
+            h_left = h_cx_cy
+        else:
+            h_left = self.get_corner_height(cx - 1, cy)
+
+        # width+1 columns in corner_height, last valid index is ``width``.
+        if cx + 1 > self.width:
+            h_right = h_cx_cy
+        else:
+            h_right = self.get_corner_height(cx + 1, cy)
+
+        # Edge-clamped vertical samples.
+        if cy - 1 < 0:
+            h_up = h_cx_cy
+        else:
+            h_up = self.get_corner_height(cx, cy - 1)
+
+        # height+1 rows in corner_height, last valid index is ``height``.
+        if cy + 1 > self.height:
+            h_down = h_cx_cy
+        else:
+            h_down = self.get_corner_height(cx, cy + 1)
+
+        gx = (h_right - h_left) / 2.0
+        gy = (h_down - h_up) / 2.0
+        return (gx, gy, 1.0)
+
+    def compute_corner_brightness(
+        self,
+        cx: int,
+        cy: int,
+        light_dir: tuple[float, float, float] | tuple[float, float],
+        strength: float,
+    ) -> float:
+        """
+        Compute slope-based brightness at a corner lattice point.
+
+        Mirrors the P0-fixed ``compute_slope_shading`` sign convention
+        exactly: brightness = 1 + clip(light_dot * strength * 2,
+                                       -strength, +strength) where
+        ``light_dot = (lx * gx) + (ly * gy)``. Slopes whose gradient points
+        toward the light brighten; slopes facing away darken. The z
+        component of ``light_dir``, if any, is ignored — brightness is a
+        function of the elevation gradient projected onto the 2D light
+        direction.
+
+        Args:
+            cx: Corner lattice column.
+            cy: Corner lattice row.
+            light_dir: 2- or 3-tuple ``(lx, ly, [lz])``.
+            strength: Clamp range (typically ``SHADING_STRENGTH``).
+
+        Returns:
+            Brightness in ``[1 - strength, 1 + strength]``.
+        """
+        gx, gy, _ = self.compute_corner_normal(cx, cy)
+        lx = light_dir[0]
+        ly = light_dir[1]
+        light_dot = (lx * gx) + (ly * gy)
+        # Clip into [-strength, +strength] and scale into brightness space.
+        clipped = max(-strength, min(strength, light_dot * strength * 2.0))
+        return 1.0 + clipped
 
     def bake_ambient_occlusion(self) -> None:
         """
@@ -410,6 +529,66 @@ class TileMap:
                                 c += 1
                     blurred[cx][cy] = s / c if c > 0 else 1.0
             self.corner_ao = blurred
+
+    def bake_corner_heights(self) -> None:
+        """
+        Pre-compute the smoothed corner-height grid using the 12-tile kernel.
+
+        Populates ``self.corner_height`` as a ``(width+1) x (height+1)`` list
+        of lists. The kernel, OOB-as-zero handling, and total-weight
+        normalization are byte-for-byte identical to ``get_corner_height``,
+        so consumers (and existing tests) see no change in values.
+        """
+        w, h = self.width, self.height
+
+        # 12-tile kernel matching get_corner_height (center, ortho, diag orbits).
+        kernel_dx = np.array([-1, 0, -1, 0, -2, 1, 2, -1, -2, 2, 2, -2], dtype=np.int32)
+        kernel_dy = np.array([-1, -1, 0, 0, -1, -2, 1, 2, -2, -2, 2, 2], dtype=np.int32)
+        kernel_w = np.array(
+            [4.0, 4.0, 4.0, 4.0, 1.0, 1.0, 1.0, 1.0, 0.25, 0.25, 0.25, 0.25],
+            dtype=np.float32,
+        )
+        total_weight = float(kernel_w.sum())
+
+        # Convert elevations to a NumPy grid for fast indexed lookups.
+        elev = np.zeros((w, h), dtype=np.float32)
+        for x in range(w):
+            for y in range(h):
+                elev[x, y] = self.tiles[x][y].elevation
+
+        # OOB masks: per (cx, cy), mask[i] is True when the i-th kernel sample
+        # is out-of-bounds. Those samples contribute 0 height but full weight,
+        # matching the OOB-as-zero semantics of get_corner_height.
+        grid = np.zeros((w + 1, h + 1), dtype=np.float32)
+        for cx in range(w + 1):
+            tx = cx + kernel_dx  # shape (12,)
+            in_x = (tx >= 0) & (tx < w)
+            for cy in range(h + 1):
+                ty = cy + kernel_dy
+                in_xy = in_x & (ty >= 0) & (ty < h)
+                heights = np.where(in_xy, elev[tx.clip(0, w - 1), ty.clip(0, h - 1)], 0.0)
+                total_height = float(np.dot(heights, kernel_w))
+                grid[cx, cy] = total_height / total_weight
+
+        # Convert to list-of-lists for natural Python indexing.
+        self.corner_height = grid.tolist()
+
+    def bake_corner_fog(self) -> None:
+        """
+        Pre-compute per-corner fog density ``exp(-corner_height / FOG_SCALE_HEIGHT)``.
+
+        Populates ``self.corner_fog`` as a ``(width+1) x (height+1)`` list of
+        lists. Reads from ``self.corner_height``, which must already be
+        populated by ``bake_corner_heights()``.
+        """
+        if not self.corner_height:
+            raise ValueError(
+                "bake_corner_fog() requires bake_corner_heights() to run first"
+            )
+
+        grid = np.array(self.corner_height, dtype=np.float32)
+        fog = np.exp(-grid / FOG_SCALE_HEIGHT)
+        self.corner_fog = fog.tolist()
 
     def get_tile_ao(self, x: int, y: int) -> float:
         """Bilinear interpolation of 4 corner AO values for a tile."""

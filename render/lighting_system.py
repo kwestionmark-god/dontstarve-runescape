@@ -19,7 +19,7 @@ import numpy as np
 from config import (
     AO_STRENGTH, AO_BLUR_RADIUS, FOG_SCALE_HEIGHT,
     SHADING_PRESETS, DEFAULT_SHADING_PRESET,
-    ELEVATION_LEVELS,
+    ELEVATION_LEVELS, SHADING_STRENGTH,
 )
 
 if TYPE_CHECKING:
@@ -42,6 +42,8 @@ class LightingSystem:
         "sun_color", "fog_tint",
         "weather_light_level", "cloud_coverage", "lightning_chance",
         "_ao_baked", "_fog_precomputed",
+        "_corner_shading_dirty", "_corner_brightness", "_corner_normal",
+        "_corner_shading_recompute_count",
         "weather_system",  # Wired in bootstrap for seasonal lighting updates
     )
     
@@ -64,11 +66,22 @@ class LightingSystem:
         # Cached precomputes
         self._ao_baked = False
         self._fog_precomputed = False
+
+        # Per-corner shading cache (Phase 7 P2). Dirty by default so the
+        # first ``compute_all_corner_shading`` call recomputes from scratch.
+        # Recompute counter is exposed for tests / callers to verify cache
+        # behavior without poking at private arrays.
+        self._corner_shading_dirty = True
+        self._corner_brightness: np.ndarray | None = None
+        self._corner_normal: np.ndarray | None = None
+        self._corner_shading_recompute_count: int = 0
     
     def set_preset(self, preset: str) -> None:
         """Change shading preset at runtime."""
         self.preset = preset
         self.preset_config = SHADING_PRESETS[preset].copy()
+        # Preset can change which shading math runs → invalidate corner cache.
+        self.mark_corner_shading_dirty()
     
     def update_from_season(self, season_system: SeasonSystem) -> None:
         """Call once per frame from Game.update()."""
@@ -79,6 +92,9 @@ class LightingSystem:
         self.ambient_level = lp["ambient_level"]
         self.sun_color = lp["sun_color"]
         self.fog_tint = lp["fog_tint"]
+        # Sun direction drives corner shading → invalidate the cache so the
+        # next ``compute_all_corner_shading`` call picks up the new sun.
+        self.mark_corner_shading_dirty()
     
     def update_from_weather(self, weather_system: WeatherSystem) -> None:
         """Call once per frame from Game.update()."""
@@ -239,8 +255,93 @@ class LightingSystem:
         
         light_dot = light_x * grad_x + light_y * grad_y
         brightness = 1.0 + np.clip(light_dot * 0.20 * 2.0, -0.20, 0.20)
-        
+
         return brightness.astype(np.float32), slope_mag.astype(np.float32)
+
+    # ─── Per-corner shading (Phase 7 P2) ─────────────────────────────
+
+    def mark_corner_shading_dirty(self) -> None:
+        """Invalidate the cached per-corner shading.
+
+        Public hook for Phase 7 P5 (terrain mutations) and any external
+        system that changes world geometry or lighting parameters. Sets
+        the dirty flag; the next ``compute_all_corner_shading`` call sees
+        the flag and recomputes from scratch.
+        """
+        self._corner_shading_dirty = True
+
+    def compute_all_corner_shading(
+        self,
+        tile_map: TileMap,
+        light_x: float,
+        light_y: float,
+        light_z: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Vectorized per-corner normal + brightness over the corner lattice.
+
+        Reads ``tile_map.corner_height`` (baked by Phase 7 P1) as a NumPy
+        array and computes a central-difference gradient per corner. When
+        ``corner_height`` is empty (the bake hasn't run), returns
+        ``(None, None)`` so callers can skip the per-corner shading path
+        without crashing.
+
+        The cache is dirty by default; ``set_preset`` and
+        ``update_from_season`` mark it dirty when relevant inputs change.
+        A second call with the same light is a cache hit and does not
+        increment ``_corner_shading_recompute_count``.
+
+        Args:
+            tile_map: World ``TileMap`` with ``corner_height`` baked.
+            light_x, light_y, light_z: Light direction. Only the x and y
+                components are used (brightness is a 2D projection of the
+                elevation gradient). The z argument is accepted for
+                API parity with ``compute_all_shading``.
+
+        Returns:
+            ``(brightness_grid, normal_grid)``:
+              - ``brightness_grid``: ``np.ndarray`` shape
+                ``(tile_map.width + 1, tile_map.height + 1)`` in
+                ``[1 - SHADING_STRENGTH, 1 + SHADING_STRENGTH]``.
+              - ``normal_grid``: ``np.ndarray`` shape
+                ``(tile_map.width + 1, tile_map.height + 1, 3)``,
+                unnormalized ``(-gx, -gy, 1.0)``.
+        """
+        if not tile_map.corner_height:
+            return None, None
+
+        if self._corner_shading_dirty:
+            h = np.array(tile_map.corner_height, dtype=np.float32)
+
+            # Central differences with edge clamping. ``np.gradient`` uses
+            # second-order accurate central diffs in the interior and
+            # first-order one-sided diffs at the boundary, which matches
+            # the OOB-as-zero forward-diff semantics of
+            # ``compute_corner_normal``.
+            gx, gy = np.gradient(h)
+
+            # Unnormalized normal: (-gx, -gy, 1) so it points "up" out of
+            # the surface (opposite of the elevation gradient).
+            normal = np.stack([-gx, -gy, np.ones_like(gx)], axis=-1).astype(np.float32)
+
+            # Brightness follows the P0 sign convention: dot of gradient
+            # with light, scaled into [-SHADING_STRENGTH, +SHADING_STRENGTH]
+            # and shifted to [1 - SHADING_STRENGTH, 1 + SHADING_STRENGTH].
+            # Surfaces facing the light brighten; surfaces facing away
+            # darken. This matches ``TileMap.compute_corner_brightness``.
+            light_dot = light_x * gx + light_y * gy
+            brightness = np.clip(
+                1.0 + light_dot * SHADING_STRENGTH * 2.0,
+                1.0 - SHADING_STRENGTH,
+                1.0 + SHADING_STRENGTH,
+            ).astype(np.float32)
+
+            self._corner_brightness = brightness
+            self._corner_normal = normal
+            self._corner_shading_dirty = False
+            self._corner_shading_recompute_count += 1
+
+        return self._corner_brightness, self._corner_normal
 
 
 # ─── Module-level helpers ────────────────────────────────────────────

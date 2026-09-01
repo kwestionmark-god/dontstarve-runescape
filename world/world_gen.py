@@ -226,7 +226,12 @@ def generate(seed: int, biome_registry: BiomeRegistry, season_system: object | N
     
     # Build tile grid with biomes
     tile_map = _build_tile_grid(elevation_map, moisture_map, biome_registry, width, height, water_map)
-    
+
+    # Bake per-corner height + fog grids (Phase 7 P1).
+    # Heights must be baked first because fog reads from them.
+    tile_map.bake_corner_heights()
+    tile_map.bake_corner_fog()
+
     # Bake ambient occlusion (Phase 6.2)
     tile_map.bake_ambient_occlusion()
     
