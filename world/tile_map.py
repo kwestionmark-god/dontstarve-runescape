@@ -344,7 +344,7 @@ class TileMap:
     def get_surface_normal(self, x: int, y: int) -> tuple[float, float, float]:
         """
         Returns unnormalized surface normal (grad_x, grad_y, 1.0) for tile center.
-        
+
         Used for rim/fresnel lighting.
         """
         nw = self.get_raw_corner_elevation(x, y)
@@ -354,6 +354,94 @@ class TileMap:
         grad_x = (ne + se - nw - sw) / 2.0
         grad_y = (sw + se - nw - ne) / 2.0
         return (grad_x, grad_y, 1.0)
+
+    def compute_corner_normal(self, cx: int, cy: int) -> tuple[float, float, float]:
+        """
+        Compute the unnormalized surface normal at a corner lattice point.
+
+        Reads from the baked ``corner_height`` grid (``(W+1) x (H+1)``)
+        populated by ``bake_corner_heights``. Falls back to on-demand
+        ``get_corner_height`` samples when the grid is empty.
+
+        Uses central differences of ``corner_height``:
+            gx = (corner_height[cx+1][cy]  - corner_height[cx-1][cy]) / 2
+            gy = (corner_height[cx][cy+1]  - corner_height[cx][cy-1]) / 2
+
+        Edge clamping: at the west edge (cx-1 < 0) the "left" sample falls
+        back to ``corner_height[cx][cy]`` (forward difference). Symmetric
+        handling at east, north, and south edges. This matches the OOB-as-
+        zero semantics used elsewhere — at the very corner of the world
+        there's no neighbor, so we treat the self-sample as a zero gradient.
+
+        Returns:
+            ``(gx, gy, 1.0)`` — unnormalized normal pointing "up" out of
+            the terrain (z component is constant 1.0 by convention).
+        """
+        h_cx_cy = self.get_corner_height(cx, cy)
+
+        # Edge-clamped horizontal samples.
+        if cx - 1 < 0:
+            h_left = h_cx_cy
+        else:
+            h_left = self.get_corner_height(cx - 1, cy)
+
+        # width+1 columns in corner_height, last valid index is ``width``.
+        if cx + 1 > self.width:
+            h_right = h_cx_cy
+        else:
+            h_right = self.get_corner_height(cx + 1, cy)
+
+        # Edge-clamped vertical samples.
+        if cy - 1 < 0:
+            h_up = h_cx_cy
+        else:
+            h_up = self.get_corner_height(cx, cy - 1)
+
+        # height+1 rows in corner_height, last valid index is ``height``.
+        if cy + 1 > self.height:
+            h_down = h_cx_cy
+        else:
+            h_down = self.get_corner_height(cx, cy + 1)
+
+        gx = (h_right - h_left) / 2.0
+        gy = (h_down - h_up) / 2.0
+        return (gx, gy, 1.0)
+
+    def compute_corner_brightness(
+        self,
+        cx: int,
+        cy: int,
+        light_dir: tuple[float, float, float] | tuple[float, float],
+        strength: float,
+    ) -> float:
+        """
+        Compute slope-based brightness at a corner lattice point.
+
+        Mirrors the P0-fixed ``compute_slope_shading`` sign convention
+        exactly: brightness = 1 + clip(light_dot * strength * 2,
+                                       -strength, +strength) where
+        ``light_dot = (lx * gx) + (ly * gy)``. Slopes whose gradient points
+        toward the light brighten; slopes facing away darken. The z
+        component of ``light_dir``, if any, is ignored — brightness is a
+        function of the elevation gradient projected onto the 2D light
+        direction.
+
+        Args:
+            cx: Corner lattice column.
+            cy: Corner lattice row.
+            light_dir: 2- or 3-tuple ``(lx, ly, [lz])``.
+            strength: Clamp range (typically ``SHADING_STRENGTH``).
+
+        Returns:
+            Brightness in ``[1 - strength, 1 + strength]``.
+        """
+        gx, gy, _ = self.compute_corner_normal(cx, cy)
+        lx = light_dir[0]
+        ly = light_dir[1]
+        light_dot = (lx * gx) + (ly * gy)
+        # Clip into [-strength, +strength] and scale into brightness space.
+        clipped = max(-strength, min(strength, light_dot * strength * 2.0))
+        return 1.0 + clipped
 
     def bake_ambient_occlusion(self) -> None:
         """
