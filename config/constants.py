@@ -200,6 +200,7 @@ SHADING_PRESETS: dict[str, dict] = {
         "fog_cull_distance": 1700,
         "ambient_overlay_alpha": 20,
         "sky_mode": "solid",
+        "terrain_style": "textured",
     },
     "realistic": {
         "slope_shading": True,
@@ -214,6 +215,7 @@ SHADING_PRESETS: dict[str, dict] = {
         "fog_cull_distance": 1700,
         "ambient_overlay_alpha": 40,
         "sky_mode": "gradient",
+        "terrain_style": "flat",
     },
     "performance": {
         "slope_shading": False,
@@ -228,6 +230,7 @@ SHADING_PRESETS: dict[str, dict] = {
         "fog_cull_distance": 1000,
         "ambient_overlay_alpha": 0,
         "sky_mode": "solid",
+        "terrain_style": "textured",
     },
 }
 DEFAULT_SHADING_PRESET = "stylized"
