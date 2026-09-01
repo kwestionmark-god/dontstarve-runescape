@@ -17,15 +17,6 @@ import pygame
 from ui.diplomacy_panel import DiplomacyPanel, FactionInfo
 
 
-@pytest.fixture(autouse=True, scope="module")
-def _pygame():
-    pygame.init()
-    pygame.font.init()
-    yield
-    pygame.font.quit()
-    pygame.quit()
-
-
 def _session(panel, description=""):
     """Put the panel into an open session with a fake faction leader."""
     panel._player_ref = _player_with_standing(0.5)

@@ -16,17 +16,8 @@ from skills.skill_manager import SkillManager
 from skills.construction.construction import Construction
 
 
-@pytest.fixture(scope="module")
-def pygame_init():
-    """Initialize pygame once for all tests."""
-    pygame.init()
-    pygame.display.set_mode((800, 600), pygame.HIDDEN)
-    yield
-    pygame.quit()
-
-
 @pytest.fixture
-def game(pygame_init):
+def game():
     """Create a fully bootstrapped Game instance by running begin_world_gen."""
     game = Game()
     # This does world generation + bootstrap initialization

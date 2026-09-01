@@ -7,15 +7,7 @@ import pygame
 from ui.panel_window import PanelWindow
 
 
-@pytest.fixture(scope="module")
-def pygame_init():
-    """Initialize pygame once for all tests."""
-    pygame.init()
-    yield
-    pygame.quit()
-
-
-def test_wrap_text_color_cache(pygame_init):
+def test_wrap_text_color_cache():
     """Test that different colors produce different cached surfaces."""
     panel = PanelWindow(title="Test", x=0, y=0, width=200, height=200)
     
@@ -43,7 +35,7 @@ def test_wrap_text_color_cache(pygame_init):
     assert red_surfaces2 is red_surfaces, "Expected cached surfaces for same color"
 
 
-def test_wrap_text_default_color_cache(pygame_init):
+def test_wrap_text_default_color_cache():
     """Test that default color caching still works."""
     panel = PanelWindow(title="Test", x=0, y=0, width=200, height=200)
     

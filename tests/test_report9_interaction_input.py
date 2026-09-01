@@ -50,6 +50,7 @@ def test_cook_campfire_recipe_does_not_crash():
         crafting=types.SimpleNamespace(get_recipe=lambda rid: recipe, cook=cook),
         inventory=types.SimpleNamespace(),  # _handle_craft_click reads game.inventory at :182 (before the crash site)
         building_system=None, food_registry=None, skill_manager=None,
+        cooking=None,  # Optional CookingSkill; cook() accepts None
         player=player,
         _fire_interaction=types.SimpleNamespace(check_nearby_campfire=check_nearby_campfire),
     )

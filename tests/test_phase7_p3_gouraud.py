@@ -20,13 +20,7 @@ import pytest
 import pygame
 
 
-@pytest.fixture(scope="module")
-def pygame_init():
-    """Initialize pygame once for all tests."""
-    pygame.init()
-    pygame.display.set_mode((64, 64), pygame.HIDDEN)
-    yield
-    pygame.quit()
+
 
 
 def _make_surface(w: int = 64, h: int = 64) -> pygame.Surface:
@@ -37,7 +31,7 @@ def _make_surface(w: int = 64, h: int = 64) -> pygame.Surface:
 class TestFlatColorTriangle:
     """All three vertices have the same color → every filled pixel matches exactly."""
 
-    def test_flat_red_triangle(self, pygame_init):
+    def test_flat_red_triangle(self):
         surf = _make_surface(64, 64)
         # Triangle covering a decent area
         from render.gouraud import fill_triangle
@@ -61,7 +55,7 @@ class TestFlatColorTriangle:
 class TestDegenerateAndEdgeCases:
     """Zero-area and near-zero-area triangles must not raise."""
 
-    def test_single_point_triangle(self, pygame_init):
+    def test_single_point_triangle(self):
         """All three vertices identical → no crash, no out-of-bounds."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -78,7 +72,7 @@ class TestDegenerateAndEdgeCases:
         # Just assert we can read the surface without error.
         _ = surf.get_at((5, 5))
 
-    def test_horizontal_line_triangle(self, pygame_init):
+    def test_horizontal_line_triangle(self):
         """Three collinear points on a horizontal line → flat, no crash."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -90,7 +84,7 @@ class TestDegenerateAndEdgeCases:
         )
         # No exception raised
 
-    def test_vertical_line_triangle(self, pygame_init):
+    def test_vertical_line_triangle(self):
         """Three collinear points on a vertical line → flat, no crash."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -102,7 +96,7 @@ class TestDegenerateAndEdgeCases:
         )
         # No exception raised
 
-    def test_single_pixel_triangle(self, pygame_init):
+    def test_single_pixel_triangle(self):
         """Two vertices same, third offset by 1px → 1-pixel triangle, no crash."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -118,7 +112,7 @@ class TestDegenerateAndEdgeCases:
 class TestColorInterpolation:
     """Distinct vertex colors must produce smoothly interpolated interior."""
 
-    def test_rgb_triangle_has_multiple_colors(self, pygame_init):
+    def test_rgb_triangle_has_multiple_colors(self):
         """Red, Green, Blue vertices → interior contains >1 distinct color."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -142,7 +136,7 @@ class TestColorInterpolation:
             f"Expected multiple interpolated colors, got {len(colors)}: {colors}"
         )
 
-    def test_vertex_centers_match_vertex_colors(self, pygame_init):
+    def test_vertex_centers_match_vertex_colors(self):
         """The pixel at each vertex coordinate matches that vertex's color (±1 LSB)."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -175,7 +169,7 @@ class TestColorInterpolation:
 class TestClipping:
     """Triangles partially or fully outside the surface are clipped safely."""
 
-    def test_triangle_partially_offscreen_left(self, pygame_init):
+    def test_triangle_partially_offscreen_left(self):
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
 
@@ -191,7 +185,7 @@ class TestClipping:
         filled = sum(1 for y in range(64) for x in range(64) if surf.get_at((x, y))[3] > 0)
         assert filled > 0, "Clipped triangle should still fill some pixels"
 
-    def test_triangle_partially_offscreen_right(self, pygame_init):
+    def test_triangle_partially_offscreen_right(self):
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
 
@@ -204,7 +198,7 @@ class TestClipping:
         filled = sum(1 for y in range(64) for x in range(64) if surf.get_at((x, y))[3] > 0)
         assert filled > 0
 
-    def test_triangle_partially_offscreen_top(self, pygame_init):
+    def test_triangle_partially_offscreen_top(self):
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
 
@@ -217,7 +211,7 @@ class TestClipping:
         filled = sum(1 for y in range(64) for x in range(64) if surf.get_at((x, y))[3] > 0)
         assert filled > 0
 
-    def test_triangle_partially_offscreen_bottom(self, pygame_init):
+    def test_triangle_partially_offscreen_bottom(self):
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
 
@@ -232,7 +226,7 @@ class TestClipping:
         filled = sum(1 for y in range(64) for x in range(64) if surf.get_at((x, y))[3] > 0)
         assert filled > 0
 
-    def test_triangle_fully_offscreen(self, pygame_init):
+    def test_triangle_fully_offscreen(self):
         """Triangle completely outside surface → no crash, no pixels filled."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -250,7 +244,7 @@ class TestClipping:
 class TestLargeTriangleGradient:
     """Large triangle covering most of a 64x64 surface produces expected gradient."""
 
-    def test_large_triangle_gradient_pattern(self, pygame_init):
+    def test_large_triangle_gradient_pattern(self):
         """Triangle (0,0)-(63,0)-(0,63) on 64x64 surface has correct corner gradients."""
         surf = _make_surface(64, 64)
         from render.gouraud import fill_triangle
@@ -311,7 +305,7 @@ class TestLargeTriangleGradient:
 class TestDeterminism:
     """Same inputs must produce byte-identical output."""
 
-    def test_deterministic_output(self, pygame_init):
+    def test_deterministic_output(self):
         """Two calls with identical args produce identical pixel buffers."""
         surf1 = _make_surface(64, 64)
         surf2 = _make_surface(64, 64)
