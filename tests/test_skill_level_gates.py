@@ -163,6 +163,51 @@ class TestRecipeLevelGate:
         assert recipe.required_level == 1
 
 
+class TestGearChain:
+    """Combat gear must be real, craftable, level-gated items."""
+
+    def _gear_ids(self):
+        with open("data/gear.json") as f:
+            gear = json.load(f)
+        return [v["item_id"] for grp in ("weapons", "armor")
+                for v in gear[grp].values()]
+
+    def test_all_gear_in_items_json(self):
+        with open("data/items.json") as f:
+            item_ids = {i["id"]: i for i in json.load(f)["items"]}
+        for gid in self._gear_ids():
+            assert gid in item_ids, gid
+            assert item_ids[gid]["is_equippable"]
+
+    def test_all_gear_craftable(self):
+        reg = RecipeRegistry()
+        reg.load_all()
+        produced = {r.output_item for r in reg.recipes.values()}
+        for gid in self._gear_ids():
+            assert gid in produced, f"{gid} has no crafting recipe"
+
+    def test_gear_sprites_exist(self):
+        import os
+        for gid in self._gear_ids():
+            assert os.path.exists(f"assets/sprites/gear/{gid}.png"), gid
+
+    def test_steel_sword_level_gate(self):
+        reg = RecipeRegistry()
+        reg.load_all()
+        cs = CraftingSystem(reg)
+        inv = Inventory()
+        inv.add_item("smelted_steel_ingot", 2)
+        inv.add_item("stick", 1)
+        sm = SkillManager()
+        result = cs.craft("smith_steel_sword", inv, sm)
+        assert not result.success
+        assert "Metallurgy level 25" in result.message
+        sm.skills["metallurgy"].level = 25
+        result = cs.craft("smith_steel_sword", inv, sm)
+        assert result.success
+        assert result.item_id == "steel_sword"
+
+
 class TestDataLadders:
     """Authored data must carry the level ladder end to end."""
 

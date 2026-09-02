@@ -62,6 +62,24 @@ have level-based progression.
 - Campfire structure materials changed to `stick×2 + stone×2` (charcoal is no
   longer required to make the first campfire).
 
+### Combat gear progression (second pass)
+
+Previously, `gear.json` weapons/armor were **unobtainable**: quest
+`gear_unlocks` only flagged an id and nothing ever granted the item, and
+there were no recipes or sprites. Now every piece is a real crafted item:
+
+- Whittled weapons (crafting 2–5, no station): wooden sword/axe/spear,
+  stone sword — the day-one combat kit.
+- Leather set from monster drops (crafting 5–8): boots/helmet/armor from
+  wolf pelts + bear hide.
+- Smithing at the anvil (metallurgy 12–28): bronze sword/chestplate, the
+  full iron set (sword/axe/spear/helmet/boots/chestplate), full steel set.
+- Equipping is still gated by the existing Combat level requirements in
+  `gear.json` (1→15), creating a two-track gate: you must both *make* it
+  (metallurgy/crafting) and be *strong enough to wield* it (combat).
+- All 21 gear ids are now items in `items.json` with generated icons in
+  `assets/sprites/gear/`.
+
 ### Dead-end chains wired
 
 - Resin: tap maple sap → refine resin → pitch.
@@ -92,8 +110,6 @@ have level-based progression.
 
 ## Known remaining gaps (deliberate scope cut-offs)
 
-- `gear.json` weapons/armor (wooden→steel swords etc.) have no crafting
-  recipes or sprites; combat gear progression is still un-wired.
 - Trade-only items (`*_trade` variants, jewelry) remain merchant/quest-only.
 - Metallurgy's alloy-mastery sub-stat gate coexists with the new recipe level
   gate; smelting keeps its own panel flow (`attempt_smelt`).
