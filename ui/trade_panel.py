@@ -54,6 +54,10 @@ class TradePanel(PanelWindow):
     PANEL_WIDTH = 520
     PANEL_HEIGHT = 500
 
+    # Tabs
+    TAB_WIDTH = 65
+    TAB_HEIGHT = 22
+
     # Content area
     CONTENT_Y = 95
     CONTENT_HEIGHT = 245
@@ -164,6 +168,7 @@ class TradePanel(PanelWindow):
             return False
 
         self._trade_session = session
+        self.title = f"Trade with {merchant.name}"
         self._tab = "buy"
         self._selected_merchant_idx = -1
         self._selected_player_idx = -1
@@ -190,6 +195,7 @@ class TradePanel(PanelWindow):
         if self.trade_system is not None:
             self.trade_system.close_trade()
         self._trade_session = None
+        self.title = "Trade"
         self._reset_trade_state()
         self._status_message = ""
 
@@ -255,14 +261,11 @@ class TradePanel(PanelWindow):
         content_w = 200
         content_y = self.CONTENT_Y
 
-        # Title
-        merchant = self._trade_session
-        title_text = f"Trade with {merchant.name}"
-        title_surf = self.font_bold.render(title_text, True, self.TEXT_COLOR)
-        screen.blit(title_surf, (panel_x + 10, self.PANEL_Y + 5))
+        # Title lives in the chrome title bar (set by open_session).
 
         # Tabs
         tabs = [("Buy", "buy"), ("Sell", "sell"), ("Barter", "barter")]
+        tab_y = self.y + 30
         tab_positions = {
             "buy": content_x + 205,
             "sell": content_x + 205 + 65 + 5,
@@ -272,12 +275,12 @@ class TradePanel(PanelWindow):
             x = tab_positions[tab_id]
             is_active = self._tab == tab_id
             tab_color = self.TAB_ACTIVE if is_active else self.TAB_INACTIVE
-            tab_rect = pygame.Rect(x, self.TAB_Y, self.TAB_WIDTH, self.TAB_HEIGHT)
+            tab_rect = pygame.Rect(x, tab_y, self.TAB_WIDTH, self.TAB_HEIGHT)
             pygame.draw.rect(screen, tab_color, tab_rect)
             pygame.draw.rect(screen, self.BORDER_COLOR, tab_rect, 1)
             label_surf = self.font_small.render(label, True, self.TEXT_COLOR)
             lx = x + (self.TAB_WIDTH - label_surf.get_width()) // 2
-            ly = self.TAB_Y + (self.TAB_HEIGHT - label_surf.get_height()) // 2
+            ly = tab_y + (self.TAB_HEIGHT - label_surf.get_height()) // 2
             screen.blit(label_surf, (lx, ly))
             self._tab_rects.append((tab_rect, tab_id))
             self._interactive_rects.append((tab_rect, f"tab:{tab_id}"))
@@ -321,8 +324,8 @@ class TradePanel(PanelWindow):
         player_surf = self.font_normal.render(player_text, True, (255, 220, 100))
         merchant_surf = self.font_normal.render(merchant_text, True, (255, 220, 100))
 
-        screen.blit(player_surf, (self.PANEL_X + 10, self.GOLD_Y))
-        screen.blit(merchant_surf, (self.PANEL_X + 250, self.GOLD_Y))
+        screen.blit(player_surf, (self.x + 10, self.GOLD_Y))
+        screen.blit(merchant_surf, (self.x + 250, self.GOLD_Y))
 
     def _render_buy_tab(self, screen: pygame.Surface, content_x: int, content_w: int, content_y: int) -> None:
         """Render the buy tab showing merchant inventory."""
@@ -466,7 +469,7 @@ class TradePanel(PanelWindow):
 
         items = self.trade_system.get_trade_items_for_merchant(merchant)
 
-        panel_x = self.PANEL_X
+        panel_x = self.x
         content_y = self.CONTENT_Y
 
         # ── Player items (offering) — left side ──
@@ -579,7 +582,7 @@ class TradePanel(PanelWindow):
 
     def _render_action_area(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render tab-specific action buttons."""
-        panel_x = self.PANEL_X
+        panel_x = self.x
         action_y = self.ACTION_Y
         action_w = self.PANEL_WIDTH - 10
 
@@ -644,7 +647,7 @@ class TradePanel(PanelWindow):
 
     def _render_status_bar(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render the status message bar."""
-        panel_x = self.PANEL_X
+        panel_x = self.x
         status_y = self.STATUS_Y
         status_w = self.PANEL_WIDTH - 10
 
@@ -855,7 +858,7 @@ class TradePanel(PanelWindow):
             return None
 
         item = items[row_idx]
-        content_x = self.PANEL_X + 5
+        content_x = self.x + 5
 
         if content_x + 140 <= x <= content_x + 152:
             self._buy_quantity = max(1, self._buy_quantity - 1)
@@ -883,7 +886,7 @@ class TradePanel(PanelWindow):
             return None
 
         slot_idx, item_id, quantity, sell_price = sellable_items[row_idx]
-        content_x = self.PANEL_X + 5
+        content_x = self.x + 5
         sell_btn_w = 40
         sell_btn_x = content_x + 200 - sell_btn_w - 4
         if sell_btn_x <= x <= sell_btn_x + sell_btn_w:
@@ -911,7 +914,7 @@ class TradePanel(PanelWindow):
         if not item_id or quantity <= 0:
             return None
 
-        content_x = self.PANEL_X + 5
+        content_x = self.x + 5
 
         if content_x + 155 <= x <= content_x + 167:
             self._barter_player_qty = max(1, self._barter_player_qty - 1)

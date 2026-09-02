@@ -63,6 +63,7 @@ class DiplomacyPanel(PanelWindow):
     # Negotiate button geometry (px)
     NEGOTIATE_BTN_WIDTH = 140
     NEGOTIATE_BTN_HEIGHT = 30
+    NEGOTIATE_BTN = (70, 70, 90)  # idle button color
 
     # Status bar height (px)
     STATUS_HEIGHT = 20

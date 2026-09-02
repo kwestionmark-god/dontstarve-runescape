@@ -150,6 +150,10 @@ class PanelWindow:
         # Cache of interactive (Rect, payload) tuples built during draw_contents
         self._interactive_rects: list = []
 
+        # Pixel scroll totals; panels update _content_total_px during
+        # draw_contents, but a wheel event can arrive before the first draw.
+        self._content_total_px: int = 0
+
         # Config
         self.title = title
         self.x = x
@@ -429,8 +433,11 @@ class PanelWindow:
         travel = strip.height - thumb.height
         if travel <= 0:
             return
-        frac = max(0.0, min(1.0, (y - strip.y) / travel))
-        self._scroll_offset = self._clamp_offset(round(frac * self.max_offset))
+        # Track relative to where the thumb was grabbed, not the strip top,
+        # so clicking the middle of the thumb doesn't snap-scroll.
+        dy = y - self._drag_start_y
+        target = self._drag_start_offset + dy * self.max_offset / travel
+        self._scroll_offset = self._clamp_offset(round(target))
 
     # ── Panel hooks (defaults: no-op) ────────────────────────────────────
     def draw_contents(self, screen: Surface, content_rect: Rect) -> None:
