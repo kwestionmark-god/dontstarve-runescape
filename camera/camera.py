@@ -39,9 +39,9 @@ class Camera:
         - π   → looking from "above" (player's north)
         - 3π/2 → looking from "left" (player's west)
 
-    Pitch (vertical tilt, radians: 5°–35°):
-        - 5°  → elevated isometric (config.CAMERA_PITCH_MIN)
-        - 35° → steep isometric (config.CAMERA_PITCH_MAX)
+    Pitch (vertical tilt, radians):
+        - CAMERA_PITCH_MIN → flatter, near-top-down view
+        - CAMERA_PITCH_MAX → steepest isometric view
 
     Both axes are independent and can be combined freely.
     """
@@ -69,7 +69,7 @@ class Camera:
         """
         self.player: object | None = None  # Player reference (set by Game)
         self.yaw: float = 0.0             # Radians: 0=below, π/2=right, π=above
-        self.pitch: float = math.radians(30.0)  # Radians: 30°–60° isometric range
+        self.pitch: float = math.radians(30.0)  # Radians; clamped to CAMERA_PITCH_MIN..MAX
         self.zoom: float = zoom
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -88,7 +88,7 @@ class Camera:
         Update camera based on input state.
 
         Yaw (horizontal orbit): ←/→ arrows
-        Pitch (vertical tilt): ↑/↓ arrows (clamped to 5°–35°)
+        Pitch (vertical tilt): ↑/↓ arrows (clamped to CAMERA_PITCH_MIN..MAX)
         Zoom: mouse wheel
 
         Args:
@@ -117,7 +117,7 @@ class Camera:
 
         if pitch_delta != 0.0:
             self.pitch += math.radians(pitch_delta) * dt
-            # Clamp to [30°, 60°] — isometric range
+            # Clamp to [CAMERA_PITCH_MIN, CAMERA_PITCH_MAX]
             self.pitch = max(math.radians(CAMERA_PITCH_MIN),
                              min(self.pitch, math.radians(CAMERA_PITCH_MAX)))
 
@@ -185,8 +185,9 @@ class Camera:
         # 2. Pitch: stretch world_Y for 2.5D perspective
         tp = math.tan(self.pitch)
         screen_x = (self.screen_width / 2 + yaw_x * self.zoom + self.pan_x)
-        screen_y = (self.screen_height / 2 + yaw_y * tp * self.zoom
-                    + self.pan_y - elevation * math.sin(self.pitch))
+        screen_y = (self.screen_height / 2
+                    + (yaw_y * tp - elevation * math.sin(self.pitch)) * self.zoom
+                    + self.pan_y)
 
         return (screen_x, screen_y)
 

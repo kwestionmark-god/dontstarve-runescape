@@ -1,5 +1,6 @@
 """game.py — Top-level game state container. Aggregates all subsystems."""
 
+import math
 import pygame
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,7 @@ from config import (
     AUTOSAVE_INTERVAL,
     TILE_SIZE,
     FOG_COLOR,
+    Z_SCALE,
 )
 
 from core.state import GameState
@@ -311,9 +313,21 @@ class Game:
         if self._tile_renderer is not None and self.camera is not None:
             self._tile_renderer.render(self.camera)
 
-        # Collect all sprite drawables with their depth sort key (world_y + elevation offset)
-        # so entities behind others are drawn first (painter's algorithm)
+        # Collect all sprite drawables with their depth sort key (distance
+        # along the camera's view axis, so the painter's order stays correct
+        # when yaw rotates) so entities behind others are drawn first.
         drawables: list[tuple[float, callable]] = []
+        if self.camera is not None:
+            _cy = math.cos(self.camera.yaw)
+            _sy = math.sin(self.camera.yaw)
+
+            def depth_of(world_x: float, world_y: float, elevation: float = 0.0) -> float:
+                # Matches TileRenderer's per-tile depth: rotate by yaw, plus a
+                # small elevation nudge so higher ground sorts slightly nearer.
+                return world_y * _cy + world_x * _sy + elevation * 0.5
+        else:
+            def depth_of(world_x: float, world_y: float, elevation: float = 0.0) -> float:
+                return world_y
 
         if self._sprite_renderer is not None and self.world is not None and self.camera is not None:
             left, top, right, bottom = self.camera.get_view_rect()
@@ -323,8 +337,10 @@ class Game:
                 for y in range(y_min, y_max):
                     tile = self.world.tiles[x][y]
                     if tile is not None and tile.resource_node is not None:
-                        # Sort by tile center Y + elevation
-                        sort_y = y * TILE_SIZE + tile.elevation * 3
+                        # Sort by yaw-rotated depth of the tile center
+                        sort_y = depth_of((x + 0.5) * TILE_SIZE,
+                                          (y + 0.5) * TILE_SIZE,
+                                          tile.elevation * Z_SCALE)
                         drawables.append((
                             sort_y,
                             lambda s=screen, n=tile.resource_node, c=self.camera, e=tile.elevation, tx=x, ty=y:
@@ -334,7 +350,8 @@ class Game:
         if self._sprite_renderer is not None and self.player is not None and self.camera is not None and self.world is not None:
             tx, ty = self.player.get_tile_position()
             tile = self.world.get_tile(tx, ty)
-            sort_y = self.player.world_y + (tile.elevation if tile else 0) * 3
+            sort_y = depth_of(self.player.world_x, self.player.world_y,
+                              (tile.elevation if tile else 0) * Z_SCALE)
             drawables.append((
                 sort_y,
                 lambda s=screen, p=self.player, c=self.camera, e=(tile.elevation if tile else 0), dt=self.dt:
@@ -344,7 +361,7 @@ class Game:
         if self._sprite_renderer is not None and self.combat_system is not None and self.camera is not None:
             for monster in self.combat_system.monsters:
                 if monster.is_alive():
-                    sort_y = monster.world_y
+                    sort_y = depth_of(monster.world_x, monster.world_y)
                     drawables.append((
                         sort_y,
                         lambda s=screen, m=monster, c=self.camera:
@@ -356,7 +373,7 @@ class Game:
             for npc in self.npc_system.npcs:
                 if not npc.is_active:
                     continue
-                sort_y = npc.world_y
+                sort_y = depth_of(npc.world_x, npc.world_y)
                 drawables.append((
                     sort_y,
                     lambda s=screen, n=npc, c=self.camera:
@@ -372,7 +389,7 @@ class Game:
         if self._sprite_renderer is not None and self.building_system is not None and self.camera is not None:
             for structure in self.building_system.structures:
                 if structure.is_active:
-                    sort_y = structure.world_y
+                    sort_y = depth_of(structure.world_x, structure.world_y)
                     drawables.append((
                         sort_y,
                         lambda s=screen, st=structure, c=self.camera:
@@ -389,7 +406,7 @@ class Game:
 
         if self._sprite_renderer is not None and self.firemaking is not None and self.camera is not None:
             for fire in self.firemaking.get_active_fires():
-                sort_y = fire.world_y
+                sort_y = depth_of(fire.world_x, fire.world_y)
                 drawables.append((
                     sort_y,
                     lambda s=screen, f=fire, c=self.camera:
@@ -447,15 +464,29 @@ class Game:
         ty = int(my // TILE_SIZE)
         if self.world.get_tile(tx, ty) is None:
             return
-        wx = tx * TILE_SIZE + TILE_SIZE // 2
-        wy = ty * TILE_SIZE + TILE_SIZE // 2
-        sx, sy = self.camera.world_to_screen(wx, wy)
-        if sx < -TILE_SIZE or sy < -TILE_SIZE or sx > WINDOW_WIDTH or sy > WINDOW_HEIGHT:
+        # Project the tile's footprint so the ghost follows yaw/pitch/zoom
+        # and elevation exactly like the terrain beneath it.
+        tile = self.world.get_tile(tx, ty)
+        elev = getattr(tile, "elevation", 0) * Z_SCALE
+        corners = [
+            self.camera.world_to_screen(tx * TILE_SIZE, ty * TILE_SIZE, elevation=elev),
+            self.camera.world_to_screen((tx + 1) * TILE_SIZE, ty * TILE_SIZE, elevation=elev),
+            self.camera.world_to_screen((tx + 1) * TILE_SIZE, (ty + 1) * TILE_SIZE, elevation=elev),
+            self.camera.world_to_screen(tx * TILE_SIZE, (ty + 1) * TILE_SIZE, elevation=elev),
+        ]
+        min_x = min(c[0] for c in corners)
+        min_y = min(c[1] for c in corners)
+        max_x = max(c[0] for c in corners)
+        max_y = max(c[1] for c in corners)
+        if max_x < 0 or max_y < 0 or min_x > WINDOW_WIDTH or min_y > WINDOW_HEIGHT:
             return
-        ghost = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-        ghost.fill((120, 220, 120, 90))
-        pygame.draw.rect(ghost, (180, 255, 180), (0, 0, TILE_SIZE, TILE_SIZE), 2)
-        screen.blit(ghost, (int(sx), int(sy)))
+        w = max(1, int(max_x - min_x) + 2)
+        h = max(1, int(max_y - min_y) + 2)
+        ghost = pygame.Surface((w, h), pygame.SRCALPHA)
+        local = [(int(cx - min_x) + 1, int(cy - min_y) + 1) for cx, cy in corners]
+        pygame.draw.polygon(ghost, (120, 220, 120, 90), local)
+        pygame.draw.polygon(ghost, (180, 255, 180, 200), local, 2)
+        screen.blit(ghost, (int(min_x), int(min_y)))
 
     def handle_event(self, event) -> None:
         if self.state == GameState.TITLE:
