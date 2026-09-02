@@ -474,6 +474,495 @@
       "required_skill": "crafting",
       "required_level": 1,
       "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_wooden_sword",
+      "name": "Wooden Sword",
+      "input_items": [
+        [
+          "planks",
+          2
+        ],
+        [
+          "stick",
+          1
+        ]
+      ],
+      "output_item": "wooden_sword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 12,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 3,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_wooden_axe",
+      "name": "Wooden War Axe",
+      "input_items": [
+        [
+          "stick",
+          2
+        ],
+        [
+          "stone",
+          1
+        ]
+      ],
+      "output_item": "wooden_axe",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 10,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 2,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_wooden_spear",
+      "name": "Wooden Spear",
+      "input_items": [
+        [
+          "stick",
+          3
+        ],
+        [
+          "fibers",
+          1
+        ]
+      ],
+      "output_item": "wooden_spear",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 14,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 4,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_stone_sword",
+      "name": "Stone Sword",
+      "input_items": [
+        [
+          "stone",
+          3
+        ],
+        [
+          "stick",
+          2
+        ]
+      ],
+      "output_item": "stone_sword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 18,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 5,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_leather_boots",
+      "name": "Leather Boots",
+      "input_items": [
+        [
+          "wolf_pelt",
+          2
+        ],
+        [
+          "fibers",
+          2
+        ]
+      ],
+      "output_item": "leather_boots",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 20,
+      "processing_chain": "leather_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 5,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_leather_helmet",
+      "name": "Leather Helmet",
+      "input_items": [
+        [
+          "wolf_pelt",
+          2
+        ],
+        [
+          "grass_rope",
+          1
+        ]
+      ],
+      "output_item": "leather_helmet",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 22,
+      "processing_chain": "leather_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 6,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_leather_armor",
+      "name": "Leather Armor",
+      "input_items": [
+        [
+          "wolf_pelt",
+          3
+        ],
+        [
+          "bear_hide",
+          1
+        ]
+      ],
+      "output_item": "leather_armor",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 35,
+      "processing_chain": "leather_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 8,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "smith_bronze_sword",
+      "name": "Bronze Sword",
+      "input_items": [
+        [
+          "smelted_bronze_ingot",
+          2
+        ],
+        [
+          "stick",
+          1
+        ]
+      ],
+      "output_item": "bronze_sword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 45,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 12,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_bronze_chestplate",
+      "name": "Bronze Chestplate",
+      "input_items": [
+        [
+          "smelted_bronze_ingot",
+          4
+        ],
+        [
+          "fibers",
+          2
+        ]
+      ],
+      "output_item": "bronze_chestplate",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 60,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 14,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_iron_sword",
+      "name": "Iron Sword",
+      "input_items": [
+        [
+          "smelted_iron_ingot",
+          2
+        ],
+        [
+          "stick",
+          1
+        ]
+      ],
+      "output_item": "iron_sword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 50,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 15,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_iron_axe",
+      "name": "Iron War Axe",
+      "input_items": [
+        [
+          "smelted_iron_ingot",
+          2
+        ],
+        [
+          "stick",
+          2
+        ]
+      ],
+      "output_item": "iron_axe",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 50,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 15,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_iron_spear",
+      "name": "Iron Spear",
+      "input_items": [
+        [
+          "smelted_iron_ingot",
+          1
+        ],
+        [
+          "stick",
+          3
+        ]
+      ],
+      "output_item": "iron_spear",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 45,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 15,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_iron_helmet",
+      "name": "Iron Helmet",
+      "input_items": [
+        [
+          "smelted_iron_ingot",
+          2
+        ]
+      ],
+      "output_item": "iron_helmet",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 45,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 14,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_iron_boots",
+      "name": "Iron Boots",
+      "input_items": [
+        [
+          "smelted_iron_ingot",
+          2
+        ],
+        [
+          "fibers",
+          1
+        ]
+      ],
+      "output_item": "iron_boots",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 45,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 14,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_iron_chestplate",
+      "name": "Iron Chestplate",
+      "input_items": [
+        [
+          "smelted_iron_ingot",
+          4
+        ],
+        [
+          "fibers",
+          2
+        ]
+      ],
+      "output_item": "iron_chestplate",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 70,
+      "processing_chain": "smithing_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 16,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_steel_sword",
+      "name": "Steel Sword",
+      "input_items": [
+        [
+          "smelted_steel_ingot",
+          2
+        ],
+        [
+          "stick",
+          1
+        ]
+      ],
+      "output_item": "steel_sword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 90,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 25,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_steel_axe",
+      "name": "Steel War Axe",
+      "input_items": [
+        [
+          "smelted_steel_ingot",
+          2
+        ],
+        [
+          "stick",
+          2
+        ]
+      ],
+      "output_item": "steel_axe",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 90,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 25,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_steel_spear",
+      "name": "Steel Spear",
+      "input_items": [
+        [
+          "smelted_steel_ingot",
+          2
+        ],
+        [
+          "stick",
+          3
+        ]
+      ],
+      "output_item": "steel_spear",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 90,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 26,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_steel_helmet",
+      "name": "Steel Helmet",
+      "input_items": [
+        [
+          "smelted_steel_ingot",
+          2
+        ]
+      ],
+      "output_item": "steel_helmet",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 85,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 26,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_steel_boots",
+      "name": "Steel Boots",
+      "input_items": [
+        [
+          "smelted_steel_ingot",
+          2
+        ],
+        [
+          "fibers",
+          1
+        ]
+      ],
+      "output_item": "steel_boots",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 85,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 26,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
+    },
+    {
+      "recipe_id": "smith_steel_chestplate",
+      "name": "Steel Chestplate",
+      "input_items": [
+        [
+          "smelted_steel_ingot",
+          4
+        ],
+        [
+          "fibers",
+          2
+        ]
+      ],
+      "output_item": "steel_chestplate",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 120,
+      "processing_chain": "smithing_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 28,
+      "skill_affects_yield": "metallurgy",
+      "requires_structure": "anvil"
     }
   ]
 }

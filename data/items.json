@@ -1599,6 +1599,195 @@
       "is_essential_tool": false,
       "is_food": false,
       "sprite_key": "items/worm_segment"
+    },
+    {
+      "id": "wooden_sword",
+      "name": "Wooden Sword",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/wooden_sword"
+    },
+    {
+      "id": "stone_sword",
+      "name": "Stone Sword",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/stone_sword"
+    },
+    {
+      "id": "iron_sword",
+      "name": "Iron Sword",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/iron_sword"
+    },
+    {
+      "id": "steel_sword",
+      "name": "Steel Sword",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/steel_sword"
+    },
+    {
+      "id": "bronze_sword",
+      "name": "Bronze Sword",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/bronze_sword"
+    },
+    {
+      "id": "wooden_axe",
+      "name": "Wooden Axe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/wooden_axe"
+    },
+    {
+      "id": "iron_axe",
+      "name": "Iron Axe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/iron_axe"
+    },
+    {
+      "id": "steel_axe",
+      "name": "Steel Axe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/steel_axe"
+    },
+    {
+      "id": "wooden_spear",
+      "name": "Wooden Spear",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/wooden_spear"
+    },
+    {
+      "id": "iron_spear",
+      "name": "Iron Spear",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/iron_spear"
+    },
+    {
+      "id": "steel_spear",
+      "name": "Steel Spear",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/steel_spear"
+    },
+    {
+      "id": "leather_armor",
+      "name": "Leather Armor",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/leather_armor"
+    },
+    {
+      "id": "iron_chestplate",
+      "name": "Iron Chestplate",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/iron_chestplate"
+    },
+    {
+      "id": "steel_chestplate",
+      "name": "Steel Chestplate",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/steel_chestplate"
+    },
+    {
+      "id": "bronze_chestplate",
+      "name": "Bronze Chestplate",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/bronze_chestplate"
+    },
+    {
+      "id": "leather_helmet",
+      "name": "Leather Helmet",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/leather_helmet"
+    },
+    {
+      "id": "iron_helmet",
+      "name": "Iron Helmet",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/iron_helmet"
+    },
+    {
+      "id": "steel_helmet",
+      "name": "Steel Helmet",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/steel_helmet"
+    },
+    {
+      "id": "leather_boots",
+      "name": "Leather Boots",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/leather_boots"
+    },
+    {
+      "id": "iron_boots",
+      "name": "Iron Boots",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/iron_boots"
+    },
+    {
+      "id": "steel_boots",
+      "name": "Steel Boots",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "gear/steel_boots"
     }
   ]
 }

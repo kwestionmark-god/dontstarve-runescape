@@ -5283,6 +5283,131 @@ def generate_progression_sprites() -> None:
     print("  Generated progression sprites.")
 
 
+def generate_gear_sprites() -> None:
+    """Generate 16x16 icons for the craftable combat gear in gear.json."""
+    print("\n=== Generating Gear Sprites ===")
+    out = os.path.join(OUTPUT_ROOT, "gear")
+
+    WOOD = (139, 90, 43)
+    WOOD_DARK = (100, 70, 35)
+    MAT = {
+        "wood": ((150, 105, 55), (110, 75, 40)),
+        "stone": ((140, 140, 145), (95, 95, 100)),
+        "bronze": ((205, 150, 60), (150, 105, 40)),
+        "iron": ((180, 180, 190), (125, 125, 135)),
+        "steel": ((150, 165, 190), (100, 115, 140)),
+        "leather": ((160, 110, 60), (115, 75, 40)),
+    }
+
+    def new() -> pygame.Surface:
+        return pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+
+    def save(name: str, s: pygame.Surface) -> None:
+        save_surface(os.path.join(out, f"{name}.png"), s)
+
+    def sword(name: str, mat: str) -> None:
+        blade, dark = MAT[mat]
+        s = new()
+        # Diagonal blade from bottom-left hilt to top-right tip
+        for t in range(2, 10):
+            s.set_at((3 + t, 12 - t), blade)
+            s.set_at((4 + t, 12 - t), dark)
+        s.set_at((13, 2), blade)
+        # Crossguard
+        s.set_at((3, 10), WOOD_DARK)
+        s.set_at((6, 13), WOOD_DARK)
+        s.set_at((4, 12), WOOD)
+        s.set_at((5, 13), WOOD)
+        save(name, s)
+
+    def axe_icon(name: str, mat: str) -> None:
+        head, dark = MAT[mat]
+        s = new()
+        rectangle(s, (7, 5, 2, 9), WOOD)
+        rectangle(s, (7, 9, 2, 5), WOOD_DARK)
+        rectangle(s, (3, 3, 6, 4), head)
+        rectangle(s, (3, 3, 2, 4), dark)
+        s.set_at((2, 4), head)
+        s.set_at((2, 5), head)
+        save(name, s)
+
+    def spear(name: str, mat: str) -> None:
+        head, dark = MAT[mat]
+        s = new()
+        for t in range(6, 15):
+            s.set_at((t - 3, 15 - t + 2), WOOD)
+            s.set_at((t - 2, 15 - t + 2), WOOD_DARK)
+        for t in range(2):
+            for d in range(0, 3 - t):
+                s.set_at((12 - t, 4 + d), head)
+                s.set_at((13 - t, 4 + d), head)
+        s.set_at((13, 3), head)
+        s.set_at((12, 5), dark)
+        save(name, s)
+
+    def chestplate(name: str, mat: str) -> None:
+        body, dark = MAT[mat]
+        s = new()
+        rectangle(s, (4, 3, 8, 9), body)
+        rectangle(s, (4, 3, 8, 2), dark)      # shoulders
+        rectangle(s, (7, 5, 2, 7), dark)      # center seam
+        # sleeves
+        rectangle(s, (2, 3, 2, 4), body)
+        rectangle(s, (12, 3, 2, 4), body)
+        s.set_at((5, 4), dark)
+        s.set_at((10, 4), dark)
+        save(name, s)
+
+    def helmet(name: str, mat: str) -> None:
+        shell, dark = MAT[mat]
+        s = new()
+        rectangle(s, (4, 5, 8, 6), shell)
+        rectangle(s, (5, 3, 6, 2), shell)
+        rectangle(s, (6, 6, 1, 4), dark)      # eye slit
+        rectangle(s, (9, 6, 1, 4), dark)
+        rectangle(s, (7, 8, 2, 3), dark)      # nose guard
+        save(name, s)
+
+    def boots(name: str, mat: str) -> None:
+        shell, dark = MAT[mat]
+        s = new()
+        # left boot
+        rectangle(s, (3, 5, 3, 6), shell)
+        rectangle(s, (3, 10, 5, 2), shell)
+        # right boot
+        rectangle(s, (10, 5, 3, 6), shell)
+        rectangle(s, (8, 10, 5, 2), shell)
+        rectangle(s, (3, 5, 3, 1), dark)
+        rectangle(s, (10, 5, 3, 1), dark)
+        rectangle(s, (3, 11, 5, 1), dark)
+        rectangle(s, (8, 11, 5, 1), dark)
+        save(name, s)
+
+    sword("wooden_sword", "wood")
+    sword("stone_sword", "stone")
+    sword("iron_sword", "iron")
+    sword("bronze_sword", "bronze")
+    sword("steel_sword", "steel")
+    axe_icon("wooden_axe", "stone")
+    axe_icon("iron_axe", "iron")
+    axe_icon("steel_axe", "steel")
+    spear("wooden_spear", "stone")
+    spear("iron_spear", "iron")
+    spear("steel_spear", "steel")
+    chestplate("leather_armor", "leather")
+    chestplate("iron_chestplate", "iron")
+    chestplate("bronze_chestplate", "bronze")
+    chestplate("steel_chestplate", "steel")
+    helmet("leather_helmet", "leather")
+    helmet("iron_helmet", "iron")
+    helmet("steel_helmet", "steel")
+    boots("leather_boots", "leather")
+    boots("iron_boots", "iron")
+    boots("steel_boots", "steel")
+
+    print("  Generated gear sprites.")
+
+
 # ── Main ──────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -5320,6 +5445,7 @@ def main() -> None:
     generate_world_depleted_sprites()
     generate_shared_fallbacks()
     generate_progression_sprites()
+    generate_gear_sprites()
 
     print("\n=== All sprites generated! ===")
     print(f"Output directory: {OUTPUT_ROOT}/")
