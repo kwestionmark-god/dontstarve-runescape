@@ -37,8 +37,10 @@ class HUD:
     MARGIN_Y = 10
 
     # Colors
-    BG_COLOR = (40, 40, 40)        # Bar background
-    BORDER_COLOR = (80, 80, 80)    # Bar border
+    BG_COLOR = (24, 26, 32)        # Bar background
+    BORDER_COLOR = (70, 74, 86)    # Bar border
+    PANEL_COLOR = (14, 16, 20, 190)      # Translucent backing panel fill
+    PANEL_BORDER_COLOR = (64, 68, 80, 200)  # Panel border
 
     # Notification fade timings (seconds)
     NOTIF_FADE_IN = 0.15
@@ -292,20 +294,25 @@ class HUD:
             label: Text label (e.g. "Hunger 65%").
         """
         # Background
-        pygame.draw.rect(screen, self.BG_COLOR, (x, y, width, height))
+        pygame.draw.rect(screen, self.BG_COLOR, (x, y, width, height), border_radius=3)
 
-        # Fill
+        # Fill (with a one-pixel lighter highlight along the top edge)
         fill_width = int(width * max(0.0, min(1.0, fill_percent)))
         if fill_width > 0:
-            pygame.draw.rect(screen, bar_color, (x, y, fill_width, height))
+            pygame.draw.rect(screen, bar_color, (x, y, fill_width, height), border_radius=3)
+            hi = tuple(min(255, c + 40) for c in bar_color)
+            pygame.draw.rect(screen, hi, (x, y, fill_width, max(2, height // 4)), border_radius=3)
 
         # Border
-        pygame.draw.rect(screen, self.BORDER_COLOR, (x, y, width, height), 1)
+        pygame.draw.rect(screen, self.BORDER_COLOR, (x, y, width, height), 1, border_radius=3)
 
-        # Label text
+        # Label, centred inside the bar so it doesn't float over the world
         text_surf = self.font.render(label, True, (255, 255, 255))
-        text_x = x + width + 6
-        text_y = y + (height - 12) // 2
+        text_x = x + (width - text_surf.get_width()) // 2
+        text_y = y + (height - text_surf.get_height()) // 2
+        # Drop shadow for readability over bright fills
+        shadow = self.font.render(label, True, (0, 0, 0))
+        screen.blit(shadow, (text_x + 1, text_y + 1))
         screen.blit(text_surf, (text_x, text_y))
 
     def _draw_stamina_bar(
@@ -349,18 +356,24 @@ class HUD:
         stamina_color = (r, g, b)
 
         # Background
-        pygame.draw.rect(screen, self.BG_COLOR, (x, y, self.BAR_WIDTH, self.BAR_HEIGHT))
+        pygame.draw.rect(screen, self.BG_COLOR, (x, y, self.BAR_WIDTH, self.BAR_HEIGHT), border_radius=3)
         # Fill
         fill_width = int(self.BAR_WIDTH * percent)
         if fill_width > 0:
-            pygame.draw.rect(screen, stamina_color, (x, y, fill_width, self.BAR_HEIGHT))
+            pygame.draw.rect(screen, stamina_color, (x, y, fill_width, self.BAR_HEIGHT), border_radius=3)
+            hi = tuple(min(255, c + 40) for c in stamina_color)
+            pygame.draw.rect(screen, hi, (x, y, fill_width, max(2, self.BAR_HEIGHT // 4)), border_radius=3)
         # Border
-        pygame.draw.rect(screen, self.BORDER_COLOR, (x, y, self.BAR_WIDTH, self.BAR_HEIGHT), 1)
+        pygame.draw.rect(screen, self.BORDER_COLOR, (x, y, self.BAR_WIDTH, self.BAR_HEIGHT), 1, border_radius=3)
 
-        # Label
+        # Label centred inside the bar (with drop shadow)
         label = f"Stamina {int(current):.0f}/{int(max_stamina):.0f}"
         label_surf = self.font.render(label, True, (255, 255, 255))
-        screen.blit(label_surf, (x + self.BAR_WIDTH + 6, y + 2))
+        lx = x + (self.BAR_WIDTH - label_surf.get_width()) // 2
+        ly = y + (self.BAR_HEIGHT - label_surf.get_height()) // 2
+        shadow = self.font.render(label, True, (0, 0, 0))
+        screen.blit(shadow, (lx + 1, ly + 1))
+        screen.blit(label_surf, (lx, ly))
 
     def _get_notification_alpha(self, notif: object) -> float:
         """
@@ -535,6 +548,25 @@ class HUD:
         x = self.MARGIN_X
         y = self.MARGIN_Y
 
+        # Translucent backing panel sized to the column's elements, so the
+        # HUD reads as one unit against the bright terrain behind it.
+        panel_h = 0
+        if self._seasonal_hud is not None and self._season_system is not None:
+            panel_h += 62
+        panel_h += (self.BAR_HEIGHT + self.BAR_SPACING) * 2  # hunger + HP
+        if self.faction_system is not None:
+            panel_h += self.BAR_HEIGHT + self.BAR_SPACING
+        _panel_action_sys = self.get_action_system()
+        if _panel_action_sys is not None and hasattr(_panel_action_sys, "stamina"):
+            panel_h += self.BAR_HEIGHT + self.BAR_SPACING
+        if self._active_action_progress > 0 and self._active_action_skill:
+            panel_h += 10 + 12 + self.font.get_height()
+        panel_w = self.BAR_WIDTH
+        overlay = pygame.Surface((panel_w + 12, panel_h + 12), pygame.SRCALPHA)
+        pygame.draw.rect(overlay, self.PANEL_COLOR, overlay.get_rect(), border_radius=6)
+        pygame.draw.rect(overlay, self.PANEL_BORDER_COLOR, overlay.get_rect(), 1, border_radius=6)
+        screen.blit(overlay, (x - 6, y - 6))
+
         # ── Seasonal HUD (season bar + weather icon + forecast) ─────
         if self._seasonal_hud is not None and self._season_system is not None:
             self._seasonal_hud.render_season_bar(
@@ -597,16 +629,22 @@ class HUD:
             faction_color = self.faction_system.get_faction_color(best_status)
 
             # Background, fill, border
-            pygame.draw.rect(screen, (40, 40, 40), (self.MARGIN_X, faction_y, self.BAR_WIDTH, self.BAR_HEIGHT))
+            pygame.draw.rect(screen, self.BG_COLOR, (self.MARGIN_X, faction_y, self.BAR_WIDTH, self.BAR_HEIGHT), border_radius=3)
             fill_w = int(self.BAR_WIDTH * standing)
             if fill_w > 0:
-                pygame.draw.rect(screen, faction_color, (self.MARGIN_X, faction_y, fill_w, self.BAR_HEIGHT))
-            pygame.draw.rect(screen, (80, 80, 80), (self.MARGIN_X, faction_y, self.BAR_WIDTH, self.BAR_HEIGHT), 1)
+                pygame.draw.rect(screen, faction_color, (self.MARGIN_X, faction_y, fill_w, self.BAR_HEIGHT), border_radius=3)
+                hi = tuple(min(255, c + 40) for c in faction_color)
+                pygame.draw.rect(screen, hi, (self.MARGIN_X, faction_y, fill_w, max(2, self.BAR_HEIGHT // 4)), border_radius=3)
+            pygame.draw.rect(screen, self.BORDER_COLOR, (self.MARGIN_X, faction_y, self.BAR_WIDTH, self.BAR_HEIGHT), 1, border_radius=3)
 
-            # Label to the right
+            # Label centred inside the bar (with drop shadow)
             faction_label = f"{faction_name} ({best_status})"
             faction_label_surf = self.font.render(faction_label, True, (255, 255, 255))
-            screen.blit(faction_label_surf, (self.MARGIN_X + self.BAR_WIDTH + 6, faction_y + 2))
+            lx = self.MARGIN_X + (self.BAR_WIDTH - faction_label_surf.get_width()) // 2
+            ly = faction_y + (self.BAR_HEIGHT - faction_label_surf.get_height()) // 2
+            shadow = self.font.render(faction_label, True, (0, 0, 0))
+            screen.blit(shadow, (lx + 1, ly + 1))
+            screen.blit(faction_label_surf, (lx, ly))
 
         # ── Stamina bar (below faction bar, when action system active) ─
         action_sys = self.get_action_system()
