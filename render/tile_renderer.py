@@ -116,9 +116,11 @@ class TileRenderer:
         # Terrain subdivision from preset (for textured mode)
         terrain_subdiv = TILE_SUBDIVISIONS
         terrain_warp = True
+        biome_blend = True
         if lighting is not None:
             terrain_subdiv = lighting.preset_config.get("terrain_subdiv", TILE_SUBDIVISIONS)
             terrain_warp = lighting.preset_config.get("terrain_warp", True)
+            biome_blend = lighting.preset_config.get("biome_blend", True)
 
         left, top, right, bottom = camera.get_view_rect()
         if left == right or top == bottom:
@@ -244,6 +246,7 @@ class TileRenderer:
                     use_rim,
                     terrain_subdiv,
                     terrain_warp,
+                    biome_blend,
                 )
 
     def _render_tile_gouraud(
@@ -391,6 +394,7 @@ class TileRenderer:
         use_rim: bool,
         terrain_subdiv: int = TILE_SUBDIVISIONS,
         terrain_warp: bool = True,
+        biome_blend: bool = True,
     ) -> None:
         """Render tile using biome sprite with sub-tile interpolated shading."""
         # Load terrain sprite
@@ -431,6 +435,28 @@ class TileRenderer:
         pitch_factor = math.tan(camera.pitch) if hasattr(camera, "pitch") else 1.0
         yaw = camera.yaw if hasattr(camera, "yaw") else 0.0
 
+        # Biome boundary blending: gather differing orthogonal neighbours'
+        # terrain colors (seasonally tinted, like this tile) so the sprite
+        # can feather toward them near the shared edge.
+        blend_colors = None
+        if biome_blend:
+            edges = {"N": (x, y - 1), "S": (x, y + 1), "W": (x - 1, y), "E": (x + 1, y)}
+            for dname, (nx, ny) in edges.items():
+                ntile = self.tile_map.get_tile(nx, ny)
+                if ntile is None:
+                    continue
+                ncolor = ntile.terrain_color
+                if (not isinstance(ncolor, (tuple, list)) or len(ncolor) != 3
+                        or ncolor == tile.terrain_color):
+                    continue
+                nbiome = ntile.biome.id if ntile.biome else "forest"
+                if self.seasonal_renderer is not None:
+                    ncolor = self.seasonal_renderer.get_tile_color(nbiome, ncolor)
+                ncolor = tuple(int(c) for c in ncolor)
+                if blend_colors is None:
+                    blend_colors = {}
+                blend_colors[dname] = ncolor
+
         # Quantized shading signature for the cache key (1/32 steps)
         if corner_brightness is not None:
             ao0 = corner_ao[x][y] if corner_ao else 1.0
@@ -443,9 +469,13 @@ class TileRenderer:
                 int(corner_brightness[x, y + 1] * ao2 * 32),
                 int(corner_brightness[x + 1, y + 1] * ao3 * 32),
                 base_color,
+                tuple(sorted(blend_colors.items())) if blend_colors else None,
             )
         else:
-            shade_key = None
+            shade_key = (
+                None,
+                tuple(sorted(blend_colors.items())) if blend_colors else None,
+            )
 
         # Elevation-displaced corner quad: warping the sprite onto this
         # quad makes the terrain surface visibly drape over the
@@ -472,13 +502,18 @@ class TileRenderer:
         cached = self._xform_cache.get(tkey)
         if cached is None:
             sprite = terrain_sprite
-            # Bake per-corner brightness/AO as sub-tile multiplicative shading
-            if corner_brightness is not None:
+            # Bake per-corner brightness/AO as sub-tile multiplicative shading,
+            # then soften biome borders by blending toward each differing
+            # neighbour's terrain color near the shared edge.
+            if corner_brightness is not None or blend_colors:
                 sprite = terrain_sprite.copy()
-                self._bake_subtile_shading(
-                    sprite, x, y, base_color,
-                    corner_brightness, corner_ao, terrain_subdiv,
-                )
+                if corner_brightness is not None:
+                    self._bake_subtile_shading(
+                        sprite, x, y, base_color,
+                        corner_brightness, corner_ao, terrain_subdiv,
+                    )
+                if blend_colors:
+                    self._bake_biome_blending(sprite, blend_colors)
 
             # Rotate by yaw, then squash vertically by tan(pitch)
             cos_y = math.cos(yaw)
@@ -626,6 +661,57 @@ class TileRenderer:
         pygame.surfarray.blit_array(shade, color)
         # RGB-only multiply so terrain alpha (sprite silhouette) is untouched.
         sprite.blit(shade, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+
+    def _bake_biome_blending(
+        self,
+        sprite: pygame.Surface,
+        blend_colors: dict[str, tuple[int, int, int]],
+    ) -> None:
+        """Feather the sprite toward each differing neighbour's biome color.
+
+        For every orthogonal edge whose neighbour is another biome, blend
+        the sprite toward that neighbour's terrain color with an alpha
+        ramp that peaks at the shared edge and fades over the inner third
+        of the tile. Corners between two differing neighbours blend with
+        both, so biome borders read as continuous gradients instead of a
+        hard tile grid. RGB-only; alpha (sprite silhouette) is untouched.
+        """
+        import numpy as np
+
+        w, h = sprite.get_size()
+        depth_x = w // 3
+        depth_y = h // 3
+        MAX_ALPHA = 0.45
+
+        pixels = pygame.surfarray.array3d(sprite).astype(np.float32)
+
+        for edge, color in blend_colors.items():
+            target = np.asarray(color, dtype=np.float32)
+            if edge == "W":
+                ramp = (1.0 - np.arange(depth_x) / depth_x) * MAX_ALPHA
+                region = pixels[:depth_x, :, :]
+                region *= (1.0 - ramp)[:, None, None]
+                region += target[None, None, :] * ramp[:, None, None]
+            elif edge == "E":
+                ramp = (np.arange(depth_x) / depth_x) * MAX_ALPHA
+                region = pixels[w - depth_x:, :, :]
+                region *= (1.0 - ramp)[:, None, None]
+                region += target[None, None, :] * ramp[:, None, None]
+            elif edge == "N":
+                ramp = (1.0 - np.arange(depth_y) / depth_y) * MAX_ALPHA
+                region = pixels[:, :depth_y, :]
+                region *= (1.0 - ramp)[None, :, None]
+                region += target[None, None, :] * ramp[None, :, None]
+            else:  # "S"
+                ramp = (np.arange(depth_y) / depth_y) * MAX_ALPHA
+                region = pixels[:, h - depth_y:, :]
+                region *= (1.0 - ramp)[None, :, None]
+                region += target[None, None, :] * ramp[None, :, None]
+
+        # Write back RGB through the view so sprite alpha is preserved.
+        view = pygame.surfarray.pixels3d(sprite)
+        view[...] = np.clip(pixels, 0, 255).astype(np.uint8)
+        del view
 
     # ── Terrain sprite loading ───────────────────────────────────────
 

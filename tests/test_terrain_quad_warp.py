@@ -148,7 +148,7 @@ def test_textured_cache_key_includes_corner_heights():
     def render_once():
         renderer._render_tile_textured(
             0, 0, tile, cam, 64, (100, 120, 80), "forest",
-            None, None, None, 0, (200, 210, 220), False, 2, True,
+            None, None, None, 0, (200, 210, 220), False, 2, True, False,
         )
 
     render_once()

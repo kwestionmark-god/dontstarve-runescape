@@ -224,6 +224,7 @@ SHADING_PRESETS: dict[str, dict] = {
         "terrain_subdiv": 2,
         "terrain_lod": True,
         "terrain_warp": True,
+        "biome_blend": True,
     },
     "realistic": {
         "slope_shading": True,
@@ -242,6 +243,7 @@ SHADING_PRESETS: dict[str, dict] = {
         "terrain_subdiv": 4,
         "terrain_lod": True,
         "terrain_warp": True,
+        "biome_blend": True,
     },
     "performance": {
         "slope_shading": False,
@@ -260,6 +262,7 @@ SHADING_PRESETS: dict[str, dict] = {
         "terrain_subdiv": 2,
         "terrain_lod": True,
         "terrain_warp": False,
+        "biome_blend": False,
     },
 }
 DEFAULT_SHADING_PRESET = "stylized"
