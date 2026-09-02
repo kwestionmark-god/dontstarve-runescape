@@ -220,62 +220,92 @@ def _draw_loading_stage(screen: pygame.Surface, game: "Game") -> None:
     font = get_monospace(16)
     # Pulse the stage text slightly
     stage_surf = font.render(stage, True, (180, 180, 200))
-    stage_rect = stage_surf.get_rect(center=(width // 2, 240))
+    stage_rect = stage_surf.get_rect(center=(width // 2, 260))
     screen.blit(stage_surf, stage_rect)
 
 
+_head_glow_cache: dict[int, pygame.Surface] = {}
+
+
+def _get_head_glow(radius: int) -> pygame.Surface:
+    """Radially fading glow surface placed under the fill's leading edge."""
+    surf = _head_glow_cache.get(radius)
+    if surf is None:
+        surf = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        for rr in range(radius, 0, -2):
+            alpha = int(46 * (1 - rr / radius) ** 2)
+            pygame.draw.circle(surf, (210, 230, 140, alpha), (radius, radius), rr)
+        _head_glow_cache[radius] = surf
+    return surf
+
+
 def _draw_progress_bar(screen: pygame.Surface, game: "Game", time: float) -> None:
-    """Draw an animated progress bar with percentage."""
+    """Draw the animated progress bar with percentage and stage dots."""
     width = screen.get_width()
-    bar_width = 500
-    bar_height = 28
+    bar_width = 520
+    bar_height = 24
     bar_x = (width - bar_width) // 2
-    bar_y = 280
-    
-    # Progress bar background
-    pygame.draw.rect(screen, (35, 35, 45), (bar_x, bar_y, bar_width, bar_height), border_radius=14)
-    pygame.draw.rect(screen, (80, 80, 100), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=14)
-    
-    # Progress bar fill with gradient effect
-    fill_width = int(bar_width * game.loading_progress)
+    bar_y = 312
+    radius = bar_height // 2
+
+    # Recessed well: darker inset with a fine outer border
+    pygame.draw.rect(
+        screen, (14, 16, 22),
+        (bar_x - 2, bar_y - 2, bar_width + 4, bar_height + 4),
+        border_radius=radius + 2,
+    )
+    pygame.draw.rect(
+        screen, (46, 50, 62),
+        (bar_x - 2, bar_y - 2, bar_width + 4, bar_height + 4),
+        1, border_radius=radius + 2,
+    )
+
+    # Fill: full-width gradient (green → gold), gloss stripe and animated
+    # diagonal flow stripes baked on, then clipped to rounded corners.
+    fill_width = int(bar_width * max(0.0, min(1.0, game.loading_progress)))
     if fill_width > 0:
-        # Create gradient fill
-        fill_surf = pygame.Surface((fill_width, bar_height), pygame.SRCALPHA)
-        for x in range(fill_width):
-            ratio = x / max(1, fill_width - 1)
-            # Green to gold gradient
-            r = int(80 + ratio * 100)
-            g = int(180 + ratio * 50)
-            b = int(80 - ratio * 30)
-            pygame.draw.line(fill_surf, (r, g, b, 255), (x, 0), (x, bar_height))
-        # Round the left side
-        pygame.draw.rect(fill_surf, (0, 0, 0, 0), (0, 0, fill_width, bar_height), border_radius=14)
-        # Actually draw with rounded corners by using the surface as mask
-        screen.blit(fill_surf, (bar_x, bar_y))
-        # Draw rounded end cap on the right side of fill
-        if fill_width > bar_height:
-            cap_x = bar_x + fill_width - bar_height // 2
-            pygame.draw.circle(screen, (180, 230, 100), (cap_x, bar_y + bar_height // 2), bar_height // 2)
-    
-    # Animated shine sweep
-    if game.loading_progress > 0 and game.loading_progress < 1.0:
-        shine_x = bar_x + int((bar_width * 0.5) * (1 + math.sin(time * 3)))
-        if bar_x < shine_x < bar_x + fill_width:
-            shine_surf = pygame.Surface((60, bar_height), pygame.SRCALPHA)
-            for x in range(60):
-                alpha = int(80 * (1 - abs(x - 30) / 30))
-                pygame.draw.line(shine_surf, (255, 255, 255, alpha), (x, 0), (x, bar_height))
-            screen.blit(shine_surf, (shine_x - 30, bar_y))
-    
+        fill = pygame.Surface((fill_width, bar_height), pygame.SRCALPHA)
+        for i in range(fill_width):
+            t = i / max(1, bar_width - 1)  # gradient tracks the whole bar, not the fill
+            r = int(70 + t * 150)
+            g = int(150 + t * 70)
+            b = int(90 - t * 20)
+            pygame.draw.line(fill, (r, g, b), (i, 0), (i, bar_height))
+
+        gloss = pygame.Surface((fill_width, bar_height // 2), pygame.SRCALPHA)
+        gloss.fill((255, 255, 255, 30))
+        fill.blit(gloss, (0, 0))
+
+        stripes = pygame.Surface((fill_width, bar_height), pygame.SRCALPHA)
+        stripe_x = -((time * 40.0) % 26.0)
+        while stripe_x < fill_width:
+            pygame.draw.line(stripes, (255, 255, 255, 22),
+                             (stripe_x, bar_height), (stripe_x + 13, 0), 6)
+            stripe_x += 26.0
+        fill.blit(stripes, (0, 0))
+
+        mask = pygame.Surface((fill_width, bar_height), pygame.SRCALPHA)
+        pygame.draw.rect(mask, (255, 255, 255, 255), mask.get_rect(),
+                         border_radius=radius)
+        fill.blit(mask, (0, 0), None, pygame.BLEND_RGBA_MIN)
+
+        # Soft glow under the leading edge
+        if game.loading_progress < 1.0:
+            glow = _get_head_glow(bar_height * 2)
+            gx = bar_x + fill_width
+            screen.blit(glow, (gx - bar_height * 2, bar_y + bar_height // 2 - bar_height * 2))
+
+        screen.blit(fill, (bar_x, bar_y))
+
     # Percentage text
     pct_font = get_monospace_bold(22)
     pct_text = f"{int(game.loading_progress * 100)}%"
     pct_surf = pct_font.render(pct_text, True, (255, 255, 255))
-    pct_rect = pct_surf.get_rect(center=(width // 2, bar_y + bar_height + 30))
+    pct_rect = pct_surf.get_rect(center=(width // 2, bar_y + bar_height + 26))
     screen.blit(pct_surf, pct_rect)
-    
-    # Progress segments indicators
-    _draw_progress_segments(screen, bar_x, bar_y - 35, bar_width, game.loading_progress)
+
+    # Stage segment dots sit between the stage label and the bar
+    _draw_progress_segments(screen, bar_x, bar_y - 24, bar_width, game.loading_progress)
 
 
 def _draw_progress_segments(screen: pygame.Surface, x: int, y: int, width: int, progress: float) -> None:
@@ -292,13 +322,20 @@ def _draw_progress_segments(screen: pygame.Surface, x: int, y: int, width: int, 
         # Segment dot
         if seg_progress >= 1.0:
             color = (80, 200, 100)  # Complete
+            radius = 4
         elif seg_progress > 0:
-            color = (200, 180, 80)  # In progress
+            color = (230, 200, 90)  # In progress (pulses)
+            radius = 6
         else:
-            color = (70, 70, 80)  # Pending
-        
-        pygame.draw.circle(screen, color, (int(seg_center), y), 5)
-        pygame.draw.circle(screen, (40, 40, 50), (int(seg_center), y), 5, 1)
+            color = (56, 58, 70)  # Pending
+            radius = 4
+
+        cx = int(seg_center)
+        if radius == 6:
+            glow = _get_head_glow(12)
+            screen.blit(glow, (cx - 12, y - 12))
+        pygame.draw.circle(screen, color, (cx, y), radius)
+        pygame.draw.circle(screen, (30, 32, 40), (cx, y), radius, 1)
 
 
 def _draw_flavor_text(game: "Game", screen: pygame.Surface) -> None:
@@ -310,7 +347,7 @@ def _draw_flavor_text(game: "Game", screen: pygame.Surface) -> None:
     width, height = screen.get_size()
     font = get_monospace_italic(15)
     flavor_surf = font.render(f"\"{game._flavor_text}\"", True, (120, 110, 90))
-    flavor_rect = flavor_surf.get_rect(center=(width // 2, 380))
+    flavor_rect = flavor_surf.get_rect(center=(width // 2, 402))
     screen.blit(flavor_surf, flavor_rect)
 
 
