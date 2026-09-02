@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 import pygame
 from config import (
-    Z_SCALE, FOG_CULL_DISTANCE, FOG_COLOR, TILE_SUBDIVISIONS, SHADING_STRENGTH,
+    Z_SCALE, TERRAIN_HEIGHT_SCALE, FOG_CULL_DISTANCE, FOG_COLOR, TILE_SUBDIVISIONS, SHADING_STRENGTH,
     fog_alpha_for_distance,
 )
 from render.gouraud import fill_triangle
@@ -274,10 +274,10 @@ class TileRenderer:
         h_se = self.tile_map.corner_height[x + 1][y + 1]
 
         # Compute screen positions of the 4 corners
-        p_nw = camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE)
-        p_ne = camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE)
-        p_se = camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE)
-        p_sw = camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE)
+        p_nw = camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+        p_ne = camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+        p_se = camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+        p_sw = camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE * TERRAIN_HEIGHT_SCALE)
 
         # Per-vertex colors: base_color * brightness * AO
         def vertex_color(b, ao):
@@ -406,10 +406,10 @@ class TileRenderer:
             h_se = self.tile_map.get_corner_height(x + 1, y + 1)
             h_sw = self.tile_map.get_corner_height(x, y + 1)
             corners = [
-                camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE),
-                camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE),
-                camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE),
-                camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE),
+                camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+                camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+                camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+                camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE * TERRAIN_HEIGHT_SCALE),
             ]
             pygame.draw.polygon(self.screen, color, corners)
             if fog_alpha > 0:

@@ -16,7 +16,7 @@ from unittest import mock
 
 from camera import Camera
 from input.input_state import InputState
-from config import CAMERA_ZOOM_MAX, CAMERA_ZOOM_MIN
+from config import CAMERA_ZOOM_MAX, CAMERA_ZOOM_MIN, Z_SCALE, TERRAIN_HEIGHT_SCALE
 from render.sprite_renderer import SpriteRenderer
 
 
@@ -131,7 +131,7 @@ def test_proximity_prompt_uses_tile_elevation():
     assert len(text_rects) == 1
     center = text_rects[0].center
 
-    elevation = 2.5 * 8  # get_tile_center_height * Z_SCALE
+    elevation = 2.5 * Z_SCALE * TERRAIN_HEIGHT_SCALE  # get_tile_center_height * Z_SCALE * TERRAIN_HEIGHT_SCALE
     expected_y = cam.world_to_screen(npc.world_x, npc.world_y, elevation=elevation)[1] - 40
     flat_y = cam.world_to_screen(npc.world_x, npc.world_y)[1] - 40
 

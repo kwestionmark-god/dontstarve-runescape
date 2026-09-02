@@ -20,6 +20,7 @@ MAP_WIDTH = 512               # Tiles wide
 MAP_HEIGHT = 512              # Tiles tall
 ELEVATION_LEVELS = 32         # 0–31 elevation levels (was 15, now 32 for finer detail)
 Z_SCALE = 8                   # Pixels of vertical displacement per elevation unit
+TERRAIN_HEIGHT_SCALE = 1.6    # Render-only multiplier on Z_SCALE so terrain relief reads visually
 
 # ─── Proc-Gen Noise Configuration (Phase 5) ───────────────────────────
 

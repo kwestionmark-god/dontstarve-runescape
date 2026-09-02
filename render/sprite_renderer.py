@@ -23,7 +23,7 @@ import time
 import pygame
 from typing import TYPE_CHECKING
 
-from config import Z_SCALE, FOG_CULL_DISTANCE, FOG_COLOR, fog_alpha_for_distance
+from config import Z_SCALE, TERRAIN_HEIGHT_SCALE, FOG_CULL_DISTANCE, FOG_COLOR, fog_alpha_for_distance
 from render.font_cache import get_monospace
 
 if TYPE_CHECKING:
@@ -94,7 +94,7 @@ class SpriteRenderer:
             tx = int(world_x // self.TILE_SIZE)
             ty = int(world_y // self.TILE_SIZE)
             corner_h = self.tile_map.get_tile_center_height(tx, ty)
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE)
+            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE * TERRAIN_HEIGHT_SCALE)
             # Camera elevation parameter now handles vertical displacement
         else:
             # Fallback to original behavior.
@@ -429,7 +429,7 @@ class SpriteRenderer:
         elevation_offset = 0.0
         if self.tile_map is not None and tile_x is not None and tile_y is not None:
             corner_h = self.tile_map.get_tile_center_height(tile_x, tile_y)
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE)
+            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE * TERRAIN_HEIGHT_SCALE)
             # Camera elevation parameter now handles vertical displacement
         else:
             # Fallback to original behavior.
@@ -922,7 +922,7 @@ class SpriteRenderer:
         npc_y = int(npc.world_y // self.TILE_SIZE)
         elevation = 0.0
         if self.tile_map is not None:
-            elevation = self.tile_map.get_tile_center_height(npc_x, npc_y) * Z_SCALE
+            elevation = self.tile_map.get_tile_center_height(npc_x, npc_y) * Z_SCALE * TERRAIN_HEIGHT_SCALE
         screen_x, screen_y = camera.world_to_screen(npc.world_x, npc.world_y, elevation=elevation)
 
         npc_type = getattr(npc, "npc_type", "unknown")
@@ -1109,7 +1109,7 @@ class SpriteRenderer:
             sx = int(world_x // self.TILE_SIZE)
             sy = int(world_y // self.TILE_SIZE)
             corner_h = self.tile_map.get_tile_center_height(sx, sy)
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE)
+            screen_x, screen_y = camera.world_to_screen(world_x, world_y, elevation=corner_h * Z_SCALE * TERRAIN_HEIGHT_SCALE)
         else:
             # Fallback to original behavior.
             screen_x, screen_y = camera.world_to_screen(world_x, world_y)

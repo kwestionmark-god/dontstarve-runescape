@@ -14,7 +14,7 @@ from config import (
     AUTOSAVE_INTERVAL,
     TILE_SIZE,
     FOG_COLOR,
-    Z_SCALE,
+    Z_SCALE, TERRAIN_HEIGHT_SCALE,
 )
 
 from core.state import GameState
@@ -467,7 +467,7 @@ class Game:
         # Project the tile's footprint so the ghost follows yaw/pitch/zoom
         # and elevation exactly like the terrain beneath it.
         tile = self.world.get_tile(tx, ty)
-        elev = getattr(tile, "elevation", 0) * Z_SCALE
+        elev = getattr(tile, "elevation", 0) * Z_SCALE * TERRAIN_HEIGHT_SCALE
         corners = [
             self.camera.world_to_screen(tx * TILE_SIZE, ty * TILE_SIZE, elevation=elev),
             self.camera.world_to_screen((tx + 1) * TILE_SIZE, ty * TILE_SIZE, elevation=elev),
