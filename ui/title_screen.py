@@ -142,7 +142,7 @@ def render_title_screen(game: "Game", screen: pygame.Surface) -> None:
     _draw_save_slots(game, screen)
     
     # Menu buttons
-    _draw_menu_buttons(screen, state)
+    _draw_menu_buttons(game, screen, state)
     
     # Version / credits
     _draw_footer(screen)
@@ -272,7 +272,7 @@ def _draw_save_slots(game: "Game", screen: pygame.Surface) -> None:
         screen.blit(slot_surf, slot_rect)
 
 
-def _draw_menu_buttons(screen: pygame.Surface, state: TitleScreenState) -> None:
+def _draw_menu_buttons(game: "Game", screen: pygame.Surface, state: TitleScreenState) -> None:
     """Draw the main menu buttons."""
     width = screen.get_width()
     y_start = 420

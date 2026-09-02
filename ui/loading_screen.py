@@ -48,13 +48,15 @@ class LoadingScreenState:
     
     def _init_particles(self) -> None:
         for _ in range(40):
+            life = random.uniform(0.5, 2.0)
             self.particles.append({
                 "x": random.uniform(0, WINDOW_WIDTH),
                 "y": random.uniform(0, WINDOW_HEIGHT),
                 "vx": random.uniform(-8, 8),
                 "vy": random.uniform(-20, -10),
-                "life": random.uniform(0.5, 2.0),
-                "max_life": random.uniform(0.5, 2.0),
+                # max_life must equal life so alpha never exceeds 255
+                "life": life,
+                "max_life": life,
                 "color": random.choice([
                     (80, 180, 100, 100),
                     (100, 160, 200, 100),
@@ -83,7 +85,7 @@ class LoadingScreenState:
     
     def draw(self, screen: pygame.Surface) -> None:
         for p in self.particles:
-            alpha = int(255 * (p["life"] / p["max_life"]))
+            alpha = max(0, min(255, int(255 * (p["life"] / p["max_life"]))))
             color = (*p["color"][:3], alpha)
             surf = pygame.Surface((int(p["size"] * 2), int(p["size"] * 2)), pygame.SRCALPHA)
             pygame.draw.circle(surf, color, (int(p["size"]), int(p["size"])), int(p["size"]))

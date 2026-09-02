@@ -294,7 +294,8 @@ class CharacterSelectPanel(PanelWindow):
             px = content_rect.x + p["x"]
             py = content_rect.y + p["y"]
             if clip_rect.collidepoint(px, py):
-                alpha = int(255 * (p["life"] / p["max_life"]))
+                # life and max_life are rolled independently, so clamp alpha
+                alpha = max(0, min(255, int(255 * (p["life"] / p["max_life"]))))
                 color = (*p["color"][:3], alpha)
                 surf = pygame.Surface((int(p["size"] * 2), int(p["size"] * 2)), pygame.SRCALPHA)
                 pygame.draw.circle(surf, color, (int(p["size"]), int(p["size"])), int(p["size"]))

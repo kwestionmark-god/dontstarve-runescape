@@ -5,7 +5,6 @@ Bootstraps the Game instance and starts the main event loop.
 World generation is deferred until the player initiates from the title screen.
 """
 
-import sys
 import argparse
 import pygame
 
@@ -29,7 +28,6 @@ def main() -> None:
         run(game)
     finally:
         pygame.quit()
-        sys.exit()
 
 
 if __name__ == "__main__":
