@@ -133,7 +133,7 @@ CAMERA_ZOOM_MAX = 3.0
 CAMERA_ZOOM_DEFAULT = 1.8      # Closer, more intimate aerial view
 CAMERA_ORBIT_SPEED = 90.0      # Degrees per second for yaw (horizontal orbit)
 CAMERA_TILT_SPEED = 60.0       # Degrees per second for pitch (vertical tilt)
-CAMERA_PITCH_MIN = 5.0        # Minimum pitch in degrees (5° = elevated isometric)
+CAMERA_PITCH_MIN = 18.0       # Minimum pitch (18° keeps the view from flattening into a wall)
 CAMERA_PITCH_MAX = 35.0        # Maximum pitch in degrees (35° = steep isometric)
 
 # ─── Terrain Shading ──────────────────────────────────────────────────

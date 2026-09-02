@@ -5,7 +5,7 @@ Player-centered camera with:
 - yaw (horizontal orbit): ←/→ arrows
   Controls which compass direction the camera is viewing from (0=below player, π=above).
 - pitch (vertical tilt): ↑/↓ arrows
-  Tilts within a 5°–35° isometric range (config.CAMERA_PITCH_MIN to CAMERA_PITCH_MAX).
+  Tilts within a 18°–35° isometric range (config.CAMERA_PITCH_MIN to CAMERA_PITCH_MAX).
 - zoom: mouse wheel
 
 The two axes are independent — yaw rotates the view around the player,
