@@ -133,9 +133,16 @@ class BuildingPanel(PanelWindow):
     def _get_structures_for_tab(
         self, building_system: "BuildingSystem", tab: str,
     ) -> List["StructureDef"]:
-        """Get structure definitions for a tab category."""
-        defs = building_system.structure_defs.get(tab, {})
-        return list(defs.values())
+        """Get structure definitions for a tab category.
+
+        Handles both storage shapes: a StructureDefRegistry (production)
+        and a plain {category: {id: def}} dict (tests/legacy).
+        """
+        from building.structure import StructureDefRegistry
+        source = building_system.structure_defs
+        if isinstance(source, StructureDefRegistry):
+            return list(source.structures.get(tab, {}).values())
+        return list(source.get(tab, {}).values())
 
     def _render_structure_entry(
         self,

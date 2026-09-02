@@ -66,7 +66,7 @@ class FakeCamera:
     def screen_to_world(self, mx, my):
         return (self._wx, self._wy)
 
-    def world_to_screen(self, wx, wy):
+    def world_to_screen(self, wx, wy, elevation=0):
         return (wx, wy)
 
 
