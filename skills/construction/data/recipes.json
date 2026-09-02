@@ -3,7 +3,12 @@
     {
       "recipe_id": "planks",
       "name": "Craft Planks",
-      "input_items": [["oak_logs", 1]],
+      "input_items": [
+        [
+          "oak_logs",
+          1
+        ]
+      ],
       "output_item": "planks",
       "output_quantity": 3,
       "requires_campfire": false,
@@ -11,24 +16,38 @@
       "processing_chain": "wood_chain",
       "tier": 1,
       "skill_affects_yield": "woodcutting",
-      "quest_unlock": "goblin_diplomacy"
+      "quest_unlock": "goblin_diplomacy",
+      "required_skill": "crafting",
+      "required_level": 1
     },
     {
       "recipe_id": "chert",
       "name": "Chert Knapping",
-      "input_items": [["stone", 1]],
+      "input_items": [
+        [
+          "stone",
+          1
+        ]
+      ],
       "output_item": "chert",
       "output_quantity": 2,
       "requires_campfire": false,
       "xp_reward": 10.0,
       "processing_chain": "stone_chain",
       "tier": 1,
-      "skill_affects_yield": "mining"
+      "skill_affects_yield": "mining",
+      "required_skill": "crafting",
+      "required_level": 1
     },
     {
       "recipe_id": "craft_stick",
       "name": "Craft Stick",
-      "input_items": [["oak_logs", 1]],
+      "input_items": [
+        [
+          "oak_logs",
+          1
+        ]
+      ],
       "output_item": "stick",
       "output_quantity": 4,
       "requires_campfire": false,
@@ -36,24 +55,46 @@
       "processing_chain": "wood_chain",
       "tier": 1,
       "skill_affects_yield": "woodcutting",
-      "quest_unlock": "goblin_truce"
+      "quest_unlock": "goblin_truce",
+      "required_skill": "crafting",
+      "required_level": 1
     },
     {
       "recipe_id": "campfire",
       "name": "Build Campfire",
-      "input_items": [["oak_logs", 3], ["stone", 5]],
+      "input_items": [
+        [
+          "oak_logs",
+          3
+        ],
+        [
+          "stone",
+          5
+        ]
+      ],
       "output_item": "campfire",
       "output_quantity": 1,
       "requires_campfire": false,
       "xp_reward": 30.0,
       "processing_chain": "wood_chain",
       "tier": 1,
-      "skill_affects_yield": "woodcutting"
+      "skill_affects_yield": "woodcutting",
+      "required_skill": "crafting",
+      "required_level": 1
     },
     {
       "recipe_id": "craft_fired_brick",
       "name": "Fire Brick",
-      "input_items": [["stone", 2], ["peat", 1]],
+      "input_items": [
+        [
+          "stone",
+          2
+        ],
+        [
+          "peat",
+          1
+        ]
+      ],
       "output_item": "fired_brick",
       "output_quantity": 2,
       "requires_campfire": true,
@@ -61,12 +102,19 @@
       "processing_chain": "building_materials_chain",
       "tier": 1,
       "skill_affects_yield": "construction",
-      "quest_unlock": "coastal_defense"
+      "quest_unlock": "coastal_defense",
+      "required_skill": "crafting",
+      "required_level": 5
     },
     {
       "recipe_id": "craft_cobblestone",
       "name": "Cobblestone Paving",
-      "input_items": [["stone", 2]],
+      "input_items": [
+        [
+          "stone",
+          2
+        ]
+      ],
       "output_item": "cobblestone",
       "output_quantity": 2,
       "requires_campfire": false,
@@ -74,21 +122,36 @@
       "processing_chain": "building_materials_chain",
       "tier": 1,
       "skill_affects_yield": "construction",
-      "quest_unlock": "sand_storm_warning"
+      "quest_unlock": "sand_storm_warning",
+      "required_skill": "crafting",
+      "required_level": 8
     },
     {
       "recipe_id": "shape_elder_wood",
       "name": "Shape Elder Wood",
       "tier": 4,
       "quality_eligible": true,
-      "input_items": [["elder_wood", 2]],
+      "input_items": [
+        [
+          "elder_wood",
+          2
+        ]
+      ],
       "output_item": "elder_wood_planks",
       "output_quantity": 2,
       "xp_reward": 50.0,
       "skill_affects_yield": "crafting",
       "processing_chain": "legendary_wood_chain",
-      "steps": [{"station": "crafting_station", "inputs": {}, "time": 15.0}],
-      "skill_requirements": {"crafting": 40},
+      "steps": [
+        {
+          "station": "crafting_station",
+          "inputs": {},
+          "time": 15.0
+        }
+      ],
+      "skill_requirements": {
+        "crafting": 40
+      },
       "blueprint_id": "bp_shape_elder_wood",
       "enchantment_slots": 0,
       "requires_structure": "crafting_station"
@@ -98,14 +161,41 @@
       "name": "Elder Wood Staff",
       "tier": 4,
       "quality_eligible": true,
-      "input_items": [["elder_wood_planks", 3], ["moonstone", 2], ["ancient_rune", 1]],
+      "input_items": [
+        [
+          "elder_wood_planks",
+          3
+        ],
+        [
+          "moonstone",
+          2
+        ],
+        [
+          "ancient_rune",
+          1
+        ]
+      ],
       "output_item": "elder_wood_staff",
       "output_quantity": 1,
       "xp_reward": 150.0,
       "skill_affects_yield": "intelligence",
       "processing_chain": "legendary_wood_chain",
-      "steps": [{"station": "arcane_table", "inputs": {}, "time": 30.0}, {"station": "crafting_station", "inputs": {}, "time": 20.0}],
-      "skill_requirements": {"intelligence": 45, "crafting": 45},
+      "steps": [
+        {
+          "station": "arcane_table",
+          "inputs": {},
+          "time": 30.0
+        },
+        {
+          "station": "crafting_station",
+          "inputs": {},
+          "time": 20.0
+        }
+      ],
+      "skill_requirements": {
+        "intelligence": 45,
+        "crafting": 45
+      },
       "blueprint_id": "bp_elder_wood_staff",
       "enchantment_slots": 2,
       "requires_structure": "arcane_table"

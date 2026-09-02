@@ -140,6 +140,23 @@ class CraftingSystem:
         """Check if a recipe is locked behind a quest."""
         return self._registry.is_recipe_locked(recipe_id)
 
+    @staticmethod
+    def _check_level_requirement(
+        recipe: Recipe, skill_manager: Optional[SkillManager],
+    ) -> Optional[str]:
+        """Return an error message if the player lacks the recipe's skill level."""
+        if skill_manager is None or not recipe.required_skill:
+            return None
+        if recipe.required_level <= 1:
+            return None
+        level = skill_manager.get_skill_level(recipe.required_skill)
+        if level < recipe.required_level:
+            return (
+                f"You need {recipe.required_skill.capitalize()} level "
+                f"{recipe.required_level} to craft this."
+            )
+        return None
+
     # ── Validation ─────────────────────────────────────────────────
 
     def validate_recipe(self, recipe_id: str, inventory: Inventory) -> bool:
@@ -302,6 +319,10 @@ class CraftingSystem:
                     message=f"You need to be near a {recipe.requires_structure} to craft this.",
                 )
 
+        level_error = self._check_level_requirement(recipe, skill_manager)
+        if level_error is not None:
+            return CraftResult(success=False, message=level_error)
+
         if not self.validate_recipe(recipe_id, inventory):
             return CraftResult(success=False, message="Missing materials.")
 
@@ -396,6 +417,10 @@ class CraftingSystem:
         # Check campfire requirement
         if recipe.requires_campfire and not has_campfire:
             return CraftResult(success=False, message="You need a campfire to cook this.")
+
+        level_error = self._check_level_requirement(recipe, skill_manager)
+        if level_error is not None:
+            return CraftResult(success=False, message=level_error)
 
         # Check materials
         if not self.validate_recipe(recipe_id, inventory):

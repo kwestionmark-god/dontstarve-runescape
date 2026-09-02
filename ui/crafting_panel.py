@@ -58,6 +58,7 @@ class CraftingPanel(PanelWindow):
         )
         self.crafting: "CraftingSystem | None" = None
         self.inventory: "Inventory | None" = None
+        self.skill_manager = None
         self.metallurgy: object | None = None
         # Station proximity data — set by game when panel opens
         self._structures: list | None = None
@@ -73,6 +74,10 @@ class CraftingPanel(PanelWindow):
     def set_inventory(self, inventory: "Inventory") -> None:
         """Set the inventory reference."""
         self.inventory = inventory
+
+    def set_skill_manager(self, skill_manager) -> None:
+        """Set the skill manager reference (for level-requirement display)."""
+        self.skill_manager = skill_manager
 
     def set_metallurgy(self, metallurgy: object) -> None:
         """Set the metallurgy skill reference for smelting recipes."""
@@ -173,9 +178,25 @@ class CraftingPanel(PanelWindow):
                     screen.blit(mat_surf, (status_x, row_y + 8))
                     status_x += 100
 
+                # Skill-level gate display
+                level_missing = False
+                level_label = ""
+                req_skill = getattr(recipe, "required_skill", None)
+                req_level = getattr(recipe, "required_level", 1)
+                if req_skill and req_level > 1:
+                    if self.skill_manager is None:
+                        level_missing = True
+                    else:
+                        level_missing = (
+                            self.skill_manager.get_skill_level(req_skill) < req_level
+                        )
+                    if level_missing:
+                        level_label = f"Lv {req_level}"
+
                 # Craft button — disabled if locked, no materials, or missing station
                 can_craft = (
                     not is_locked
+                    and not level_missing
                     and self.crafting.validate_recipe(recipe.recipe_id, self.inventory)
                 )
                 btn_x = content_rect.x + content_rect.width - 70
@@ -203,6 +224,9 @@ class CraftingPanel(PanelWindow):
                 if is_locked:
                     btn_color = (80, 60, 60)
                     btn_text = self.font_small.render("Locked", True, (180, 140, 140))
+                elif level_missing:
+                    btn_color = (60, 60, 80)
+                    btn_text = self.font_small.render(level_label, True, (150, 150, 220))
                 elif station_missing:
                     btn_color = (60, 60, 60)
                     btn_text = self.font_small.render(f"Needs {station_name}", True, (180, 160, 100))

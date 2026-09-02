@@ -1,12 +1,16 @@
 {
   "_description": "General crafting recipes (wood / foraging chains). Loaded by RecipeRegistry.load_all() into the unified registry, then shared with CraftingSystem and the crafting panel.",
   "_note": "Plain processing recipes that do not need ore/fuel alloy logic (that lives in skills/metallurgy/data/recipes.json) or cooking (skills/cooking/data/recipes.json). The per-recipe shape matches Recipe.from_dict so no call sites change; the top-level 'season' and 'skill' keys are forward-looking metadata consumed by a future unified registry and ignored by the current loader. Recipe IDs reference data/items.json.",
-
   "recipes": [
     {
       "recipe_id": "sticks",
       "name": "Break Sticks",
-      "input_items": [["oak_logs", 1]],
+      "input_items": [
+        [
+          "oak_logs",
+          1
+        ]
+      ],
       "output_item": "stick",
       "output_quantity": 3,
       "xp_reward": 3.0,
@@ -16,12 +20,19 @@
       "requires_structure": "",
       "skill": null,
       "season": "all",
-      "skill_affects_yield": "woodcutting"
+      "skill_affects_yield": "woodcutting",
+      "required_skill": "crafting",
+      "required_level": 1
     },
     {
       "recipe_id": "charcoal",
       "name": "Kiln Charcoal",
-      "input_items": [["oak_logs", 2]],
+      "input_items": [
+        [
+          "oak_logs",
+          2
+        ]
+      ],
       "output_item": "charcoal",
       "output_quantity": 1,
       "xp_reward": 8.0,
@@ -31,12 +42,19 @@
       "requires_structure": "",
       "skill": null,
       "season": "all",
-      "skill_affects_yield": "woodcutting"
+      "skill_affects_yield": "woodcutting",
+      "required_skill": "crafting",
+      "required_level": 3
     },
     {
       "recipe_id": "grass_rope",
       "name": "Twist Rope",
-      "input_items": [["fibers", 3]],
+      "input_items": [
+        [
+          "fibers",
+          3
+        ]
+      ],
       "output_item": "grass_rope",
       "output_quantity": 1,
       "xp_reward": 4.0,
@@ -46,12 +64,19 @@
       "requires_structure": "",
       "skill": null,
       "season": "all",
-      "skill_affects_yield": "foraging"
+      "skill_affects_yield": "foraging",
+      "required_skill": "crafting",
+      "required_level": 1
     },
     {
       "recipe_id": "paper",
       "name": "Make Paper",
-      "input_items": [["reed", 2]],
+      "input_items": [
+        [
+          "reed",
+          2
+        ]
+      ],
       "output_item": "paper",
       "output_quantity": 1,
       "xp_reward": 4.0,
@@ -61,7 +86,9 @@
       "requires_structure": "",
       "skill": null,
       "season": "all",
-      "skill_affects_yield": "foraging"
+      "skill_affects_yield": "foraging",
+      "required_skill": "crafting",
+      "required_level": 10
     }
   ]
 }

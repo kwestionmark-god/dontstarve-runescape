@@ -204,6 +204,7 @@ class Bootstrap:
         self.game._crafting_panel = CraftingPanel()
         self.game._crafting_panel.set_crafting(self.game.crafting)
         self.game._crafting_panel.set_inventory(self.game.inventory)
+        self.game._crafting_panel.set_skill_manager(self.game.skill_manager)
 
         self.game._building_panel = BuildingPanel()
         self.game._building_panel.visible = False

@@ -3,7 +3,12 @@
     {
       "recipe_id": "cook_chicken",
       "name": "Cook Chicken",
-      "input_items": [["raw_chicken", 1]],
+      "input_items": [
+        [
+          "raw_chicken",
+          1
+        ]
+      ],
       "output_item": "cooked_chicken",
       "output_quantity": 1,
       "requires_campfire": true,
@@ -11,12 +16,19 @@
       "processing_chain": "food_chain",
       "tier": 1,
       "skill_affects_yield": "cooking",
-      "is_food": true
+      "is_food": true,
+      "required_skill": "cooking",
+      "required_level": 1
     },
     {
       "recipe_id": "cook_fish",
       "name": "Cook Fish",
-      "input_items": [["raw_fish", 1]],
+      "input_items": [
+        [
+          "raw_fish",
+          1
+        ]
+      ],
       "output_item": "cooked_fish",
       "output_quantity": 1,
       "requires_campfire": true,
@@ -24,12 +36,19 @@
       "processing_chain": "food_chain",
       "tier": 1,
       "skill_affects_yield": "cooking",
-      "is_food": true
+      "is_food": true,
+      "required_skill": "cooking",
+      "required_level": 5
     },
     {
       "recipe_id": "cook_meat",
       "name": "Cook Meat",
-      "input_items": [["raw_meat", 1]],
+      "input_items": [
+        [
+          "raw_meat",
+          1
+        ]
+      ],
       "output_item": "cooked_meat",
       "output_quantity": 1,
       "requires_campfire": true,
@@ -37,7 +56,9 @@
       "processing_chain": "food_chain",
       "tier": 1,
       "skill_affects_yield": "cooking",
-      "is_food": true
+      "is_food": true,
+      "required_skill": "cooking",
+      "required_level": 10
     }
   ]
 }

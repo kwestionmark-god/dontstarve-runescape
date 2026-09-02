@@ -170,6 +170,11 @@ class Recipe:
     # Metallurgy-only fields; ignored by every other recipe type (defaults apply).
     base_fuel_cost: int = 1
     requires_alloy_mastery: int = 0
+    # Skill-level gate: the player needs required_level in required_skill to
+    # craft this (None/1 = no gate). Construction-style ``skill_requirements``
+    # dicts are folded into these fields by from_dict (highest requirement).
+    required_skill: str | None = None
+    required_level: int = 1
 
     @staticmethod
     def from_dict(data: dict) -> "Recipe":
@@ -200,6 +205,17 @@ class Recipe:
         )
         xp_reward = data.get("xp_reward", data.get("xp"))
 
+        # Skill-level gate: explicit scalar fields win; otherwise fold a
+        # construction-style {"skill": level} dict into the single highest
+        # requirement so one gate can enforce it.
+        required_skill = data.get("required_skill")
+        required_level = int(data.get("required_level", 1))
+        skill_reqs = data.get("skill_requirements")
+        if required_skill is None and isinstance(skill_reqs, dict) and skill_reqs:
+            skill, level = max(skill_reqs.items(), key=lambda kv: kv[1])
+            required_skill = skill
+            required_level = max(required_level, int(level))
+
         return Recipe(
             recipe_id=recipe_id,
             name=data["name"],
@@ -216,4 +232,6 @@ class Recipe:
             quest_unlock=data.get("quest_unlock"),
             base_fuel_cost=data.get("base_fuel_cost", 1),
             requires_alloy_mastery=data.get("requires_alloy_mastery", 0),
+            required_skill=required_skill,
+            required_level=required_level,
         )
