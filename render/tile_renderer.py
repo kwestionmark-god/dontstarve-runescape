@@ -108,7 +108,7 @@ class TileRenderer:
             terrain_style = lighting.preset_config.get("terrain_style", "textured")
 
         # LOD threshold: beyond this fraction of fog cull distance, fall back to flat
-        lod_fallback_dist = FOG_CULL_DISTANCE * 0.66
+        lod_fallback_dist = FOG_CULL_DISTANCE * 0.8
         use_lod = False
         if lighting is not None and lighting.preset_config.get("terrain_lod", True):
             use_lod = True

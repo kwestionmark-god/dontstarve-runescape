@@ -18,6 +18,11 @@ import math
 
 import pygame
 
+# Pixels each quad is dilated outward so neighbouring tiles overlap and
+# rounding never opens seams. Back-to-front painter's order resolves the
+# overlap.
+TILE_OVERLAP = 2.0
+
 # Each edge as (p0, p1, v_fn-style constant/param). For row scanning the
 # "v" texture coordinate along an edge is: t on the two side edges, 0 on
 # the top edge, 1 on the bottom edge. For column scanning, symmetric u.
@@ -37,6 +42,21 @@ def warp_sprite_to_quad(
     Returns (surface, offset_x, offset_y) where offset is the blit
     position of the returned surface, or None if the quad is degenerate.
     """
+    # Dilate the quad: push each corner away from the centroid so the
+    # tile slightly overpaints its neighbours' edges (stitching).
+    cx = (p_nw[0] + p_ne[0] + p_se[0] + p_sw[0]) * 0.25
+    cy = (p_nw[1] + p_ne[1] + p_se[1] + p_sw[1]) * 0.25
+
+    def dilate(p):
+        dx, dy = p[0] - cx, p[1] - cy
+        d = math.hypot(dx, dy)
+        if d < 1e-9:
+            return p
+        k = (d + TILE_OVERLAP) / d
+        return (cx + dx * k, cy + dy * k)
+
+    p_nw, p_ne, p_se, p_sw = dilate(p_nw), dilate(p_ne), dilate(p_se), dilate(p_sw)
+
     min_x = min(p_nw[0], p_ne[0], p_se[0], p_sw[0])
     min_y = min(p_nw[1], p_ne[1], p_se[1], p_sw[1])
     max_x = max(p_nw[0], p_ne[0], p_se[0], p_sw[0])

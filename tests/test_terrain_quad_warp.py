@@ -2,7 +2,9 @@
 
 import pygame
 
-from render.quad_warp import warp_sprite_to_quad
+from render.quad_warp import warp_sprite_to_quad, TILE_OVERLAP
+
+_OV = int(TILE_OVERLAP) + 1
 
 
 def _solid_sprite(w: int = 32, h: int = 32, color=(120, 140, 90)) -> pygame.Surface:
@@ -18,10 +20,11 @@ def test_warp_flat_quad_matches_axis_aligned_blit():
     result = warp_sprite_to_quad(sprite, *quad)
     assert result is not None
     out, ox, oy = result
-    assert (ox, oy) == (0, 0)
-    # Covering the quad: allowed +2 seam overdraw per strip horizontally.
-    assert abs(out.get_width() - 32) <= 2
-    assert abs(out.get_height() - 16) <= 2
+    # Output includes the TILE_OVERLAP dilation ring around the quad.
+    assert -_OV <= ox <= 0
+    assert -_OV <= oy <= 0
+    assert abs(out.get_width() - 32) <= 2 * _OV
+    assert abs(out.get_height() - 16) <= 2 * _OV
     # Interior pixels are filled.
     assert out.get_at((out.get_width() // 2, out.get_height() // 2))[:3] == (120, 140, 90)
 
@@ -31,7 +34,8 @@ def test_warp_shifts_output_to_quad_position():
     sprite = _solid_sprite(32, 32)
     quad = [(100, 40), (140, 40), (140, 80), (100, 80)]
     out, ox, oy = warp_sprite_to_quad(sprite, *quad)
-    assert (ox, oy) == (100, 40)
+    assert 100 - _OV <= ox <= 100
+    assert 40 - _OV <= oy <= 40
 
 
 def test_warp_sloped_quad_stretches_vertical_extent():
@@ -44,8 +48,8 @@ def test_warp_sloped_quad_stretches_vertical_extent():
     assert sloped is not None
     out, ox, oy = sloped
     assert out.get_height() > flat_h + 12
-    # Top edge stays anchored at the quad's top.
-    assert oy == 0
+    # Top edge stays anchored at the quad's top (modulo the overlap ring).
+    assert -_OV <= oy <= 0
 
 
 def test_warp_preserves_source_content_rows():
