@@ -103,7 +103,13 @@ class ResourcePlacer:
     # Clustering bonus
     CLUSTER_BONUS = 0.02
 
-    def place(self, tile_map: TileMap, *, enforce_zones: bool = True, allow_overwrite: bool = False) -> None:
+    # Maximum fraction of tiles that may hold a resource node. Placement
+    # stops adding nodes beyond this so the map never saturates visually,
+    # even across repeated seasonal re-placements.
+    MAX_TILE_OCCUPANCY = 0.40
+
+    def place(self, tile_map: TileMap, *, enforce_zones: bool = True, allow_overwrite: bool = False,
+              previous_season: str | None = None) -> None:
         """
         Place all resource nodes on the tile map.
 
@@ -119,14 +125,33 @@ class ResourcePlacer:
             enforce_zones: If True, apply progression zone restrictions.
                 Set to False for seasonal re-placement to allow resources
                 anywhere in valid biomes.
-            allow_overwrite: If True, allow placing seasonal resources on tiles
-                that already have a resource (used for seasonal re-placement
-                to add winter/summer resources to already-occupied tiles).
+            allow_overwrite: Kept for API compatibility; occupied tiles are
+                never overwritten — seasonal re-placement fills empty tiles
+                only.
+            previous_season: When set (seasonal re-placement), only resources
+                unavailable in that season but available now are placed, so a
+                season rollover cannot re-densify tiles already eligible for
+                the previous season's resources.
         """
         self._resource_cache = ResourcePlacer._load_resource_definitions()
         self._available_resources = self._precompute_available()
+        if previous_season is not None:
+            # Only place newly-in-season resources; everything available in
+            # the previous season has already had its placement chance.
+            self._available_resources = {
+                rid for rid in self._available_resources
+                if (r := self._resource_cache[rid]).seasons_available
+                and previous_season not in r.seasons_available
+            }
         # Reset analytics counter for this generation
         self._placement_counts = {}
+
+        # Occupancy accounting for the global density cap
+        self._occupied_tiles = sum(
+            1 for x in range(tile_map.width) for y in range(tile_map.height)
+            if tile_map.tiles[x][y] is not None and tile_map.tiles[x][y].resource_node is not None
+        )
+        self._total_tiles = tile_map.width * tile_map.height
 
         # Precompute spawn distances for progression zones (if enforcing)
         if enforce_zones:
@@ -194,6 +219,10 @@ class ResourcePlacer:
                 if (x, y) in assigned_tiles:
                     continue
 
+                # Global density cap: never let resources saturate the map
+                if self._at_occupancy_cap():
+                    continue
+
                 tile = tile_map.tiles[x][y]
                 biome_id = tile.biome.id
                 
@@ -207,13 +236,15 @@ class ResourcePlacer:
                 # Check if tile is empty (for non-overwrite mode)
                 tile_empty = tile.resource_node is None
                 
+                if not tile_empty:
+                    # Existing nodes are always preserved: seasonal
+                    # re-placement only fills empty tiles, it never evicts
+                    # resources from previous seasons.
+                    continue
+
                 for resource in avail_resources:
                     # Check if we can place here
                     can_place = tile_empty
-                    if not can_place and allow_overwrite:
-                        existing = tile.resource_node
-                        if existing.resource_id != resource.resource_id and resource.seasons_available:
-                            can_place = True
 
                     if not can_place:
                         continue
@@ -376,8 +407,12 @@ class ResourcePlacer:
             ]
             
             self.rng.shuffle(candidates)
-            
+
             for x, y in candidates:
+                # Global density cap
+                if self._at_occupancy_cap():
+                    break
+
                 # Check 3x3 neighboring grid cells for existing points
                 gx, gy = x // cell_size, y // cell_size
                 too_close = False
@@ -634,8 +669,16 @@ class ResourcePlacer:
             return {}
 
     def _record_placement(self, resource_id: str, count: int = 1) -> None:
-        """Record a resource placement for analytics."""
+        """Record a resource placement for analytics and occupancy tracking."""
         self._placement_counts[resource_id] = self._placement_counts.get(resource_id, 0) + count
+        self._occupied_tiles = getattr(self, "_occupied_tiles", 0) + count
+
+    def _at_occupancy_cap(self) -> bool:
+        """Return True once the map holds the maximum allowed resource density."""
+        total = getattr(self, "_total_tiles", 0)
+        if total <= 0:
+            return False
+        return self._occupied_tiles >= self.MAX_TILE_OCCUPANCY * total
 
     def get_placement_counts(self) -> dict[str, int]:
         """Return a copy of the placement counts for this generation."""

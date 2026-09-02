@@ -313,7 +313,8 @@ def _wire_seasonal_replacement(
         try:
             ResourcePlacer(
                 rng=random.Random(seed), season_system=season_system
-            ).place(tile_map, enforce_zones=False, allow_overwrite=True)
+            ).place(tile_map, enforce_zones=False, allow_overwrite=True,
+                    previous_season=_previous_season)
         except Exception:
             # A failed placement must not disrupt the season cycle.
             return
