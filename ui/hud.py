@@ -644,10 +644,14 @@ class HUD:
                 while faction_label and self.font.size(faction_label + "…")[0] > max_w:
                     faction_label = faction_label[:-1]
                 faction_label = faction_label.rstrip() + "…"
-            faction_label_surf = self.font.render(faction_label, True, (255, 255, 255))
+            # Dark text on light fills, light text on dark fills
+            lum = 0.299 * faction_color[0] + 0.587 * faction_color[1] + 0.114 * faction_color[2]
+            ink = (20, 20, 26) if lum > 140 else (255, 255, 255)
+            shadow_ink = (255, 255, 255, 90) if lum > 140 else (0, 0, 0)
+            faction_label_surf = self.font.render(faction_label, True, ink)
             lx = self.MARGIN_X + (self.BAR_WIDTH - faction_label_surf.get_width()) // 2
             ly = faction_y + (self.BAR_HEIGHT - faction_label_surf.get_height()) // 2
-            shadow = self.font.render(faction_label, True, (0, 0, 0))
+            shadow = self.font.render(faction_label, True, shadow_ink)
             screen.blit(shadow, (lx + 1, ly + 1))
             screen.blit(faction_label_surf, (lx, ly))
 
