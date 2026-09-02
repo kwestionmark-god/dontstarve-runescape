@@ -69,8 +69,12 @@ def main() -> None:
     for label, yaw_deg, pitch_deg, zoom in [
         ("yaw0", 0, 30, 1.2),
         ("yaw35", 35, 30, 1.2),
-        ("yaw35_steps", 35, 50, 1.6),
+        ("yaw65", 65, 30, 1.2),
+        ("yaw80", 80, 30, 1.2),
+        ("yaw125", 125, 30, 1.2),
         ("yaw180", 180, 30, 1.2),
+        ("yaw300", 300, 30, 1.2),
+        ("yaw35_steps", 35, 50, 1.6),
     ]:
         cam.yaw = math.radians(yaw_deg)
         cam.pitch = math.radians(pitch_deg)

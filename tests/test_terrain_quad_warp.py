@@ -62,6 +62,44 @@ def test_warp_preserves_source_content_rows():
     assert bottom_px.b > 150, f"bottom should be bluish, got {bottom_px}"
 
 
+def test_warp_rotated_quad_fully_covers_diamond():
+    """A 45°-rotated quad (diamond) must be filled edge-to-edge: every
+    scanline through it has no transparent holes between its boundary
+    vertices. Regression test for the yaw-rotation zebra-striping bug."""
+    sprite = _solid_sprite(32, 32)
+    cx, cy, r = 60.0, 40.0, 30.0
+    # Diamond: NW top, NE right, SE bottom, SW left
+    quad = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
+    out, ox, oy = warp_sprite_to_quad(sprite, *quad)
+    assert out is not None
+    w, h = out.get_size()
+    for y in range(h):
+        wy = y + oy
+        dy = abs(wy - cy)
+        if dy >= r - 1:
+            continue
+        half = r - dy  # diamond half-width at this scanline
+        x_lo = int(cx - half - ox) + 1
+        x_hi = int(cx + half - ox) - 1
+        for x in (x_lo, (x_lo + x_hi) // 2, x_hi):
+            a = out.get_at((x, y)).a
+            assert a == 255, f"hole at ({x + ox}, {wy}) inside diamond"
+
+
+def test_warp_vertical_scanline_orientation():
+    """Quad wider than it is tall (side edges mostly horizontal) uses
+    column scanning and still covers the quad."""
+    sprite = _solid_sprite(32, 32)
+    quad = [(0, 20), (80, 0), (84, 12), (4, 32)]
+    out, ox, oy = warp_sprite_to_quad(sprite, *quad)
+    assert out is not None
+    # Sample the quad's centroid — must be covered (smoothscale filtering
+    # may soften alpha by a step or two, but it must not be a hole).
+    cx = int((0 + 80 + 84 + 4) / 4 - ox)
+    cy = int((20 + 0 + 12 + 32) / 4 - oy)
+    assert out.get_at((cx, cy)).a >= 250
+
+
 def test_warp_degenerate_quad_returns_none():
     """Zero-area quad must not produce a surface (caller falls back)."""
     sprite = _solid_sprite()
