@@ -5048,6 +5048,241 @@ def generate_shared_fallbacks() -> None:
     print("  Generated 5 shared fallback sprites")
 
 
+def generate_progression_sprites() -> None:
+    """Generate sprites for progression content.
+
+    Item sprites (16x16) for the previously-missing monster loot drops,
+    the refined obsidian/dragonbone intermediates, and the craftable
+    stone tools — plus world node sprites for loose_stones and beehive.
+    """
+    print("\n=== Generating Progression Item/Node Sprites ===")
+    items_dir = os.path.join(OUTPUT_ROOT, "items")
+    world_dir = os.path.join(OUTPUT_ROOT, "world")
+
+    WOOD = (139, 90, 43)
+    WOOD_DARK = (100, 70, 35)
+    STONE = (128, 128, 128)
+    STONE_DARK = (90, 90, 95)
+    STONE_LIGHT = (170, 170, 175)
+    BONE = (230, 225, 205)
+    BONE_DARK = (190, 185, 160)
+
+    def new() -> pygame.Surface:
+        return pygame.Surface((RESOURCE_SIZE, RESOURCE_SIZE), pygame.SRCALPHA)
+
+    def iid(name: str) -> str:
+        return os.path.join(items_dir, f"{name}.png")
+
+    def wid(name: str) -> str:
+        return os.path.join(world_dir, f"{name}.png")
+
+    # ── Stone tools (grey heads on wooden handles) ──
+    axe = new()
+    rectangle(axe, (8, 6, 2, 8), WOOD)
+    rectangle(axe, (8, 10, 2, 4), WOOD_DARK)
+    rectangle(axe, (4, 4, 6, 3), STONE)
+    rectangle(axe, (4, 4, 1, 3), STONE_LIGHT)
+    rectangle(axe, (9, 4, 1, 3), STONE_DARK)
+    # Rough knapped edge
+    axe.set_at((5, 3), STONE_DARK)
+    axe.set_at((6, 3), STONE)
+    axe.set_at((7, 3), STONE_LIGHT)
+    axe.set_at((5, 8), STONE_DARK)
+    save_surface(iid("stone_axe"), axe)
+
+    pick = new()
+    rectangle(pick, (7, 5, 2, 9), WOOD)
+    rectangle(pick, (7, 8, 2, 5), WOOD_DARK)
+    rectangle(pick, (3, 3, 10, 2), STONE)
+    pick.set_at((3, 2), STONE_LIGHT)
+    pick.set_at((3, 3), STONE_LIGHT)
+    pick.set_at((12, 2), STONE_LIGHT)
+    pick.set_at((12, 3), STONE_LIGHT)
+    rectangle(pick, (7, 2, 2, 3), STONE_DARK)
+    pick.set_at((5, 3), STONE_LIGHT)
+    pick.set_at((9, 3), STONE_DARK)
+    save_surface(iid("stone_pickaxe"), pick)
+
+    # ── Refined intermediates ──
+    obs = new()
+    # Glossy black shard
+    for yy in range(4, 13):
+        half = (yy - 4) // 2
+        for xx in range(8 - half, 9 + half):
+            obs.set_at((xx, yy), (35, 30, 45))
+    obs.set_at((7, 5), (160, 150, 190))
+    obs.set_at((8, 6), (120, 110, 150))
+    obs.set_at((6, 9), (110, 100, 140))
+    save_surface(iid("polished_obsidian"), obs)
+
+    shard = new()
+    # Curved ivory shard
+    for t in range(3, 12):
+        x = 5 + (t - 3) // 3
+        shard.set_at((x, t), BONE)
+        shard.set_at((x + 1, t), BONE_DARK)
+    shard.set_at((6, 3), BONE)
+    shard.set_at((7, 3), (255, 250, 230))
+    save_surface(iid("dragonbone_shard"), shard)
+
+    # ── Monster loot ──
+    def tooth(name: str, c: tuple = BONE) -> None:
+        s = new()
+        for t in range(3, 13):
+            x = 8 + (t - 3) // 4
+            s.set_at((x, t), c)
+            if t > 4:
+                s.set_at((x - 1, t), c)
+            if t > 7:
+                s.set_at((x - 2, t), c)
+        s.set_at((8, 12), BONE_DARK)
+        s.set_at((9, 12), BONE_DARK)
+        save_surface(iid(name), s)
+
+    def hide(name: str, base: tuple, edge: tuple) -> None:
+        s = new()
+        rectangle(s, (4, 4, 8, 8), base)
+        # Irregular hide edge
+        for (x, y) in [(3, 6), (5, 3), (11, 5), (10, 11), (6, 12), (4, 10)]:
+            s.set_at((x, y), base)
+        for (x, y) in [(4, 4), (11, 4), (11, 11), (4, 11)]:
+            s.set_at((x, y), edge)
+        save_surface(iid(name), s)
+
+    def feather(name: str, shaft: tuple, barb: tuple) -> None:
+        s = new()
+        for t in range(2, 14):
+            s.set_at((8, t), shaft)
+            w = max(0, 3 - abs(t - 7) // 2)
+            for d in range(1, w + 1):
+                s.set_at((8 - d, t), barb)
+                s.set_at((8 + d, t), barb)
+        save_surface(iid(name), s)
+
+    def claw(name: str, c: tuple = (210, 205, 190)) -> None:
+        s = new()
+        pts = [(10, 3), (9, 4), (8, 5), (7, 6), (6, 7), (5, 8), (5, 9), (6, 10),
+               (7, 10), (8, 9), (9, 8)]
+        for (x, y) in pts:
+            s.set_at((x, y), c)
+        s.set_at((10, 3), (240, 235, 220))
+        save_surface(iid(name), s)
+
+    def blob(name: str, body: tuple, hi: tuple) -> None:
+        s = new()
+        circle(s, (8, 8), 4, body)
+        s.set_at((6, 6), hi)
+        s.set_at((7, 6), hi)
+        save_surface(iid(name), s)
+
+    hide("crocodile_hide", (90, 110, 60), (60, 75, 40))
+    tooth("crocodile_tooth")
+    hide("troll_hide", (110, 100, 70), (80, 72, 50))
+    tooth("snake_fang")
+    tooth("boar_tusk")
+    claw("eagle_claw")
+    claw("crab_claw", (200, 90, 60))
+    feather("eagle_feather", (120, 90, 60), (170, 140, 100))
+    feather("hawk_feather", (100, 80, 60), (150, 125, 95))
+
+    # Drake scale — iridescent diamond
+    s = new()
+    for t in range(3, 13):
+        w = 3 - abs(8 - t) // 2 if 5 <= t <= 11 else 1
+        for d in range(-w, w + 1):
+            s.set_at((8 + d, t), (70, 140, 120))
+    s.set_at((8, 6), (140, 220, 190))
+    s.set_at((7, 8), (110, 190, 160))
+    save_surface(iid("drake_scale"), s)
+
+    # Drake egg — speckled oval
+    s = new()
+    circle(s, (8, 9), 4, (150, 130, 100))
+    for (x, y) in [(6, 7), (10, 8), (7, 11), (9, 10)]:
+        s.set_at((x, y), (110, 90, 65))
+    s.set_at((7, 6), (185, 165, 130))
+    save_surface(iid("drake_egg"), s)
+
+    # Scorpion tail — segmented curl with stinger
+    s = new()
+    tail = [(5, 12), (5, 10), (6, 8), (8, 6), (10, 5), (11, 4)]
+    for (x, y) in tail:
+        s.set_at((x, y), (150, 60, 50))
+        s.set_at((x + 1, y), (120, 45, 40))
+    s.set_at((11, 3), (60, 40, 35))
+    save_surface(iid("scorpion_tail"), s)
+
+    blob("worm_segment", (170, 120, 110), (200, 155, 145))
+    s = new()  # worm heart — darker red blob with vein
+    circle(s, (8, 8), 4, (140, 45, 45))
+    s.set_at((6, 6), (180, 80, 70))
+    rectangle(s, (8, 5, 1, 7), (100, 30, 30))
+    save_surface(iid("worm_heart"), s)
+
+    # Djinn amulet — cord + gem
+    s = new()
+    for (x, y) in [(6, 2), (5, 3), (9, 2), (10, 3)]:
+        s.set_at((x, y), (90, 70, 40))
+    circle(s, (8, 8), 3, (60, 170, 160))
+    s.set_at((7, 7), (160, 240, 230))
+    save_surface(iid("djinn_amulet"), s)
+    blob("djinn_essence", (90, 190, 180), (200, 250, 245))
+
+    # Golem stone — cracked grey rock
+    s = new()
+    circle(s, (8, 9), 4, (110, 108, 100))
+    rectangle(s, (8, 5, 1, 7), (70, 68, 62))
+    s.set_at((6, 7), (150, 148, 140))
+    save_surface(iid("golem_stone"), s)
+
+    # Goblin dagger — small jagged blade
+    s = new()
+    rectangle(s, (7, 9, 2, 4), WOOD_DARK)
+    for t in range(3, 9):
+        s.set_at((8, t), (150, 150, 160))
+        s.set_at((9, t), (110, 110, 120))
+    s.set_at((8, 3), (190, 190, 200))
+    save_surface(iid("goblin_dagger"), s)
+
+    # Troll club — knotted bat
+    s = new()
+    rectangle(s, (7, 8, 2, 6), WOOD_DARK)
+    circle(s, (8, 5), 3, WOOD)
+    s.set_at((6, 4), (160, 110, 60))
+    s.set_at((10, 5), (160, 110, 60))
+    save_surface(iid("troll_club"), s)
+
+    hide("snake_skin", (140, 150, 90), (100, 110, 60))
+    blob("serpent_gland", (120, 160, 80), (170, 210, 120))
+    blob("hawk_bile", (160, 170, 40), (210, 220, 90))
+
+    # ── World nodes ──
+    # Loose stones — a scatter of small pebbles
+    s = new()
+    circle(s, (5, 10), 2, STONE)
+    circle(s, (11, 9), 2, STONE_DARK)
+    circle(s, (8, 12), 2, (105, 105, 110))
+    s.set_at((4, 9), STONE_LIGHT)
+    s.set_at((10, 8), (160, 160, 165))
+    save_surface(wid("loose_stones"), s)
+
+    # Beehive — hanging golden hive on a branch
+    s = new()
+    rectangle(s, (2, 3, 12, 2), WOOD_DARK)
+    for (x, y) in [(8, 4), (8, 5)]:
+        s.set_at((x, y), WOOD)
+    for yy, half in [(6, 2), (7, 3), (8, 3), (9, 3), (10, 3), (11, 2), (12, 1)]:
+        for xx in range(8 - half, 9 + half):
+            s.set_at((xx, yy), (210, 170, 60))
+    for yy in (8, 10):
+        for xx in range(8 - 3, 9 + 3):
+            s.set_at((xx, yy), (170, 130, 40))
+    s.set_at((8, 13), (60, 40, 20))  # entrance
+    save_surface(wid("beehive"), s)
+
+    print("  Generated progression sprites.")
+
+
 # ── Main ──────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -5084,6 +5319,7 @@ def main() -> None:
     generate_rock_depleted_sprites()
     generate_world_depleted_sprites()
     generate_shared_fallbacks()
+    generate_progression_sprites()
 
     print("\n=== All sprites generated! ===")
     print(f"Output directory: {OUTPUT_ROOT}/")
