@@ -22,6 +22,21 @@ if TYPE_CHECKING:
     from render.sprite_renderer import SpriteRenderer
 
 
+_item_sprite_keys: dict | None = None
+
+
+def _sprite_key_for(item_id: str) -> str:
+    """Resolve an item id to its sprite key via items.json (cached)."""
+    global _item_sprite_keys
+    if _item_sprite_keys is None:
+        from data import load_json_list
+        _item_sprite_keys = {
+            d.get("id"): d.get("sprite_key", d.get("id"))
+            for d in load_json_list("items.json", "items")
+        }
+    return _item_sprite_keys.get(item_id, item_id)
+
+
 class InventoryPanel(PanelWindow):
     """
     Inventory panel: 5×4 grid showing player items + gear slots.
@@ -43,7 +58,7 @@ class InventoryPanel(PanelWindow):
     def __init__(self, sprite_renderer: "SpriteRenderer | None" = None) -> None:
         super().__init__(
             title="Inventory",
-            x=200,
+            x=240,   # clear of the HUD column (HUD spans to ~x=216)
             y=100,
             width=5 * (48 + 4) - 4 + 20,  # grid width + padding
             height=36 + 4 * (48 + 4) - 4 + 60,  # gear row + grid + title/footer
@@ -149,7 +164,9 @@ class InventoryPanel(PanelWindow):
 
                 # Render item sprite (scaled to fit cell)
                 if self.sprite_renderer is not None:
-                    sprite = self.sprite_renderer._get_base_sprite(slot_data.get("sprite_key", item_id))
+                    sprite = self.sprite_renderer._get_base_sprite(
+                        slot_data.get("sprite_key") or _sprite_key_for(item_id)
+                    )
                     if sprite is not None:
                         margin = 6
                         avail_w = self.CELL_SIZE - margin * 2

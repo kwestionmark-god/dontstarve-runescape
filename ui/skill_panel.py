@@ -45,7 +45,7 @@ class SkillPanel(PanelWindow):
     def __init__(self) -> None:
         super().__init__(
             title="Skills",
-            x=150,
+            x=240,   # clear of the HUD column (HUD spans to ~x=216)
             y=50,
             width=500,
             height=580,

@@ -637,8 +637,13 @@ class HUD:
                 pygame.draw.rect(screen, hi, (self.MARGIN_X, faction_y, fill_w, max(2, self.BAR_HEIGHT // 4)), border_radius=3)
             pygame.draw.rect(screen, self.BORDER_COLOR, (self.MARGIN_X, faction_y, self.BAR_WIDTH, self.BAR_HEIGHT), 1, border_radius=3)
 
-            # Label centred inside the bar (with drop shadow)
+            # Label centred inside the bar, truncated to fit (with drop shadow)
             faction_label = f"{faction_name} ({best_status})"
+            max_w = self.BAR_WIDTH - 8
+            if self.font.size(faction_label)[0] > max_w:
+                while faction_label and self.font.size(faction_label + "…")[0] > max_w:
+                    faction_label = faction_label[:-1]
+                faction_label = faction_label.rstrip() + "…"
             faction_label_surf = self.font.render(faction_label, True, (255, 255, 255))
             lx = self.MARGIN_X + (self.BAR_WIDTH - faction_label_surf.get_width()) // 2
             ly = faction_y + (self.BAR_HEIGHT - faction_label_surf.get_height()) // 2

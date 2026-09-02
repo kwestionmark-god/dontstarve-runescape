@@ -482,8 +482,15 @@ class QuestPanel(PanelWindow):
         else:
             text = f"{current}/{required} {item_name} ({cond_type})"
 
-        text_surf = self.font_small.render(text, True, self.TEXT_COLOR)
         text_x = bar_x + bar_w + 4
+        # Truncate to the space left of the panel edge so long objective
+        # text doesn't smear into the scrollbar/border.
+        max_w = left + content_w - 4 - text_x
+        if max_w > 8 and self.font_small.size(text)[0] > max_w:
+            while text and self.font_small.size(text + "…")[0] > max_w:
+                text = text[:-1]
+            text = text.rstrip() + "…"
+        text_surf = self.font_small.render(text, True, self.TEXT_COLOR)
         text_y = bar_y + (bar_h - text_surf.get_height()) // 2
         screen.blit(text_surf, (text_x, text_y))
 

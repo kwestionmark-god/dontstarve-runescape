@@ -14,6 +14,16 @@ from typing import TYPE_CHECKING
 
 from ui.panel_window import PanelWindow
 
+
+def _fit_text(font, text: str, max_width: int) -> str:
+    """Truncate ``text`` with an ellipsis so it renders within ``max_width``."""
+    if font.size(text)[0] <= max_width:
+        return text
+    ellipsis = "…"
+    while text and font.size(text + ellipsis)[0] > max_width:
+        text = text[:-1]
+    return text.rstrip() + ellipsis
+
 if TYPE_CHECKING:
     from typing import Dict, List, Optional, Tuple
 
@@ -140,9 +150,11 @@ class CraftingPanel(PanelWindow):
                     else False
                 )
 
-                # Recipe name — dim if locked
+                # Recipe name — dim if locked, truncated to the name column
+                # so long names can't run into the materials column.
                 name_color = (160, 160, 170) if is_locked else (220, 220, 220)
-                name_surf = self.font_normal.render(recipe.name, True, name_color)
+                name_text = _fit_text(self.font_normal, recipe.name, 140)
+                name_surf = self.font_normal.render(name_text, True, name_color)
                 screen.blit(name_surf, (left, row_y + 8))
 
                 # Locked indicator
@@ -235,8 +247,11 @@ class CraftingPanel(PanelWindow):
                 row_y = y
                 row_h = 30
 
-                # Recipe name
-                name_surf = self.font_normal.render(smelt_recipe.name.replace("_", " ").title(), True, (220, 220, 220))
+                # Recipe name (truncated to the name column)
+                name_surf = self.font_normal.render(
+                    _fit_text(self.font_normal, smelt_recipe.name.replace("_", " ").title(), 140),
+                    True, (220, 220, 220),
+                )
                 screen.blit(name_surf, (left, row_y + 8))
 
                 # Material status
