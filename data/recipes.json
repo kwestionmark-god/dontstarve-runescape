@@ -455,6 +455,25 @@
       "required_level": 30,
       "requires_structure": "furnace",
       "skill_affects_yield": "metallurgy"
+    },
+    {
+      "recipe_id": "whittle_driftwood",
+      "name": "Whittle Driftwood",
+      "input_items": [
+        [
+          "driftwood",
+          1
+        ]
+      ],
+      "output_item": "stick",
+      "output_quantity": 2,
+      "requires_campfire": false,
+      "xp_reward": 5,
+      "processing_chain": "wood_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 1,
+      "skill_affects_yield": "crafting"
     }
   ]
 }

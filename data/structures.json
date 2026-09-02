@@ -1,7 +1,6 @@
 {
   "_description": "Structure definitions for Phase 2 building system.",
   "_note": "Structures are grouped by construction sub-stat category.",
-
   "structures": {
     "common": {
       "campfire": {
@@ -10,10 +9,26 @@
         "structure_type": "portable",
         "construction_sub_stat": "common",
         "hp": 5,
-        "materials": [["stick", 2], ["charcoal", 1]],
+        "materials": [
+          [
+            "stick",
+            2
+          ],
+          [
+            "stone",
+            2
+          ]
+        ],
         "requires_structure_level": 1,
         "requires_skill_level": 1,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/campfire",
         "occupies_tile": false,
         "burnable": true
@@ -24,10 +39,22 @@
         "structure_type": "portable",
         "construction_sub_stat": "common",
         "hp": 10,
-        "materials": [["plank", 4]],
+        "materials": [
+          [
+            "plank",
+            4
+          ]
+        ],
         "requires_structure_level": 2,
         "requires_skill_level": 1,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/chest",
         "occupies_tile": false,
         "burnable": true
@@ -38,10 +65,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 30,
-        "materials": [["fired_brick", 8], ["smelted_iron_ingot", 2]],
+        "materials": [
+          [
+            "fired_brick",
+            8
+          ],
+          [
+            "smelted_iron_ingot",
+            2
+          ]
+        ],
         "requires_structure_level": 5,
         "requires_skill_level": 8,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/furnace",
         "occupies_tile": true,
         "burnable": false
@@ -52,10 +95,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 15,
-        "materials": [["fired_brick", 4], ["stick", 4]],
+        "materials": [
+          [
+            "fired_brick",
+            4
+          ],
+          [
+            "stick",
+            4
+          ]
+        ],
         "requires_structure_level": 4,
         "requires_skill_level": 5,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/cooking_station",
         "occupies_tile": true,
         "burnable": false
@@ -66,10 +125,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 20,
-        "materials": [["plank", 8], ["stick", 4]],
+        "materials": [
+          [
+            "plank",
+            8
+          ],
+          [
+            "stick",
+            4
+          ]
+        ],
         "requires_structure_level": 3,
         "requires_skill_level": 5,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/crafting_station",
         "occupies_tile": true,
         "burnable": false
@@ -80,10 +155,22 @@
         "structure_type": "portable",
         "construction_sub_stat": "common",
         "hp": 8,
-        "materials": [["stick", 3]],
+        "materials": [
+          [
+            "stick",
+            3
+          ]
+        ],
         "requires_structure_level": 2,
         "requires_skill_level": 1,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/drying_rack",
         "occupies_tile": false,
         "burnable": true
@@ -94,10 +181,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 25,
-        "materials": [["fired_brick", 6], ["smelted_iron_ingot", 1]],
+        "materials": [
+          [
+            "fired_brick",
+            6
+          ],
+          [
+            "smelted_iron_ingot",
+            1
+          ]
+        ],
         "requires_structure_level": 6,
         "requires_skill_level": 10,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/smelter",
         "occupies_tile": true,
         "burnable": false
@@ -108,10 +211,30 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 50,
-        "materials": [["plank", 10], ["cobblestone", 20], ["coal", 5]],
+        "materials": [
+          [
+            "plank",
+            10
+          ],
+          [
+            "cobblestone",
+            20
+          ],
+          [
+            "coal",
+            5
+          ]
+        ],
         "requires_structure_level": 4,
         "requires_skill_level": 8,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/forge",
         "occupies_tile": true,
         "burnable": false
@@ -122,10 +245,30 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 60,
-        "materials": [["plank", 5], ["cobblestone", 10], ["smelted_iron_ingot", 5]],
+        "materials": [
+          [
+            "plank",
+            5
+          ],
+          [
+            "cobblestone",
+            10
+          ],
+          [
+            "smelted_iron_ingot",
+            5
+          ]
+        ],
         "requires_structure_level": 5,
         "requires_skill_level": 10,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/anvil",
         "occupies_tile": true,
         "burnable": false
@@ -136,10 +279,30 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 25,
-        "materials": [["plank", 10], ["arcane_powder", 10], ["crystal_shard", 5]],
+        "materials": [
+          [
+            "plank",
+            10
+          ],
+          [
+            "arcane_powder",
+            10
+          ],
+          [
+            "crystal_shard",
+            5
+          ]
+        ],
         "requires_structure_level": 6,
         "requires_skill_level": 12,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/arcane_table",
         "occupies_tile": true,
         "burnable": true
@@ -150,10 +313,30 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 20,
-        "materials": [["plank", 15], ["cloth", 10], ["silk", 5]],
+        "materials": [
+          [
+            "plank",
+            15
+          ],
+          [
+            "cloth",
+            10
+          ],
+          [
+            "silk",
+            5
+          ]
+        ],
         "requires_structure_level": 3,
         "requires_skill_level": 6,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/loom",
         "occupies_tile": true,
         "burnable": true
@@ -164,10 +347,30 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 35,
-        "materials": [["plank", 5], ["crystal_shard", 20], ["polished_crystal", 5]],
+        "materials": [
+          [
+            "plank",
+            5
+          ],
+          [
+            "crystal_shard",
+            20
+          ],
+          [
+            "polished_crystal",
+            5
+          ]
+        ],
         "requires_structure_level": 7,
         "requires_skill_level": 14,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/crystal_table",
         "occupies_tile": true,
         "burnable": false
@@ -178,16 +381,35 @@
         "structure_type": "fixed",
         "construction_sub_stat": "common",
         "hp": 30,
-        "materials": [["plank", 8], ["glass", 10], ["alchemical_essence", 5]],
+        "materials": [
+          [
+            "plank",
+            8
+          ],
+          [
+            "glass",
+            10
+          ],
+          [
+            "alchemical_essence",
+            5
+          ]
+        ],
         "requires_structure_level": 6,
         "requires_skill_level": 13,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/alchemy_table",
         "occupies_tile": true,
         "burnable": true
       }
     },
-
     "defensive": {
       "stone_wall": {
         "structure_id": "stone_wall",
@@ -195,10 +417,22 @@
         "structure_type": "fixed",
         "construction_sub_stat": "defensive",
         "hp": 50,
-        "materials": [["cobblestone", 6]],
+        "materials": [
+          [
+            "cobblestone",
+            6
+          ]
+        ],
         "requires_structure_level": 1,
         "requires_skill_level": 3,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/stone_wall",
         "occupies_tile": true,
         "burnable": false
@@ -209,10 +443,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "defensive",
         "hp": 30,
-        "materials": [["plank", 4], ["stick", 2]],
+        "materials": [
+          [
+            "plank",
+            4
+          ],
+          [
+            "stick",
+            2
+          ]
+        ],
         "requires_structure_level": 2,
         "requires_skill_level": 3,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/wooden_gate",
         "occupies_tile": true,
         "burnable": true
@@ -223,10 +473,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "defensive",
         "hp": 60,
-        "materials": [["smelted_iron_ingot", 4], ["stick", 2]],
+        "materials": [
+          [
+            "smelted_iron_ingot",
+            4
+          ],
+          [
+            "stick",
+            2
+          ]
+        ],
         "requires_structure_level": 4,
         "requires_skill_level": 8,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/iron_gate",
         "occupies_tile": true,
         "burnable": false
@@ -237,10 +503,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "defensive",
         "hp": 80,
-        "materials": [["cobblestone", 12], ["smelted_iron_ingot", 2]],
+        "materials": [
+          [
+            "cobblestone",
+            12
+          ],
+          [
+            "smelted_iron_ingot",
+            2
+          ]
+        ],
         "requires_structure_level": 6,
         "requires_skill_level": 12,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/wall_tower",
         "occupies_tile": true,
         "burnable": false
@@ -251,10 +533,26 @@
         "structure_type": "portable",
         "construction_sub_stat": "defensive",
         "hp": 5,
-        "materials": [["stick", 3], ["chert", 1]],
+        "materials": [
+          [
+            "stick",
+            3
+          ],
+          [
+            "chert",
+            1
+          ]
+        ],
         "requires_structure_level": 3,
         "requires_skill_level": 5,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/wooden_trap",
         "occupies_tile": false,
         "burnable": true
@@ -265,16 +563,31 @@
         "structure_type": "portable",
         "construction_sub_stat": "defensive",
         "hp": 10,
-        "materials": [["smelted_iron_ingot", 2], ["stick", 2]],
+        "materials": [
+          [
+            "smelted_iron_ingot",
+            2
+          ],
+          [
+            "stick",
+            2
+          ]
+        ],
         "requires_structure_level": 5,
         "requires_skill_level": 8,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/iron_trap",
         "occupies_tile": false,
         "burnable": false
       }
     },
-
     "offensive": {
       "ballista": {
         "structure_id": "ballista",
@@ -282,14 +595,34 @@
         "structure_type": "fixed",
         "construction_sub_stat": "offensive",
         "hp": 20,
-        "materials": [["plank", 6], ["stick", 2], ["smelted_iron_ingot", 1]],
+        "materials": [
+          [
+            "plank",
+            6
+          ],
+          [
+            "stick",
+            2
+          ],
+          [
+            "smelted_iron_ingot",
+            1
+          ]
+        ],
         "requires_structure_level": 5,
         "requires_skill_level": 10,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/ballista",
         "occupies_tile": true,
         "burnable": true,
-        "damage": "5 + offensive_stat × 2"
+        "damage": "5 + offensive_stat \u00d7 2"
       },
       "trebuchet": {
         "structure_id": "trebuchet",
@@ -297,17 +630,36 @@
         "structure_type": "fixed",
         "construction_sub_stat": "offensive",
         "hp": 30,
-        "materials": [["plank", 10], ["stick", 4], ["smelted_iron_ingot", 3]],
+        "materials": [
+          [
+            "plank",
+            10
+          ],
+          [
+            "stick",
+            4
+          ],
+          [
+            "smelted_iron_ingot",
+            3
+          ]
+        ],
         "requires_structure_level": 8,
         "requires_skill_level": 15,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/trebuchet",
         "occupies_tile": true,
         "burnable": true,
-        "damage": "10 + offensive_stat × 3"
+        "damage": "10 + offensive_stat \u00d7 3"
       }
     },
-
     "decorative": {
       "tapestry": {
         "structure_id": "tapestry",
@@ -315,10 +667,26 @@
         "structure_type": "portable",
         "construction_sub_stat": "decorative",
         "hp": 3,
-        "materials": [["fibers", 3], ["plank", 1]],
+        "materials": [
+          [
+            "fibers",
+            3
+          ],
+          [
+            "plank",
+            1
+          ]
+        ],
         "requires_structure_level": 1,
         "requires_skill_level": 2,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/tapestry",
         "occupies_tile": false,
         "burnable": true
@@ -329,10 +697,26 @@
         "structure_type": "portable",
         "construction_sub_stat": "decorative",
         "hp": 5,
-        "materials": [["smelted_iron_ingot", 1], ["stick", 1]],
+        "materials": [
+          [
+            "smelted_iron_ingot",
+            1
+          ],
+          [
+            "stick",
+            1
+          ]
+        ],
         "requires_structure_level": 2,
         "requires_skill_level": 2,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/lantern",
         "occupies_tile": false,
         "burnable": false
@@ -343,10 +727,26 @@
         "structure_type": "fixed",
         "construction_sub_stat": "decorative",
         "hp": 10,
-        "materials": [["cobblestone", 4], ["stick", 2]],
+        "materials": [
+          [
+            "cobblestone",
+            4
+          ],
+          [
+            "stick",
+            2
+          ]
+        ],
         "requires_structure_level": 3,
         "requires_skill_level": 3,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/garden_plot",
         "occupies_tile": true,
         "burnable": false
@@ -357,10 +757,22 @@
         "structure_type": "fixed",
         "construction_sub_stat": "decorative",
         "hp": 15,
-        "materials": [["cobblestone", 6]],
+        "materials": [
+          [
+            "cobblestone",
+            6
+          ]
+        ],
         "requires_structure_level": 2,
         "requires_skill_level": 2,
-        "biome_compatible": ["forest", "plains", "coastal", "swamp", "mountains", "desert"],
+        "biome_compatible": [
+          "forest",
+          "plains",
+          "coastal",
+          "swamp",
+          "mountains",
+          "desert"
+        ],
         "sprite_key": "structure/stone_bench",
         "occupies_tile": true,
         "burnable": false
