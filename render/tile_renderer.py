@@ -42,7 +42,8 @@ class TileRenderer:
         Phase 6 lighting coordinator (sun direction, ambient level, presets).
     """
 
-    __slots__ = ("tile_map", "screen", "_terrain_cache", "seasonal_renderer", "lighting_system")
+    __slots__ = ("tile_map", "screen", "_terrain_cache", "seasonal_renderer", "lighting_system",
+                 "_xform_cache")
 
     # How much higher-elevation tiles shift upward on screen (px).
     _ELEVATION_SORT_WEIGHT = 0.6
@@ -56,6 +57,10 @@ class TileRenderer:
         self.tile_map = tile_map
         self.screen = screen
         self._terrain_cache: dict[str, pygame.Surface | None] = {}
+        # Transformed (shaded + rotated + scaled) sprite cache, keyed per
+        # tile. Rebuilt only when a tile's shading values or the camera
+        # transform change — a static camera reuses everything.
+        self._xform_cache: dict = {}
         self.seasonal_renderer = None  # set externally by bootstrap
         self.lighting_system = lighting_system
 
@@ -151,7 +156,11 @@ class TileRenderer:
                     h_se = tile_map.get_corner_height(x + 1, y + 1)
 
                 avg_corner_h = (h_nw + h_ne + h_sw + h_se) / 4.0
-                depth = y + avg_corner_h * 0.5
+                # Depth along the camera's view axis (yaw-rotated Y) so
+                # back-to-front order stays correct when the camera rotates.
+                cos_yaw = math.cos(camera.yaw) if hasattr(camera, "yaw") else 1.0
+                sin_yaw = math.sin(camera.yaw) if hasattr(camera, "yaw") else 0.0
+                depth = y * cos_yaw + x * sin_yaw + avg_corner_h * 0.5
 
                 tiles_to_render.append((depth, x, y))
 
@@ -402,56 +411,119 @@ class TileRenderer:
                 self._apply_fog_to_quad(*corners, fog_alpha, fog_color)
             return
 
-        # Scale sprite by zoom
+        # Camera projection: the world→screen map for a tile is
+        #   screen = rotate(yaw) then vertical-scale by tan(pitch), plus zoom.
+        # Bake shading into the sprite, then apply the same transform so
+        # each tile covers exactly its projected footprint (no gasket gaps
+        # when the camera rotates). The fully transformed sprite is cached
+        # per tile and rebuilt only when its shading or the camera changes.
         zoom = camera.zoom if hasattr(camera, "zoom") else 1.0
-        if zoom != 1.0:
-            scaled_w = max(1, int(terrain_sprite.get_width() * zoom))
-            scaled_h = max(1, int(terrain_sprite.get_height() * zoom))
-            terrain_sprite = pygame.transform.scale(terrain_sprite, (scaled_w, scaled_h))
+        pitch_factor = math.tan(camera.pitch) if hasattr(camera, "pitch") else 1.0
+        yaw = camera.yaw if hasattr(camera, "yaw") else 0.0
 
-        # Draw sprite centered on tile
+        # Quantized shading signature for the cache key (1/32 steps)
+        if corner_brightness is not None:
+            ao0 = corner_ao[x][y] if corner_ao else 1.0
+            ao1 = corner_ao[x + 1][y] if corner_ao else 1.0
+            ao2 = corner_ao[x][y + 1] if corner_ao else 1.0
+            ao3 = corner_ao[x + 1][y + 1] if corner_ao else 1.0
+            shade_key = (
+                int(corner_brightness[x, y] * ao0 * 32),
+                int(corner_brightness[x + 1, y] * ao1 * 32),
+                int(corner_brightness[x, y + 1] * ao2 * 32),
+                int(corner_brightness[x + 1, y + 1] * ao3 * 32),
+                base_color,
+            )
+        else:
+            shade_key = None
+
+        tkey = (
+            x, y, biome_name, shade_key,
+            int(yaw * 720), int(zoom * 200), int(pitch_factor * 500),
+        )
+        sprite = self._xform_cache.get(tkey)
+        if sprite is None:
+            sprite = terrain_sprite
+            # Bake per-corner brightness/AO as sub-tile multiplicative shading
+            if corner_brightness is not None:
+                sprite = terrain_sprite.copy()
+                self._bake_subtile_shading(
+                    sprite, x, y, base_color,
+                    corner_brightness, corner_ao, terrain_subdiv,
+                )
+
+            # Rotate by yaw, then squash vertically by tan(pitch)
+            cos_y = math.cos(yaw)
+            sin_y = math.sin(yaw)
+            axis_aligned = abs(sin_y) < 0.01 and cos_y > 0
+            if axis_aligned:
+                scaled_w = max(1, int(round(sprite.get_width() * zoom)) + 2)
+                scaled_h = max(1, int(round(sprite.get_height() * zoom * pitch_factor)) + 2)
+                sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
+            else:
+                # Camera yaw maps world +X to the right/down (clockwise on
+                # screen), and pygame rotates counterclockwise-positive, so
+                # the angle is negated.
+                rotated = pygame.transform.rotate(sprite, -math.degrees(yaw))
+                bbox = sprite.get_width() * (abs(cos_y) + abs(sin_y))
+                # +2 px: tiles are painted back-to-front, so the front tile's
+                # solid interior covers the anti-aliased fringe of its
+                # neighbours instead of letting the background bleed through.
+                scaled_w = max(1, int(round(bbox * zoom)) + 2)
+                scaled_h = max(1, int(round(bbox * zoom * pitch_factor)) + 2)
+                sprite = pygame.transform.smoothscale(rotated, (scaled_w, scaled_h))
+
+            if len(self._xform_cache) > 4096:
+                self._xform_cache.clear()
+            self._xform_cache[tkey] = sprite
+
+        # Draw centered on the projected tile center
         tile_center_x = x * 64 + 32
         tile_center_y = y * 64 + 32
         avg_height = self.tile_map.get_tile_center_height(x, y)
         screen_x, screen_y = camera.world_to_screen(
             tile_center_x, tile_center_y, elevation=avg_height * Z_SCALE,
         )
-        rect = terrain_sprite.get_rect(center=(int(screen_x), int(screen_y)))
-        self.screen.blit(terrain_sprite, rect)
+        rect = sprite.get_rect(center=(int(screen_x), int(screen_y)))
+        self.screen.blit(sprite, rect)
 
-        # If we have per-corner shading, do sub-tile interpolation overlay
-        if corner_brightness is not None:
-            self._render_subtile_shading(
-                x, y, rect, terrain_sprite.get_size(),
-                base_color, corner_brightness, corner_ao, corner_fog,
-                fog_alpha, fog_color,
-                terrain_subdiv,
-            )
-        else:
-            # Flat shading fallback
-            if abs(1.0 - 1.0) > 0.01:  # never true, placeholder
-                pass
-            if fog_alpha > 0:
-                fog_surf = pygame.Surface(terrain_sprite.get_size(), pygame.SRCALPHA)
-                fog_surf.fill(fog_color + (fog_alpha,))
+        # Fog overlay drawn as a screen-space quad so player movement (which
+        # changes fog_alpha) doesn't invalidate the sprite cache.
+        if fog_alpha > 0:
+            eff_alpha = fog_alpha
+            if corner_fog:
+                eff_alpha = int(fog_alpha * (
+                    corner_fog[x][y] + corner_fog[x + 1][y]
+                    + corner_fog[x][y + 1] + corner_fog[x + 1][y + 1]
+                ) / 4.0)
+                eff_alpha = max(0, min(255, eff_alpha))
+            if eff_alpha > 0:
+                fog_surf = pygame.Surface(rect.size, pygame.SRCALPHA)
+                # Diamond approximating the (sheared) tile footprint so fog
+                # doesn't bleed over neighbouring tiles through the rotated
+                # sprite's transparent corners.
+                w2, h2 = rect.width // 2, rect.height // 2
+                pygame.draw.polygon(
+                    fog_surf, fog_color + (eff_alpha,),
+                    [(w2, 0), (rect.width, h2), (w2, rect.height), (0, h2)],
+                )
                 self.screen.blit(fog_surf, rect)
 
-    def _render_subtile_shading(
+    def _bake_subtile_shading(
         self,
-        x: int, y: int, rect: pygame.Rect, sprite_size: tuple[int, int],
+        sprite: pygame.Surface,
+        x: int, y: int,
         base_color: tuple[int, int, int],
         corner_brightness: "np.ndarray",
         corner_ao: list[list[float]] | None,
-        corner_fog: list[list[float]] | None,
-        fog_alpha: int, fog_color: tuple[int, int, int],
-        terrain_subdiv: int = TILE_SUBDIVISIONS,
+        terrain_subdiv: int,
     ) -> None:
-        """Apply Gouraud-like shading via terrain_subdiv x terrain_subdiv sub-tiles."""
-        subdiv = terrain_subdiv
-        if subdiv < 2:
-            subdiv = 2
+        """Multiply per-corner shading into the tile sprite via a sub-tile grid."""
+        subdiv = max(2, terrain_subdiv)
+        w, h = sprite.get_size()
+        sw = w / subdiv
+        sh = h / subdiv
 
-        # Per-corner values
         b_nw = corner_brightness[x, y]
         b_ne = corner_brightness[x + 1, y]
         b_sw = corner_brightness[x, y + 1]
@@ -464,66 +536,28 @@ class TileRenderer:
             ao_sw = corner_ao[x][y + 1]
             ao_se = corner_ao[x + 1][y + 1]
 
-        # Sub-tile size
-        sw = rect.width / subdiv
-        sh = rect.height / subdiv
-
         for ix in range(subdiv):
             for iy in range(subdiv):
-                # Bilinear interpolation factors
                 fx = (ix + 0.5) / subdiv
                 fy = (iy + 0.5) / subdiv
-
-                # Bilinear interpolate brightness and AO
                 b_top = b_nw * (1 - fx) + b_ne * fx
                 b_bot = b_sw * (1 - fx) + b_se * fx
                 b = b_top * (1 - fy) + b_bot * fy
-
                 ao_top = ao_nw * (1 - fx) + ao_ne * fx
                 ao_bot = ao_sw * (1 - fx) + ao_se * fx
                 ao = ao_top * (1 - fy) + ao_bot * fy
 
-                # Fog modulation
-                fog_mult = 1.0
-                if corner_fog:
-                    f_nw = corner_fog[x][y]
-                    f_ne = corner_fog[x + 1][y]
-                    f_sw = corner_fog[x][y + 1]
-                    f_se = corner_fog[x + 1][y + 1]
-                    f_top = f_nw * (1 - fx) + f_ne * fx
-                    f_bot = f_sw * (1 - fx) + f_se * fx
-                    fog_mult = f_top * (1 - fy) + f_bot * fy
-
-                # Per-sub-tile color
-                r = int(base_color[0] * b * ao)
-                g = int(base_color[1] * b * ao)
-                b_ = int(base_color[2] * b * ao)
-                color = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b_)))
-
-                # Draw sub-tile tint overlay
-                sx = rect.left + int(ix * sw)
-                sy = rect.top + int(iy * sh)
-                sub_rect = pygame.Rect(sx, sy, max(1, int(sw) + 1), max(1, int(sh) + 1))
-
-                shade_surf = pygame.Surface(sub_rect.size, pygame.SRCALPHA)
-                shade_surf.fill((*color, 255))
-                self.screen.blit(shade_surf, sub_rect, special_flags=pygame.BLEND_RGBA_MULT)
-
-        # Apply fog overlay (modulated by average corner_fog)
-        if fog_alpha > 0:
-            fog_mult = 1.0
-            if corner_fog:
-                f_nw = corner_fog[x][y]
-                f_ne = corner_fog[x + 1][y]
-                f_sw = corner_fog[x][y + 1]
-                f_se = corner_fog[x + 1][y + 1]
-                fog_mult = (f_nw + f_ne + f_sw + f_se) / 4.0
-            eff_alpha = int(fog_alpha * fog_mult)
-            eff_alpha = max(0, min(255, eff_alpha))
-            if eff_alpha > 0:
-                fog_surf = pygame.Surface(rect.size, pygame.SRCALPHA)
-                fog_surf.fill(fog_color + (eff_alpha,))
-                self.screen.blit(fog_surf, rect)
+                # Multiply sprite pixels by base_color * brightness * AO
+                # (same tint math the on-screen overlay previously used)
+                r = max(0, min(255, int(base_color[0] * b * ao)))
+                g = max(0, min(255, int(base_color[1] * b * ao)))
+                bb = max(0, min(255, int(base_color[2] * b * ao)))
+                sub_rect = pygame.Rect(
+                    int(ix * sw), int(iy * sh),
+                    max(1, int(sw) + 1), max(1, int(sh) + 1),
+                )
+                sprite.fill((r, g, bb), rect=sub_rect,
+                            special_flags=pygame.BLEND_RGBA_MULT)
 
     # ── Terrain sprite loading ───────────────────────────────────────
 
