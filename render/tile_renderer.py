@@ -312,10 +312,20 @@ class TileRenderer:
         if fog_alpha > 0:
             self._apply_fog_to_quad(p_nw, p_ne, p_se, p_sw, fog_alpha, fog_color)
 
-        # Subtle wireframe highlight
+        # Subtle wireframe highlight. pygame.draw ignores the color's alpha
+        # on surfaces without per-pixel alpha, so draw onto an overlay.
         if fog_alpha < 200:
             highlight_alpha = max(0, 32 - fog_alpha)
-            pygame.draw.polygon(self.screen, (0, 0, 0, highlight_alpha), [p_nw, p_ne, p_se, p_sw], 1)
+            if highlight_alpha > 0:
+                xs = [p_nw[0], p_ne[0], p_se[0], p_sw[0]]
+                ys = [p_nw[1], p_ne[1], p_se[1], p_sw[1]]
+                ow = int(max(xs) - min(xs)) + 2
+                oh = int(max(ys) - min(ys)) + 2
+                if ow > 0 and oh > 0:
+                    overlay = pygame.Surface((ow, oh), pygame.SRCALPHA)
+                    pts = [(px - min(xs), py - min(ys)) for px, py in (p_nw, p_ne, p_se, p_sw)]
+                    pygame.draw.polygon(overlay, (0, 0, 0, highlight_alpha), pts, 1)
+                    self.screen.blit(overlay, (min(xs), min(ys)))
 
     def _render_rim_gouraud(
         self,
@@ -518,16 +528,20 @@ class TileRenderer:
         corner_ao: list[list[float]] | None,
         terrain_subdiv: int,
     ) -> None:
-        """Multiply per-corner shading into the tile sprite via a sub-tile grid."""
-        subdiv = max(2, terrain_subdiv)
-        w, h = sprite.get_size()
-        sw = w / subdiv
-        sh = h / subdiv
+        """Multiply per-corner shading into the tile sprite per pixel.
 
-        b_nw = corner_brightness[x, y]
-        b_ne = corner_brightness[x + 1, y]
-        b_sw = corner_brightness[x, y + 1]
-        b_se = corner_brightness[x + 1, y + 1]
+        Bilinear interpolation is evaluated on the full pixel grid (not a
+        coarse sub-tile fill), so shading is continuous inside a tile AND
+        across tile borders — corners are shared between neighbours.
+        """
+        import numpy as np
+
+        w, h = sprite.get_size()
+
+        b_nw = float(corner_brightness[x, y])
+        b_ne = float(corner_brightness[x + 1, y])
+        b_sw = float(corner_brightness[x, y + 1])
+        b_se = float(corner_brightness[x + 1, y + 1])
 
         ao_nw = ao_ne = ao_sw = ao_se = 1.0
         if corner_ao:
@@ -536,28 +550,25 @@ class TileRenderer:
             ao_sw = corner_ao[x][y + 1]
             ao_se = corner_ao[x + 1][y + 1]
 
-        for ix in range(subdiv):
-            for iy in range(subdiv):
-                fx = (ix + 0.5) / subdiv
-                fy = (iy + 0.5) / subdiv
-                b_top = b_nw * (1 - fx) + b_ne * fx
-                b_bot = b_sw * (1 - fx) + b_se * fx
-                b = b_top * (1 - fy) + b_bot * fy
-                ao_top = ao_nw * (1 - fx) + ao_ne * fx
-                ao_bot = ao_sw * (1 - fx) + ao_se * fx
-                ao = ao_top * (1 - fy) + ao_bot * fy
+        # fx/fy per pixel, sampled at pixel centers: (w,) and (h,) vectors.
+        fx = (np.arange(w) + 0.5) / w
+        fy = (np.arange(h) + 0.5) / h
+        # Bilinear on the (w, h) grid: shade[i, j] at fx[i], fy[j].
+        b_top = b_nw * (1 - fx) + b_ne * fx
+        b_bot = b_sw * (1 - fx) + b_se * fx
+        ao_top = ao_nw * (1 - fx) + ao_ne * fx
+        ao_bot = ao_sw * (1 - fx) + ao_se * fx
+        b = b_top[:, None] * (1 - fy)[None, :] + b_bot[:, None] * fy[None, :]
+        ao = ao_top[:, None] * (1 - fy)[None, :] + ao_bot[:, None] * fy[None, :]
 
-                # Multiply sprite pixels by base_color * brightness * AO
-                # (same tint math the on-screen overlay previously used)
-                r = max(0, min(255, int(base_color[0] * b * ao)))
-                g = max(0, min(255, int(base_color[1] * b * ao)))
-                bb = max(0, min(255, int(base_color[2] * b * ao)))
-                sub_rect = pygame.Rect(
-                    int(ix * sw), int(iy * sh),
-                    max(1, int(sw) + 1), max(1, int(sh) + 1),
-                )
-                sprite.fill((r, g, bb), rect=sub_rect,
-                            special_flags=pygame.BLEND_RGBA_MULT)
+        color = np.clip(
+            np.asarray(base_color, dtype=np.float32)[None, None, :] * (b * ao)[..., None],
+            0, 255,
+        ).astype(np.uint8)
+        shade = pygame.Surface((w, h))
+        pygame.surfarray.blit_array(shade, color)
+        # RGB-only multiply so terrain alpha (sprite silhouette) is untouched.
+        sprite.blit(shade, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
 
     # ── Terrain sprite loading ───────────────────────────────────────
 
