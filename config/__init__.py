@@ -25,7 +25,8 @@ from config.constants import (
     # Terrain Shading
     SHADING_STRENGTH, LIGHT_DIRECTION,
     # Fog & LOD
-    FOG_NEAR_DISTANCE, FOG_FAR_DISTANCE, FOG_CULL_DISTANCE, FOG_COLOR,
+    FOG_NEAR_DISTANCE, FOG_FAR_DISTANCE, FOG_MAX_ALPHA, FOG_CULL_DISTANCE, FOG_COLOR,
+    fog_alpha_for_distance,
     # State Machine
     LOADING_SCREEN_DURATION, FLAVOR_TEXT_COUNT, FLAVOR_TEXTS,
     # Combat

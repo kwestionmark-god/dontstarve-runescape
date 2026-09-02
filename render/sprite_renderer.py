@@ -23,7 +23,7 @@ import time
 import pygame
 from typing import TYPE_CHECKING
 
-from config import Z_SCALE, FOG_NEAR_DISTANCE, FOG_FAR_DISTANCE, FOG_CULL_DISTANCE, FOG_COLOR
+from config import Z_SCALE, FOG_CULL_DISTANCE, FOG_COLOR, fog_alpha_for_distance
 from render.font_cache import get_monospace
 
 if TYPE_CHECKING:
@@ -359,24 +359,16 @@ class SpriteRenderer:
 
     @staticmethod
     def _fog_alpha(world_x: float, world_y: float, player_x: float, player_y: float) -> float:
-        """Return fog alpha (0–255) based on distance from player.
-        
-        - 0 alpha when distance <= FOG_NEAR_DISTANCE (fully visible)
-        - 255 alpha when distance >= FOG_FAR_DISTANCE (fully obscured)
-        - Linear fade in between
+        """Return fog alpha (0–FOG_MAX_ALPHA) based on distance from player.
+
+        Smoothstep ramp shared with the tile renderer via
+        ``config.fog_alpha_for_distance``.
         """
         dx = world_x - player_x
         dy = world_y - player_y
         dist = math.sqrt(dx * dx + dy * dy)
-
-        if dist >= FOG_FAR_DISTANCE:
-            return 255
-        if dist <= FOG_NEAR_DISTANCE:
-            return 0
-        # Linear fade from 0 → 255 across [FOG_NEAR, FOG_FAR]
-        fade_range = FOG_FAR_DISTANCE - FOG_NEAR_DISTANCE
-        t = (dist - FOG_NEAR_DISTANCE) / fade_range
-        return int(t * 255)
+        alpha = fog_alpha_for_distance(dist)
+        return max(0, alpha)  # -1 (cull) is handled by _should_cull
 
     @staticmethod
     def _should_cull(world_x: float, world_y: float, player_x: float, player_y: float) -> bool:

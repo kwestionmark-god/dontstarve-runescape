@@ -144,9 +144,28 @@ LIGHT_DIRECTION = (-1, -1)     # North-west light (screen-space gradient)
 # ─── Fog & LOD ─────────────────────────────────────────────────────────
 
 FOG_NEAR_DISTANCE = 500.0      # Pixels from player where fog begins to fade
-FOG_FAR_DISTANCE = 1400.0      # Pixels from player where fog fully obscures (alpha = 255)
+FOG_FAR_DISTANCE = 1400.0      # Pixels from player where fog reaches maximum opacity
+FOG_MAX_ALPHA = 215            # Fog caps below 255 so far terrain stays faintly readable
 FOG_CULL_DISTANCE = 1700.0     # Pixels beyond which sprites are not rendered at all
 FOG_COLOR = (135, 206, 235)    # Matches sky colour for seamless blend
+
+
+def fog_alpha_for_distance(dist: float) -> int:
+    """Return fog alpha (0..FOG_MAX_ALPHA) for a world-space distance.
+
+    Smoothstep ramp (2t²…3t²-2t³ style ease) so fog eases in gently near the
+    player instead of ramping harshly; returns -1 beyond the cull distance so
+    callers can skip drawing entirely.
+    """
+    if dist > FOG_CULL_DISTANCE:
+        return -1
+    if dist <= FOG_NEAR_DISTANCE:
+        return 0
+    if dist >= FOG_FAR_DISTANCE:
+        return FOG_MAX_ALPHA
+    t = (dist - FOG_NEAR_DISTANCE) / (FOG_FAR_DISTANCE - FOG_NEAR_DISTANCE)
+    t = t * t * (3.0 - 2.0 * t)  # smoothstep
+    return int(FOG_MAX_ALPHA * t)
 
 # ─── Phase 6: Advanced Shading & Lighting ────────────────────────────
 
