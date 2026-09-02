@@ -199,6 +199,202 @@
       "blueprint_id": "bp_elder_wood_staff",
       "enchantment_slots": 2,
       "requires_structure": "arcane_table"
+    },
+    {
+      "recipe_id": "craft_dragonbone_whistle",
+      "name": "Dragonbone Whistle",
+      "input_items": [
+        [
+          "dragonbone_shard",
+          2
+        ],
+        [
+          "polished_bone",
+          1
+        ]
+      ],
+      "output_item": "dragonbone_whistle",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 120,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 45,
+      "requires_structure": "crafting_station",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_silk_enchanted_cloak",
+      "name": "Silk Enchanted Cloak",
+      "input_items": [
+        [
+          "silk_fabric",
+          2
+        ],
+        [
+          "polished_amber",
+          2
+        ]
+      ],
+      "output_item": "silk_enchanted_cloak",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 150,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 55,
+      "requires_structure": "loom",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_phoenix_cloak",
+      "name": "Phoenix Cloak",
+      "input_items": [
+        [
+          "phoenix_cloth",
+          2
+        ],
+        [
+          "silk_thread",
+          2
+        ]
+      ],
+      "output_item": "phoenix_cloak",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 180,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 60,
+      "requires_structure": "loom",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_mithril_longsword",
+      "name": "Mithril Longsword",
+      "input_items": [
+        [
+          "mithril_ingot",
+          3
+        ],
+        [
+          "polished_bone",
+          1
+        ]
+      ],
+      "output_item": "mithril_longsword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 200,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 50,
+      "requires_structure": "anvil",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_ghost_iron_chestplate",
+      "name": "Ghost Iron Chestplate",
+      "input_items": [
+        [
+          "refined_ghost_iron",
+          4
+        ],
+        [
+          "silk_thread",
+          2
+        ]
+      ],
+      "output_item": "ghost_iron_chestplate",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 220,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 60,
+      "requires_structure": "anvil",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_star_metal_longsword",
+      "name": "Star Metal Longsword",
+      "input_items": [
+        [
+          "star_metal_ingot",
+          3
+        ],
+        [
+          "dragonbone_shard",
+          2
+        ]
+      ],
+      "output_item": "star_metal_longsword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 260,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 70,
+      "requires_structure": "anvil",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_rune_mithril_longsword",
+      "name": "Rune Mithril Longsword",
+      "input_items": [
+        [
+          "mithril_longsword",
+          1
+        ],
+        [
+          "rune_stone",
+          1
+        ]
+      ],
+      "output_item": "rune_mithril_longsword",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 320,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 65,
+      "requires_structure": "arcane_table",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_celestial_chestplate",
+      "name": "Celestial Chestplate",
+      "input_items": [
+        [
+          "attuned_celestial_crystal",
+          2
+        ],
+        [
+          "star_metal_ingot",
+          2
+        ],
+        [
+          "silk_fabric",
+          1
+        ]
+      ],
+      "output_item": "celestial_chestplate",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 400,
+      "processing_chain": "legendary_chain",
+      "tier": 4,
+      "required_skill": "crafting",
+      "required_level": 75,
+      "requires_structure": "crystal_table",
+      "skill_affects_yield": "crafting"
     }
   ]
 }

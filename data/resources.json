@@ -1148,6 +1148,61 @@
         "desert": 0.0
       },
       "required_level": 1
+    },
+    {
+      "id": "loose_stones",
+      "name": "Loose Stones",
+      "biome": "plains",
+      "tier": 1,
+      "rarity": "common",
+      "category": "stone",
+      "base_density": 0.1,
+      "yield_item": "stone",
+      "yield_quantity": 1,
+      "xp_reward": 5.0,
+      "depletion_count": 6,
+      "regrow_time": 120.0,
+      "sprite_key": "world/loose_stones",
+      "requires_tool": null,
+      "required_level": 1,
+      "biome_affinity": {
+        "plains": 1.5,
+        "mountains": 1.5,
+        "forest": 0.8,
+        "desert": 1.0,
+        "coastal": 0.5,
+        "swamp": 0.2
+      }
+    },
+    {
+      "id": "beehive",
+      "name": "Wild Beehive",
+      "biome": "forest",
+      "tier": 2,
+      "rarity": "uncommon",
+      "category": "special",
+      "base_density": 0.03,
+      "yield_item": "honeycomb_raw",
+      "yield_quantity": 1,
+      "xp_reward": 30.0,
+      "depletion_count": 2,
+      "regrow_time": 600.0,
+      "sprite_key": "world/beehive",
+      "requires_tool": null,
+      "required_level": 20,
+      "seasons_available": [
+        "spring",
+        "summer",
+        "autumn"
+      ],
+      "biome_affinity": {
+        "forest": 2.0,
+        "swamp": 0.8,
+        "plains": 0.5,
+        "coastal": 0.2,
+        "mountains": 0.1,
+        "desert": 0.0
+      }
     }
   ]
 }

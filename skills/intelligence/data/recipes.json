@@ -143,6 +143,54 @@
       "skill_affects_yield": "intelligence",
       "required_skill": "intelligence",
       "required_level": 70
+    },
+    {
+      "recipe_id": "brew_void_elixir",
+      "name": "Brew Void Elixir",
+      "input_items": [
+        [
+          "void_essence_concentrate",
+          1
+        ],
+        [
+          "filtered_honey",
+          1
+        ]
+      ],
+      "output_item": "void_elixir",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 150,
+      "processing_chain": "void_chain",
+      "tier": 4,
+      "required_skill": "intelligence",
+      "required_level": 60,
+      "requires_structure": "alchemy_table",
+      "skill_affects_yield": "intelligence"
+    },
+    {
+      "recipe_id": "distill_void_draught",
+      "name": "Distill Void Draught",
+      "input_items": [
+        [
+          "void_elixir",
+          1
+        ],
+        [
+          "moonstone_essence",
+          1
+        ]
+      ],
+      "output_item": "void_draught",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 220,
+      "processing_chain": "void_chain",
+      "tier": 4,
+      "required_skill": "intelligence",
+      "required_level": 70,
+      "requires_structure": "alchemy_table",
+      "skill_affects_yield": "intelligence"
     }
   ]
 }

@@ -89,6 +89,372 @@
       "skill_affects_yield": "foraging",
       "required_skill": "crafting",
       "required_level": 10
+    },
+    {
+      "recipe_id": "craft_stone_axe",
+      "name": "Stone Axe",
+      "input_items": [
+        [
+          "stone",
+          2
+        ],
+        [
+          "stick",
+          2
+        ]
+      ],
+      "output_item": "stone_axe",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 10,
+      "processing_chain": "tool_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 1,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "craft_stone_pickaxe",
+      "name": "Stone Pickaxe",
+      "input_items": [
+        [
+          "stone",
+          3
+        ],
+        [
+          "stick",
+          2
+        ]
+      ],
+      "output_item": "stone_pickaxe",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 15,
+      "processing_chain": "tool_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 5,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "burn_ash",
+      "name": "Burn to Ash",
+      "input_items": [
+        [
+          "stick",
+          2
+        ]
+      ],
+      "output_item": "ash",
+      "output_quantity": 2,
+      "requires_campfire": true,
+      "xp_reward": 6,
+      "processing_chain": "fire_chain",
+      "tier": 1,
+      "required_skill": "firemaking",
+      "required_level": 1,
+      "skill_affects_yield": "firemaking"
+    },
+    {
+      "recipe_id": "tap_maple_sap",
+      "name": "Tap Maple Sap",
+      "input_items": [
+        [
+          "maple_logs",
+          1
+        ]
+      ],
+      "output_item": "tree_sap",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 8,
+      "processing_chain": "resin_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 5,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "refine_resin",
+      "name": "Refine Resin",
+      "input_items": [
+        [
+          "tree_sap",
+          2
+        ]
+      ],
+      "output_item": "refined_resin",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 20,
+      "processing_chain": "resin_chain",
+      "tier": 2,
+      "required_skill": "crafting",
+      "required_level": 15,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "make_pitch",
+      "name": "Make Pitch",
+      "input_items": [
+        [
+          "refined_resin",
+          1
+        ],
+        [
+          "charcoal",
+          1
+        ]
+      ],
+      "output_item": "pitch",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 30,
+      "processing_chain": "resin_chain",
+      "tier": 2,
+      "required_skill": "crafting",
+      "required_level": 20,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "grind_bone",
+      "name": "Grind Bone",
+      "input_items": [
+        [
+          "wolf_bone",
+          2
+        ]
+      ],
+      "output_item": "bone_powder",
+      "output_quantity": 2,
+      "requires_campfire": false,
+      "xp_reward": 10,
+      "processing_chain": "bone_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 5,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "polish_bone",
+      "name": "Polish Bone",
+      "input_items": [
+        [
+          "bone_powder",
+          2
+        ]
+      ],
+      "output_item": "polished_bone",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 25,
+      "processing_chain": "bone_chain",
+      "tier": 2,
+      "required_skill": "crafting",
+      "required_level": 15,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "render_tallow",
+      "name": "Render Tallow",
+      "input_items": [
+        [
+          "animal_fat",
+          2
+        ]
+      ],
+      "output_item": "rendered_tallow",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 12,
+      "processing_chain": "candle_chain",
+      "tier": 1,
+      "required_skill": "cooking",
+      "required_level": 5,
+      "skill_affects_yield": "cooking"
+    },
+    {
+      "recipe_id": "craft_candle",
+      "name": "Craft Candle",
+      "input_items": [
+        [
+          "rendered_tallow",
+          1
+        ],
+        [
+          "fibers",
+          2
+        ]
+      ],
+      "output_item": "candle",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 18,
+      "processing_chain": "candle_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 10,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "press_papyrus",
+      "name": "Press Papyrus",
+      "input_items": [
+        [
+          "reed",
+          3
+        ]
+      ],
+      "output_item": "pressed_papyrus",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 14,
+      "processing_chain": "paper_chain",
+      "tier": 1,
+      "required_skill": "crafting",
+      "required_level": 8,
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "refine_salt",
+      "name": "Refine Salt",
+      "input_items": [
+        [
+          "salt",
+          2
+        ]
+      ],
+      "output_item": "refined_salt",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 15,
+      "processing_chain": "food_chain",
+      "tier": 1,
+      "required_skill": "cooking",
+      "required_level": 10,
+      "skill_affects_yield": "cooking"
+    },
+    {
+      "recipe_id": "filter_honey",
+      "name": "Filter Honey",
+      "input_items": [
+        [
+          "honeycomb_raw",
+          1
+        ]
+      ],
+      "output_item": "filtered_honey",
+      "output_quantity": 1,
+      "requires_campfire": true,
+      "xp_reward": 20,
+      "processing_chain": "honey_chain",
+      "tier": 2,
+      "required_skill": "cooking",
+      "required_level": 12,
+      "skill_affects_yield": "cooking"
+    },
+    {
+      "recipe_id": "brew_mead",
+      "name": "Brew Mead Base",
+      "input_items": [
+        [
+          "filtered_honey",
+          1
+        ],
+        [
+          "water",
+          1
+        ]
+      ],
+      "output_item": "mead_base",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 30,
+      "processing_chain": "honey_chain",
+      "tier": 2,
+      "required_skill": "cooking",
+      "required_level": 20,
+      "skill_affects_yield": "cooking"
+    },
+    {
+      "recipe_id": "weave_silk_fabric",
+      "name": "Weave Silk Fabric",
+      "input_items": [
+        [
+          "silk_thread",
+          2
+        ]
+      ],
+      "output_item": "silk_fabric",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 40,
+      "processing_chain": "silk_chain",
+      "tier": 3,
+      "required_skill": "crafting",
+      "required_level": 25,
+      "requires_structure": "loom",
+      "skill_affects_yield": "crafting"
+    },
+    {
+      "recipe_id": "melt_glass",
+      "name": "Melt Glass",
+      "input_items": [
+        [
+          "sand",
+          3
+        ]
+      ],
+      "output_item": "molten_glass",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 18,
+      "processing_chain": "glass_chain",
+      "tier": 1,
+      "required_skill": "metallurgy",
+      "required_level": 10,
+      "requires_structure": "furnace",
+      "skill_affects_yield": "metallurgy"
+    },
+    {
+      "recipe_id": "blow_glass_sheet",
+      "name": "Blow Glass Sheet",
+      "input_items": [
+        [
+          "molten_glass",
+          2
+        ]
+      ],
+      "output_item": "glass_sheet",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 30,
+      "processing_chain": "glass_chain",
+      "tier": 2,
+      "required_skill": "metallurgy",
+      "required_level": 15,
+      "requires_structure": "furnace",
+      "skill_affects_yield": "metallurgy"
+    },
+    {
+      "recipe_id": "fuse_obsidian_glass",
+      "name": "Fuse Obsidian Glass",
+      "input_items": [
+        [
+          "polished_obsidian",
+          2
+        ]
+      ],
+      "output_item": "obsidian_glass",
+      "output_quantity": 1,
+      "requires_campfire": false,
+      "xp_reward": 60,
+      "processing_chain": "glass_chain",
+      "tier": 3,
+      "required_skill": "metallurgy",
+      "required_level": 30,
+      "requires_structure": "furnace",
+      "skill_affects_yield": "metallurgy"
     }
   ]
 }

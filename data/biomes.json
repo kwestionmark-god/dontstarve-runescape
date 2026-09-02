@@ -1,7 +1,6 @@
 {
   "_description": "Biome definitions for world generation.",
   "_note": "Each biome has elevation-based terrain colors for 2.5D rendering.",
-
   "biomes": [
     {
       "id": "forest",
@@ -9,19 +8,66 @@
       "mega_cluster": "temperate",
       "environmental_pressure": 0.5,
       "starting_safety": true,
-      "elevation_range": [0, 3],
+      "elevation_range": [
+        0,
+        3
+      ],
       "terrain_colors": {
-        "0": [60, 120, 60],
-        "1": [50, 130, 50],
-        "2": [45, 140, 45],
-        "3": [40, 150, 40],
-        "4": [60, 130, 55],
-        "5": [80, 120, 50],
-        "6": [100, 110, 45],
-        "7": [120, 100, 40]
+        "0": [
+          60,
+          120,
+          60
+        ],
+        "1": [
+          50,
+          130,
+          50
+        ],
+        "2": [
+          45,
+          140,
+          45
+        ],
+        "3": [
+          40,
+          150,
+          40
+        ],
+        "4": [
+          60,
+          130,
+          55
+        ],
+        "5": [
+          80,
+          120,
+          50
+        ],
+        "6": [
+          100,
+          110,
+          45
+        ],
+        "7": [
+          120,
+          100,
+          40
+        ]
       },
-      "resource_spawns": ["oak_tree", "birch_tree", "maple_tree", "pine_tree", "berry_bush", "herb", "fiber_plant", "silk_nest",
-                          "phoenix_feather", "elder_wood"]
+      "resource_spawns": [
+        "oak_tree",
+        "birch_tree",
+        "maple_tree",
+        "pine_tree",
+        "berry_bush",
+        "herb",
+        "fiber_plant",
+        "silk_nest",
+        "phoenix_feather",
+        "elder_wood",
+        "loose_stones",
+        "beehive"
+      ]
     },
     {
       "id": "plains",
@@ -29,18 +75,58 @@
       "mega_cluster": "temperate",
       "environmental_pressure": 0.3,
       "starting_safety": true,
-      "elevation_range": [1, 4],
+      "elevation_range": [
+        1,
+        4
+      ],
       "terrain_colors": {
-        "0": [100, 140, 60],
-        "1": [120, 160, 70],
-        "2": [140, 170, 80],
-        "3": [150, 180, 90],
-        "4": [130, 160, 75],
-        "5": [110, 140, 60],
-        "6": [100, 130, 50],
-        "7": [90, 120, 40]
+        "0": [
+          100,
+          140,
+          60
+        ],
+        "1": [
+          120,
+          160,
+          70
+        ],
+        "2": [
+          140,
+          170,
+          80
+        ],
+        "3": [
+          150,
+          180,
+          90
+        ],
+        "4": [
+          130,
+          160,
+          75
+        ],
+        "5": [
+          110,
+          140,
+          60
+        ],
+        "6": [
+          100,
+          130,
+          50
+        ],
+        "7": [
+          90,
+          120,
+          40
+        ]
       },
-      "resource_spawns": ["grass_patch", "wheat_field", "water_source"]
+      "resource_spawns": [
+        "grass_patch",
+        "wheat_field",
+        "water_source",
+        "loose_stones"
+      ]
     },
     {
       "id": "coastal",
@@ -48,19 +134,59 @@
       "mega_cluster": "temperate",
       "environmental_pressure": 0.4,
       "starting_safety": true,
-      "elevation_range": [0, 1],
+      "elevation_range": [
+        0,
+        1
+      ],
       "terrain_colors": {
-        "0": [180, 190, 150],
-        "1": [100, 150, 170],
-        "2": [80, 140, 180],
-        "3": [60, 130, 190],
-        "4": [80, 140, 175],
-        "5": [100, 150, 165],
-        "6": [120, 160, 155],
-        "7": [140, 170, 145]
+        "0": [
+          180,
+          190,
+          150
+        ],
+        "1": [
+          100,
+          150,
+          170
+        ],
+        "2": [
+          80,
+          140,
+          180
+        ],
+        "3": [
+          60,
+          130,
+          190
+        ],
+        "4": [
+          80,
+          140,
+          175
+        ],
+        "5": [
+          100,
+          150,
+          165
+        ],
+        "6": [
+          120,
+          160,
+          155
+        ],
+        "7": [
+          140,
+          170,
+          145
+        ]
       },
-      "resource_spawns": ["driftwood", "shell_beach", "fish_spot", "salt_deposit",
-                          "celestial_crystal"]
+      "resource_spawns": [
+        "driftwood",
+        "shell_beach",
+        "fish_spot",
+        "salt_deposit",
+        "celestial_crystal"
+      ]
     },
     {
       "id": "swamp",
@@ -68,19 +194,63 @@
       "mega_cluster": "dangerous",
       "environmental_pressure": 1.5,
       "starting_safety": false,
-      "elevation_range": [0, 2],
+      "elevation_range": [
+        0,
+        2
+      ],
       "terrain_colors": {
-        "0": [50, 70, 40],
-        "1": [60, 80, 45],
-        "2": [70, 90, 50],
-        "3": [80, 100, 55],
-        "4": [90, 90, 60],
-        "5": [85, 85, 65],
-        "6": [80, 80, 70],
-        "7": [75, 75, 75]
+        "0": [
+          50,
+          70,
+          40
+        ],
+        "1": [
+          60,
+          80,
+          45
+        ],
+        "2": [
+          70,
+          90,
+          50
+        ],
+        "3": [
+          80,
+          100,
+          55
+        ],
+        "4": [
+          90,
+          90,
+          60
+        ],
+        "5": [
+          85,
+          85,
+          65
+        ],
+        "6": [
+          80,
+          80,
+          70
+        ],
+        "7": [
+          75,
+          75,
+          75
+        ]
       },
-      "resource_spawns": ["peat_mound", "toxic_reed", "herb", "water_source", "willow_tree", "reed_bed", "dragonbone",
-                          "void_essence"]
+      "resource_spawns": [
+        "peat_mound",
+        "toxic_reed",
+        "herb",
+        "water_source",
+        "willow_tree",
+        "reed_bed",
+        "dragonbone",
+        "void_essence",
+        "beehive"
+      ]
     },
     {
       "id": "mountains",
@@ -88,20 +258,69 @@
       "mega_cluster": "extreme",
       "environmental_pressure": 1.2,
       "starting_safety": false,
-      "elevation_range": [4, 7],
+      "elevation_range": [
+        4,
+        7
+      ],
       "terrain_colors": {
-        "0": [100, 100, 110],
-        "1": [110, 110, 120],
-        "2": [120, 120, 130],
-        "3": [130, 130, 140],
-        "4": [140, 140, 150],
-        "5": [150, 150, 160],
-        "6": [170, 170, 180],
-        "7": [200, 200, 210]
+        "0": [
+          100,
+          100,
+          110
+        ],
+        "1": [
+          110,
+          110,
+          120
+        ],
+        "2": [
+          120,
+          120,
+          130
+        ],
+        "3": [
+          130,
+          130,
+          140
+        ],
+        "4": [
+          140,
+          140,
+          150
+        ],
+        "5": [
+          150,
+          150,
+          160
+        ],
+        "6": [
+          170,
+          170,
+          180
+        ],
+        "7": [
+          200,
+          200,
+          210
+        ]
       },
-      "resource_spawns": ["iron_rock", "copper_rock", "tin_rock", "gold_vein", "stone_quarry", "gemstone",
-                          "void_crystal", "obsidian_vein", "mithril_vein", "moonstone_deposit", "ghost_iron_deposit",
-                          "star_metal", "ancient_rune", "spruce_tree"]
+      "resource_spawns": [
+        "iron_rock",
+        "copper_rock",
+        "tin_rock",
+        "gold_vein",
+        "stone_quarry",
+        "gemstone",
+        "void_crystal",
+        "obsidian_vein",
+        "mithril_vein",
+        "moonstone_deposit",
+        "ghost_iron_deposit",
+        "star_metal",
+        "ancient_rune",
+        "spruce_tree",
+        "loose_stones"
+      ]
     },
     {
       "id": "desert",
@@ -109,18 +328,60 @@
       "mega_cluster": "extreme",
       "environmental_pressure": 1.0,
       "starting_safety": false,
-      "elevation_range": [2, 5],
+      "elevation_range": [
+        2,
+        5
+      ],
       "terrain_colors": {
-        "0": [210, 190, 130],
-        "1": [220, 200, 140],
-        "2": [230, 210, 150],
-        "3": [240, 215, 155],
-        "4": [225, 205, 145],
-        "5": [215, 195, 135],
-        "6": [205, 185, 125],
-        "7": [195, 175, 115]
+        "0": [
+          210,
+          190,
+          130
+        ],
+        "1": [
+          220,
+          200,
+          140
+        ],
+        "2": [
+          230,
+          210,
+          150
+        ],
+        "3": [
+          240,
+          215,
+          155
+        ],
+        "4": [
+          225,
+          205,
+          145
+        ],
+        "5": [
+          215,
+          195,
+          135
+        ],
+        "6": [
+          205,
+          185,
+          125
+        ],
+        "7": [
+          195,
+          175,
+          115
+        ]
       },
-      "resource_spawns": ["sand_deposit", "salt_crystal", "cactus", "rare_ore", "amber_deposit", "dead_tree"]
+      "resource_spawns": [
+        "sand_deposit",
+        "salt_crystal",
+        "cactus",
+        "rare_ore",
+        "amber_deposit",
+        "dead_tree"
+      ]
     },
     {
       "id": "water",
@@ -128,42 +389,177 @@
       "mega_cluster": "temperate",
       "environmental_pressure": 0.0,
       "starting_safety": false,
-      "elevation_range": [0, 31],
+      "elevation_range": [
+        0,
+        31
+      ],
       "terrain_colors": {
-        "0": [30, 60, 180],
-        "1": [35, 65, 185],
-        "2": [40, 70, 190],
-        "3": [45, 75, 195],
-        "4": [50, 80, 200],
-        "5": [55, 85, 205],
-        "6": [60, 90, 210],
-        "7": [65, 95, 215],
-        "8": [70, 100, 220],
-        "9": [75, 105, 225],
-        "10": [80, 110, 230],
-        "11": [85, 115, 235],
-        "12": [90, 120, 240],
-        "13": [95, 125, 245],
-        "14": [100, 130, 250],
-        "15": [105, 135, 255],
-        "16": [110, 140, 255],
-        "17": [115, 145, 255],
-        "18": [120, 150, 255],
-        "19": [125, 155, 255],
-        "20": [130, 160, 255],
-        "21": [135, 165, 255],
-        "22": [140, 170, 255],
-        "23": [145, 175, 255],
-        "24": [150, 180, 255],
-        "25": [155, 185, 255],
-        "26": [160, 190, 255],
-        "27": [165, 195, 255],
-        "28": [170, 200, 255],
-        "29": [175, 205, 255],
-        "30": [180, 210, 255],
-        "31": [185, 215, 255]
+        "0": [
+          30,
+          60,
+          180
+        ],
+        "1": [
+          35,
+          65,
+          185
+        ],
+        "2": [
+          40,
+          70,
+          190
+        ],
+        "3": [
+          45,
+          75,
+          195
+        ],
+        "4": [
+          50,
+          80,
+          200
+        ],
+        "5": [
+          55,
+          85,
+          205
+        ],
+        "6": [
+          60,
+          90,
+          210
+        ],
+        "7": [
+          65,
+          95,
+          215
+        ],
+        "8": [
+          70,
+          100,
+          220
+        ],
+        "9": [
+          75,
+          105,
+          225
+        ],
+        "10": [
+          80,
+          110,
+          230
+        ],
+        "11": [
+          85,
+          115,
+          235
+        ],
+        "12": [
+          90,
+          120,
+          240
+        ],
+        "13": [
+          95,
+          125,
+          245
+        ],
+        "14": [
+          100,
+          130,
+          250
+        ],
+        "15": [
+          105,
+          135,
+          255
+        ],
+        "16": [
+          110,
+          140,
+          255
+        ],
+        "17": [
+          115,
+          145,
+          255
+        ],
+        "18": [
+          120,
+          150,
+          255
+        ],
+        "19": [
+          125,
+          155,
+          255
+        ],
+        "20": [
+          130,
+          160,
+          255
+        ],
+        "21": [
+          135,
+          165,
+          255
+        ],
+        "22": [
+          140,
+          170,
+          255
+        ],
+        "23": [
+          145,
+          175,
+          255
+        ],
+        "24": [
+          150,
+          180,
+          255
+        ],
+        "25": [
+          155,
+          185,
+          255
+        ],
+        "26": [
+          160,
+          190,
+          255
+        ],
+        "27": [
+          165,
+          195,
+          255
+        ],
+        "28": [
+          170,
+          200,
+          255
+        ],
+        "29": [
+          175,
+          205,
+          255
+        ],
+        "30": [
+          180,
+          210,
+          255
+        ],
+        "31": [
+          185,
+          215,
+          255
+        ]
       },
-      "resource_spawns": ["fish_spot", "water_source", "salt_deposit"]
+      "resource_spawns": [
+        "fish_spot",
+        "water_source",
+        "salt_deposit"
+      ]
     }
   ]
 }

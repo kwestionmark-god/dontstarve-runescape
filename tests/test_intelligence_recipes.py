@@ -43,7 +43,7 @@ class TestIntelligenceRecipeParsing:
             data = json.load(f)
         assert "recipes" in data
         assert isinstance(data["recipes"], list)
-        assert len(data["recipes"]) == 8, f"Expected 8 recipes, got {len(data['recipes'])}"
+        assert len(data["recipes"]) == 10, f"Expected 10 recipes, got {len(data['recipes'])}"
 
     @pytest.mark.parametrize("recipe_id", EXPECTED_RECIPE_IDS)
     def test_recipe_exists_in_json(self, recipe_id: str) -> None:
@@ -225,7 +225,7 @@ class TestIntelligenceRecipeLoading:
 
         cs = CraftingSystem(recipe_registry=RecipeRegistry())
         count = cs.load_recipes(recipes_data)
-        assert count == 8, f"Expected 8 recipes, loaded {count}"
+        assert count == 10, f"Expected 10 recipes, loaded {count}"
 
     def test_new_recipes_are_registered(self) -> None:
         """All 8 new intelligence recipes should be in the crafting system."""
