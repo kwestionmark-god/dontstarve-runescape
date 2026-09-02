@@ -236,7 +236,7 @@ class DiplomacyPanel(PanelWindow):
 
         left = content_rect.x + 10
         gap = self.row_gap
-        y = content_rect.y + self._scroll_offset
+        y = content_rect.y - self._scroll_offset
 
         # Faction info line
         info_text = f"Faction: {info.name}  |  Leader: {info.leader_name}"

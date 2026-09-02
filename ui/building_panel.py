@@ -94,7 +94,7 @@ class BuildingPanel(PanelWindow):
 
         left = content_rect.x + 10
         gap = self.row_gap
-        y = content_rect.y + self._scroll_offset
+        y = content_rect.y - self._scroll_offset
 
         # Tab buttons
         tabs = ["common", "defensive", "offensive", "decorative"]

@@ -138,7 +138,7 @@ class SkillPanel(PanelWindow):
         snapshot = self.skill_manager.get_snapshot()
         left = content_rect.x + 10
         gap = self.row_gap
-        y = content_rect.y + self._scroll_offset
+        y = content_rect.y - self._scroll_offset
 
         for skill_id, data in snapshot.items():
             level = data["level"]

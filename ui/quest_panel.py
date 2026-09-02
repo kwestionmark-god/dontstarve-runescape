@@ -354,14 +354,9 @@ class QuestPanel(PanelWindow):
 
     def _render_quest_list(self, screen: pygame.Surface, quests: list, left: int, top: int, content_w: int, is_available: bool = False) -> None:
         """Render a list of quests with scrolling."""
-        # Clamp scroll offset
-        max_offset = max(0, len(quests) - self.MAX_VISIBLE_QUESTS)
-        self._scroll_offset = min(self._scroll_offset, max_offset)
-        self._scroll_offset = max(0, self._scroll_offset)
-
-        visible_quests = quests[self._scroll_offset:self._scroll_offset + self.MAX_VISIBLE_QUESTS]
-
-        for i, quest in enumerate(visible_quests):
+        # Draw every row; the content clip clips, and _scroll_offset (applied
+        # by the caller through `top`, in pixels) scrolls them.
+        for i, quest in enumerate(quests):
             row_y = top + i * (self.QUEST_ROW_HEIGHT + self.QUEST_ROW_GAP)
 
             # Determine quest_id and quest_def
@@ -565,8 +560,6 @@ class QuestPanel(PanelWindow):
 
         # Quest navigation - use base class selection
         quests = self._get_current_quests()
-        max_offset = max(0, len(quests) - self.MAX_VISIBLE_QUESTS)
-        self._scroll_offset = min(self._scroll_offset, max_offset)
 
         if key in (pygame.K_w, pygame.K_UP):
             # Move selection up
@@ -583,7 +576,9 @@ class QuestPanel(PanelWindow):
                 self._selected_quest_index = self._selected_index
             return None
         elif key == pygame.K_RETURN:
-            if 0 <= self._selected_quest_index < len(quests):
+            # Only the "available" tab yields quest definitions that can be
+            # accepted; pressing Enter elsewhere never fires accept.
+            if self._tab == "available" and 0 <= self._selected_quest_index < len(quests):
                 quest = quests[self._selected_quest_index]
                 return ("accept_quest", quest.quest_id)
 
@@ -669,7 +664,7 @@ class QuestPanel(PanelWindow):
 
     def handle_click(self, x: int, y: int) -> tuple[str, ...] | None:
         """Handle a click on the quest panel (compatibility wrapper)."""
-        return self.on_click(x, y)
+        return super().handle_click(x, y, 1)
 
     def handle_key(self, key: int) -> tuple[str, ...] | None:
         """Keyboard navigation (compatibility wrapper)."""

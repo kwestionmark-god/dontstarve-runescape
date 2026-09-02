@@ -527,6 +527,21 @@ class InputRouter:
                 if result is not None:
                     self._panel_dispatcher.dispatch_click(game.state, "inventory", result)
                 return
+            elif game.state == GameState.SKILL_PANEL and game._skill_panel is not None:
+                result = game._skill_panel.handle_click(event.pos[0], event.pos[1])
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "skill", result)
+                return
+            elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
+                result = game._crafting_panel.handle_click(event.pos[0], event.pos[1])
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "crafting", result)
+                return
+            elif game.state == GameState.GEAR_PANEL and game._gear_panel is not None:
+                result = game._gear_panel.handle_click(event.pos[0], event.pos[1])
+                if result is not None:
+                    self._panel_dispatcher.dispatch_click(game.state, "gear", result)
+                return
             elif game.state == GameState.PLAYING:
                 self._handle_hotbar_click(game, event.pos[0], event.pos[1])
                 # Click-to-move / attack

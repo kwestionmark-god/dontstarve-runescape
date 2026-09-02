@@ -64,12 +64,16 @@ def test_wheel_scrolls_and_clamps():
     panel.render(pygame.Surface((800, 600)))
     assert panel.max_offset > 0  # content overflows -> scrollbar active
     before = panel._scroll_offset
-    panel.handle_wheel(1)  # wheel delta delivered via the base entry point
+    # Wheel-down (negative delta) scrolls content down: offset grows.
+    panel.handle_wheel(-1)  # wheel delta delivered via the base entry point
     assert panel._scroll_offset == before + 1
+    # Wheel-up at the top is clamped at 0.
+    panel.handle_wheel(1)
+    assert panel._scroll_offset == before
     # Scroll to the bottom, then a further delta must clamp.
     panel.scroll_by(10_000)
     assert panel._scroll_offset == panel.max_offset
-    panel.handle_wheel(1)
+    panel.handle_wheel(-1)
     assert panel._scroll_offset == panel.max_offset
 
 

@@ -226,7 +226,7 @@ class RecruitPanel(PanelWindow):
         npc = info.npc
         left = content_rect.x + 10
         gap = self.row_gap
-        y = content_rect.y + self._scroll_offset
+        y = content_rect.y - self._scroll_offset
 
         # Title
         title_surf = self.font_bold.render(f"Recruit {npc.name}", True, self.TEXT_COLOR)

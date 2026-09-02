@@ -106,7 +106,7 @@ class InventoryPanel(PanelWindow):
 
         left = content_rect.x + 10
         gap = self.row_gap
-        y = content_rect.y + self._scroll_offset
+        y = content_rect.y - self._scroll_offset
 
         # Title is drawn by base class
 

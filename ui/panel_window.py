@@ -367,8 +367,13 @@ class PanelWindow:
         return self.on_key(key)
 
     def handle_wheel(self, delta: int) -> None:
-        """Deliver a mouse-wheel delta to the panel (clamped by the base)."""
-        self.scroll_by(delta)
+        """Deliver a mouse-wheel delta to the panel (clamped by the base).
+
+        ``delta`` is pygame's raw ``event.y`` (positive = wheel up). With the
+        standard convention where ``_scroll_offset`` is px scrolled away from
+        the top, wheel-up must reduce the offset, so the sign is negated.
+        """
+        self.scroll_by(-delta)
 
     def handle_click(self, x: int, y: int, button: int = 1) -> Optional[tuple]:
         """
