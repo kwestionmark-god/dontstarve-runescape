@@ -782,13 +782,18 @@ def generate_world_sprites() -> None:
         2: (80, 150, 230),   # Light blue (shimmer)
         3: (40, 100, 180),   # Dark blue (edges)
     }
-    # Water pool (ellipse via circles)
-    circle(water, (8, 9), 6, PALETTE[1])
-    circle(water, (8, 8), 5, PALETTE[2])
-    circle(water, (8, 10), 5, PALETTE[3])
-    # Shimmer
-    water.set_at((6, 8), (200, 220, 255))
-    water.set_at((10, 9), (200, 220, 255))
+    # Spring pool: dark rim -> mid body -> light top, ripple arcs + glints
+    circle(water, (8, 9), 7, PALETTE[3])        # rim / depth edge
+    circle(water, (8, 9), 6, PALETTE[1])        # main body
+    circle(water, (8, 8), 5, PALETTE[2])        # lit upper half
+    circle(water, (8, 11), 4, PALETTE[1])       # deepen bottom
+    # Ripple arcs (two broken light arcs across the middle)
+    for rx, ry, rw in ((4, 9, 3), (8, 10, 4), (5, 8, 2)):
+        rectangle(water, (rx, ry, rw, 1), (150, 200, 245))
+    # Glints
+    water.set_at((6, 6), (220, 235, 255))
+    water.set_at((7, 6), (200, 220, 255))
+    water.set_at((11, 8), (190, 215, 250))
     save_surface(os.path.join(output_dir, "water.png"), water)
 
     # Driftwood (16x16)
@@ -1345,6 +1350,52 @@ def generate_terrain_sprites() -> None:
         save_surface(os.path.join(output_dir, f"{biome_name}.png"), tile)
 
     print(f"  Generated 6 terrain sprites")
+
+
+def generate_water_terrain_sprite() -> None:
+    """Generate the water terrain tile sprite (deep water with wavelets).
+
+    Separate from generate_terrain_sprites() because that function's
+    hash()-based seeds are not reproducible across processes; this one
+    uses a fixed integer seed so the water tile can be regenerated alone.
+    """
+    import random
+
+    output_dir = os.path.join(OUTPUT_ROOT, "terrain")
+    rng = random.Random(20240901)
+
+    deep = (30, 60, 160)
+    tile = pygame.Surface((TERRAIN_SIZE, TERRAIN_SIZE), pygame.SRCALPHA)
+    rectangle(tile, (0, 0, TERRAIN_SIZE, TERRAIN_SIZE), deep)
+
+    # Soft depth patches (darker patches, slightly offset rows)
+    for _ in range(14):
+        w = rng.randint(6, 16)
+        h = rng.randint(3, 7)
+        x = rng.randint(0, TERRAIN_SIZE - w)
+        y = rng.randint(0, TERRAIN_SIZE - h)
+        shade = rng.randint(-18, 8)
+        color = tuple(max(0, min(255, c + shade)) for c in deep)
+        rectangle(tile, (x, y, w, h), color)
+
+    # Wavelet dashes: short lighter horizontal strokes on a rough grid
+    wave = (120, 170, 235)
+    for row_y in range(6, TERRAIN_SIZE, 10):
+        x = rng.randint(-6, 4)
+        while x < TERRAIN_SIZE - 4:
+            length = rng.randint(4, 9)
+            dy = rng.randint(0, 2)
+            rectangle(tile, (x, row_y + dy, length, 1), wave)
+            x += length + rng.randint(7, 14)
+
+    # Sparse bright glints
+    glint = (190, 215, 250)
+    for _ in range(10):
+        x = rng.randint(0, TERRAIN_SIZE - 3)
+        y = rng.randint(0, TERRAIN_SIZE - 2)
+        rectangle(tile, (x, y, 2, 1), glint)
+
+    save_surface(os.path.join(output_dir, "water.png"), tile)
 
 
 # ── Item Sprites ──────────────────────────────────────────────────────
@@ -1904,12 +1955,14 @@ def generate_item_sprites() -> None:
         2: (80, 150, 230),   # Light blue
         3: (40, 100, 180),   # Dark blue
     }
-    # Water drop/bottle shape
-    circle(water_item, (8, 9), 5, PALETTE[1])
-    circle(water_item, (8, 8), 4, PALETTE[2])
-    circle(water_item, (8, 10), 4, PALETTE[3])
-    water_item.set_at((6, 8), (200, 220, 255))
-    water_item.set_at((10, 9), (200, 220, 255))
+    # Water droplet: tapered top, round body, crescent highlight
+    circle(water_item, (8, 10), 5, PALETTE[1])
+    circle(water_item, (8, 9), 4, PALETTE[2])
+    circle(water_item, (8, 11), 4, PALETTE[3])
+    rectangle(water_item, (7, 3, 2, 5), PALETTE[1])   # drop tail
+    water_item.set_at((7, 2), PALETTE[2])
+    water_item.set_at((6, 8), (220, 235, 255))
+    water_item.set_at((7, 8), (200, 220, 255))
     save_surface(os.path.join(output_dir, "water.png"), water_item)
 
     # ── Driftwood (16x16) ──
@@ -5427,6 +5480,7 @@ def main() -> None:
     generate_structure_sprites()
     generate_npc_sprites()
     generate_terrain_sprites()
+    generate_water_terrain_sprite()
     generate_item_sprites()
     generate_campfire_sprite()
     generate_terrain_subassets()
