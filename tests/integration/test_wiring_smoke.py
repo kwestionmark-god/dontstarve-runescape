@@ -20,9 +20,12 @@ from skills.construction.construction import Construction
 def game():
     """Create a fully bootstrapped Game instance by running begin_world_gen."""
     game = Game()
-    # This does world generation + bootstrap initialization
-    game._bootstrap.begin_world_gen()
-    # Wait for loading to complete (transition to PLAYING)
+    # TITLE -> LOADING kicks off async world generation in a background thread
+    game.set_state(GameState.LOADING)
+    # Wait for the world gen thread, then run the completion transition
+    game._world_gen_thread.join(timeout=300)
+    game.check_world_gen_complete()
+    assert game._world_gen_error is None
     assert game.state == GameState.PLAYING
     return game
 
