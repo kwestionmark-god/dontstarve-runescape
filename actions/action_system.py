@@ -95,6 +95,19 @@ class ActionSystem:
             if tool is None:
                 return f"You need a {resource.requires_tool}."
 
+        # Skill-level gate: high-tier nodes require a minimum level in the
+        # governing skill (woodcutting/mining/foraging).
+        if resource is not None:
+            required_level = getattr(resource, "required_level", 1)
+            if required_level > 1 and skill_manager is not None:
+                skill_id = ActionType.get_skill_id(action_type, resource)
+                level = skill_manager.get_skill_level(skill_id)
+                if level < required_level:
+                    return (
+                        f"You need {skill_id.capitalize()} level {required_level} "
+                        f"to harvest {resource.name}."
+                    )
+
         # Build the action with correct parameters
         action = ActiveAction(action_type=action_type)
 

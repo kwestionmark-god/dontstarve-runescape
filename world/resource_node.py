@@ -30,6 +30,7 @@ class ResourceNode:
     regrow_time: float       # Seconds to regrow after depletion
     sprite_key: str          # Sprite sheet reference
     requires_tool: str | None  # Tool required (e.g., "axe", "pickaxe")
+    required_level: int = 1    # Skill level required to harvest (0/1 = no gate)
     name: str = ""           # Human-readable name (e.g. "Oak Tree")
     seasons_available: list[str] = field(default_factory=list)  # Seasons this resource spawns in; empty = all seasons
     biome_affinity: dict[str, float] = field(default_factory=dict)  # Biome ID -> density multiplier
@@ -134,6 +135,7 @@ class ResourceNode:
             regrow_time=data["regrow_time"],
             sprite_key=data["sprite_key"],
             requires_tool=data.get("requires_tool"),
+            required_level=data.get("required_level", 1),
             seasons_available=data.get("seasons_available", []),
             biome_affinity=data.get("biome_affinity", {}),
         )
