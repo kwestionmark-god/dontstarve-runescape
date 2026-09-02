@@ -218,8 +218,6 @@ class Game:
 
     def update(self, dt: float) -> None:
         self.dt = dt
-        if self.input_manager is not None:
-            self.input_manager.clear_frame()
         if self.survival is not None:
             self.survival.tick(dt)
         if self.inventory is not None and self.player is not None:
@@ -291,6 +289,12 @@ class Game:
                     self.lighting_system.update_from_season(self.season_system)
                 if self.weather_system is not None:
                     self.lighting_system.update_from_weather(self.weather_system)
+
+        # One-shot input flags (wheel zoom, click-to-move, panel toggles)
+        # are consumed during this update; clear them at the END of the
+        # frame so consumers actually see them before the reset.
+        if self.input_manager is not None:
+            self.input_manager.clear_frame()
 
     def render(self, screen: pygame.Surface) -> None:
         if self.state == GameState.TITLE:

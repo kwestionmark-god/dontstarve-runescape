@@ -129,8 +129,8 @@ class Camera:
             zoom_delta -= 1.0
 
         if zoom_delta != 0.0:
-            zoom_delta_px = zoom_delta * 2.5 * self.zoom
-            new_zoom = self.zoom + zoom_delta_px
+            # One wheel tick = ~12% multiplicative step (clamped)
+            new_zoom = self.zoom * (1.12 if zoom_delta > 0 else 1 / 1.12)
             new_zoom = max(CAMERA_ZOOM_MIN, min(new_zoom, CAMERA_ZOOM_MAX))
             self.zoom = new_zoom
             # Consume the one-shot trigger
