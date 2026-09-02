@@ -155,30 +155,7 @@
       "faction_strength": 1.0,
       "hostile_monster_types": ["sea_serpent"]
     },
-    {
-      "npc_id": "quest_giver_swamp_1",
-      "name": "Shaman Kree",
-      "npc_type": "quest_giver",
-      "world_x": 250,
-      "world_y": 250,
-      "sprite_key": "npc/quest_giver_female_0",
-      "faction": "swamp_factions",
-      "dialogue_lines": [
-        "The swamp hides many secrets, outsider.",
-        "Poison frogs and crocodiles patrol these waters.",
-        "Prove yourself and I will share my knowledge."
-      ],
-      "behavior": "idle",
-      "patrol_area": [230, 230, 270, 270],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.8,
-      "health": 18,
-      "max_health": 18,
-      "available_quest_ids": ["swamp_crossing", "poison_antidote"],
-      "giver_faction": "swamp_factions"
-    },
+    
     {
       "npc_id": "quest_giver_mountains_1",
       "name": "Stone Guardian",
@@ -401,7 +378,8 @@
       "max_health": 18,
       "faction_id": "swamp_factions",
       "faction_strength": 1.0,
-      "hostile_monster_types": ["poison_frog", "crocodile"]
+      "hostile_monster_types": ["poison_frog", "crocodile"],
+      "available_quest_ids": ["swamp_crossing", "poison_antidote"]
     },
     {
       "npc_id": "stone_guardian",
@@ -559,16 +537,7 @@
       "is_safe_zone": false,
       "min_distance_from_player": 200
     },
-    {
-      "spawn_id": "spawn_swamp_1",
-      "tile_x": 250,
-      "tile_y": 250,
-      "npc_types": ["quest_giver"],
-      "faction": "swamp_factions",
-      "biome": "swamp",
-      "is_safe_zone": false,
-      "min_distance_from_player": 200
-    },
+    
     {
       "spawn_id": "spawn_mountains_1",
       "tile_x": 400,

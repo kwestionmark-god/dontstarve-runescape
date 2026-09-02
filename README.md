@@ -87,13 +87,14 @@ The test suite is designed to run **without a display** (no Pygame window):
 python -m pytest -q
 ```
 
-> At the time of writing, the suite reports **683 passed**
+> At the time of writing, the suite reports **819 passed**
 > (`python -m pytest -q`). It runs headless in this environment: it passes both
-> with and without `SDL_VIDEODRIVER=dummy`. Most tests import pure-logic
-> modules that never touch a display; five UI/input test files instantiate
-> Pygame and rely on its dummy-video fallback. There is no `conftest.py` or
-> explicit dummy-driver setup, so headlessness relies on that Pygame fallback
-> rather than an enforced configuration.
+> with and without `SDL_VIDEODRIVER=dummy`. A session-scoped fixture in
+> `tests/conftest.py` initializes Pygame once for the entire test run and
+> tears it down at the end, avoiding conflicts between test modules. Most
+> tests import pure-logic modules that never touch a display; five UI/input
+> test files instantiate Pygame and rely on the session fixture for proper
+> isolation.
 
 ---
 
@@ -471,9 +472,10 @@ dict-of-dicts. `npcs.json` is the only file with a second top-level array
 systems bypass it and read JSON directly via a module-relative `DATA_DIR` —
 there is no single "load this file" entry point.
 
-`tests/`: a ~516-method `unittest`-style suite (runnable under `pytest`), mostly
-headless. `tests/integration/` cross-module flows (full quest accept→track→
-complete→reward, faction/NPC integration). `tools/`: `generate_sprites.py`
+`tests/`: an **819-test** pytest suite (runnable under `pytest`), mostly
+headless. A session-scoped fixture in `tests/conftest.py` initializes Pygame
+once for the entire run. `tests/integration/` cross-module flows (full quest
+accept→track→complete→reward, faction/NPC integration). `tools/`: `generate_sprites.py`
 (procedural PNG generation), `validate_phase3_data.py` (cross-reference
 validator), `check_init_hygiene.py` (`__init__.py` linter). `assets/sprites/`:
 the generated PNG output with a documented naming/fallback scheme.
@@ -539,7 +541,7 @@ consolidated into it and `tmp/README-draft.md`).
 
 ### Still live
 
-The items below were re-verified against live code on 2026-08-25. Anything fixed this
+The items below were re-verified against live code on 2026-09-01. Anything fixed this
 cycle was moved to [Fixed this cycle](#fixed-this-cycle); only the genuinely-unresolved
 items remain here.
 
@@ -554,7 +556,7 @@ items remain here.
   callers (see [Known limitations](#known-limitations)).
   Available to wire up — see `tmp/IMPLEMENTATION-PLAN.md` §P1.
 
-### Fixed this cycle (2026-08-25)
+### Fixed this cycle (2026-09-01)
 
 Re-verified against live code; fixed as noted. Retained here for history — see
 `tmp/LIVE-ISSUES.md` for the full, actively-maintained ledger.

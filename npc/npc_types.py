@@ -244,6 +244,7 @@ class FactionLeaderNPC(NPC):
         faction_members: NPCs that are members of this faction.
         negotiation_success_rate: Base rate for successful negotiations.
         hostile_monster_types: Monster types hostile to this faction.
+        available_quests: Optional list of quest IDs this faction leader offers.
     """
 
     npc_type: str = "faction_leader"
@@ -252,6 +253,7 @@ class FactionLeaderNPC(NPC):
     faction_members: List[NPC] = field(default_factory=list)
     negotiation_success_rate: float = 0.5
     hostile_monster_types: List[str] = field(default_factory=list)
+    available_quests: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "FactionLeaderNPC":
@@ -287,6 +289,7 @@ class FactionLeaderNPC(NPC):
             faction_members=[],
             negotiation_success_rate=1.0 - data.get("hostility_level", 0.5),
             hostile_monster_types=data.get("hostile_monster_types", []),
+            available_quests=data.get("available_quest_ids", []),
         )
 
     def get_faction_info(self, player: Any) -> Dict[str, Any]:

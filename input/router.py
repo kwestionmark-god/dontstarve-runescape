@@ -237,7 +237,11 @@ class InputRouter:
                 elif npc_type == "quest_giver":
                     self._npc_flows.open_quest_panel(nearby_npc)
                 elif npc_type == "faction_leader":
-                    self._npc_flows.open_diplomacy_panel(nearby_npc)
+                    # Faction leaders with quests open quest panel; others open diplomacy
+                    if getattr(nearby_npc, "available_quests", None):
+                        self._npc_flows.open_quest_panel(nearby_npc)
+                    else:
+                        self._npc_flows.open_diplomacy_panel(nearby_npc)
                 elif npc_type == "recruit":
                     self._npc_flows.open_recruit_panel(nearby_npc)
                 else:
