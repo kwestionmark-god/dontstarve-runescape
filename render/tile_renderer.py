@@ -15,8 +15,8 @@ from __future__ import annotations
 import math
 import pygame
 from config import (
-    Z_SCALE, FOG_NEAR_DISTANCE, FOG_FAR_DISTANCE, FOG_CULL_DISTANCE, FOG_COLOR,
-    TILE_SUBDIVISIONS, SHADING_STRENGTH,
+    Z_SCALE, FOG_CULL_DISTANCE, FOG_COLOR, TILE_SUBDIVISIONS, SHADING_STRENGTH,
+    fog_alpha_for_distance,
 )
 from render.gouraud import fill_triangle
 from typing import TYPE_CHECKING
@@ -132,10 +132,14 @@ class TileRenderer:
         # ── Collect visible tiles with depth ────────────────────────
         tiles_to_render: list[tuple[float, int, int]] = []
 
-        x_min = max(0, int(left // tile_size))
-        x_max = min(tile_map.width, int(right // tile_size) + 1)
-        y_min = max(0, int(top // tile_size))
-        y_max = min(tile_map.height, int(bottom // tile_size) + 1)
+        # Render a margin beyond the projected view rect: elevated tiles shift
+        # upward on screen and rotated sprites extend past their axis-aligned
+        # footprint, so without a margin the window edges show bare sky.
+        edge_margin_tiles = 2
+        x_min = max(0, int(left // tile_size) - edge_margin_tiles)
+        x_max = min(tile_map.width, int(right // tile_size) + 1 + edge_margin_tiles)
+        y_min = max(0, int(top // tile_size) - edge_margin_tiles)
+        y_max = min(tile_map.height, int(bottom // tile_size) + 1 + edge_margin_tiles)
 
         for x in range(x_min, x_max):
             for y in range(y_min, y_max):
@@ -175,16 +179,7 @@ class TileRenderer:
                 tile_cx = x * tile_size + tile_size / 2
                 tile_cy = y * tile_size + tile_size / 2
                 dist = math.hypot(tile_cx - px, tile_cy - py)
-                if dist > FOG_CULL_DISTANCE:
-                    tile_fog_alpha[(x, y)] = -1  # Culled
-                elif dist > FOG_FAR_DISTANCE:
-                    tile_fog_alpha[(x, y)] = 255
-                elif dist > FOG_NEAR_DISTANCE:
-                    tile_fog_alpha[(x, y)] = int(
-                        255 * (dist - FOG_NEAR_DISTANCE) / (FOG_FAR_DISTANCE - FOG_NEAR_DISTANCE)
-                    )
-                else:
-                    tile_fog_alpha[(x, y)] = 0
+                tile_fog_alpha[(x, y)] = fog_alpha_for_distance(dist)  # -1 = culled
         else:
             for _depth, x, y in tiles_to_render:
                 tile_fog_alpha[(x, y)] = 0
@@ -467,8 +462,8 @@ class TileRenderer:
             sin_y = math.sin(yaw)
             axis_aligned = abs(sin_y) < 0.01 and cos_y > 0
             if axis_aligned:
-                scaled_w = max(1, int(round(sprite.get_width() * zoom)) + 2)
-                scaled_h = max(1, int(round(sprite.get_height() * zoom * pitch_factor)) + 2)
+                scaled_w = max(1, int(round(sprite.get_width() * zoom)) + 4)
+                scaled_h = max(1, int(round(sprite.get_height() * zoom * pitch_factor)) + 4)
                 sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
             else:
                 # Camera yaw maps world +X to the right/down (clockwise on
@@ -476,11 +471,13 @@ class TileRenderer:
                 # the angle is negated.
                 rotated = pygame.transform.rotate(sprite, -math.degrees(yaw))
                 bbox = sprite.get_width() * (abs(cos_y) + abs(sin_y))
-                # +2 px: tiles are painted back-to-front, so the front tile's
+                # +4 px: tiles are painted back-to-front, so the front tile's
                 # solid interior covers the anti-aliased fringe of its
                 # neighbours instead of letting the background bleed through.
-                scaled_w = max(1, int(round(bbox * zoom)) + 2)
-                scaled_h = max(1, int(round(bbox * zoom * pitch_factor)) + 2)
+                # Neighbouring tiles also shift vertically by their elevation
+                # difference, so the overdraw must exceed that shift.
+                scaled_w = max(1, int(round(bbox * zoom)) + 4)
+                scaled_h = max(1, int(round(bbox * zoom * pitch_factor)) + 4)
                 sprite = pygame.transform.smoothscale(rotated, (scaled_w, scaled_h))
 
             if len(self._xform_cache) > 4096:
