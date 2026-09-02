@@ -530,7 +530,8 @@ class HUD:
         if self.survival is None:
             return
 
-        # Calculate positions
+        # Calculate positions. The left column stacks downward with a
+        # running cursor so no two elements share the same rows.
         x = self.MARGIN_X
         y = self.MARGIN_Y
 
@@ -556,6 +557,7 @@ class HUD:
                 forecast,
                 x, y + 42,
             )
+            y += 62
 
         # Hunger bar
         hunger_color = self._get_hunger_color(self.survival.get_hunger_percent())
@@ -614,7 +616,9 @@ class HUD:
         # ── Contextual XP display (action progress bar) ────────────
         if self._active_action_progress > 0 and self._active_action_skill:
             bar_x = x
-            bar_y = y + 50
+            bar_y = faction_y + (self.BAR_HEIGHT + self.BAR_SPACING) * (
+                2 if (action_sys is not None and hasattr(action_sys, "stamina")) else 1
+            )
             bar_w = self.BAR_WIDTH
             bar_h = 10
             # Background
@@ -631,7 +635,12 @@ class HUD:
             screen.blit(label_surf, (bar_x, bar_y + 12))
 
         # ── Notifications (level-ups, action results) ─────────────
-        notif_y = faction_y + self.BAR_HEIGHT + self.BAR_SPACING + 10
+        notif_top = faction_y + self.BAR_HEIGHT + self.BAR_SPACING
+        if action_sys is not None and hasattr(action_sys, "stamina"):
+            notif_top += self.BAR_HEIGHT + self.BAR_SPACING
+        if self._active_action_progress > 0 and self._active_action_skill:
+            notif_top += 10 + 12 + self.font.get_height()
+        notif_y = notif_top + 10
         for notif in self._notifications:
             color = notif.color
             alpha = self._get_notification_alpha(notif)
