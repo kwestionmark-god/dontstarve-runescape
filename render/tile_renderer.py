@@ -19,6 +19,7 @@ from config import (
     fog_alpha_for_distance,
 )
 from render.gouraud import fill_triangle
+from render.quad_warp import warp_sprite_to_quad
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -114,8 +115,10 @@ class TileRenderer:
 
         # Terrain subdivision from preset (for textured mode)
         terrain_subdiv = TILE_SUBDIVISIONS
+        terrain_warp = True
         if lighting is not None:
             terrain_subdiv = lighting.preset_config.get("terrain_subdiv", TILE_SUBDIVISIONS)
+            terrain_warp = lighting.preset_config.get("terrain_warp", True)
 
         left, top, right, bottom = camera.get_view_rect()
         if left == right or top == bottom:
@@ -240,6 +243,7 @@ class TileRenderer:
                     fog_alpha, FOG_COLOR,
                     use_rim,
                     terrain_subdiv,
+                    terrain_warp,
                 )
 
     def _render_tile_gouraud(
@@ -386,6 +390,7 @@ class TileRenderer:
         fog_alpha: int, fog_color: tuple[int, int, int],
         use_rim: bool,
         terrain_subdiv: int = TILE_SUBDIVISIONS,
+        terrain_warp: bool = True,
     ) -> None:
         """Render tile using biome sprite with sub-tile interpolated shading."""
         # Load terrain sprite
@@ -442,12 +447,30 @@ class TileRenderer:
         else:
             shade_key = None
 
+        # Elevation-displaced corner quad: warping the sprite onto this
+        # quad makes the terrain surface visibly drape over the
+        # heightfield instead of floating as flat, undistorted sprites.
+        h_nw = self.tile_map.get_corner_height(x, y)
+        h_ne = self.tile_map.get_corner_height(x + 1, y)
+        h_se = self.tile_map.get_corner_height(x + 1, y + 1)
+        h_sw = self.tile_map.get_corner_height(x, y + 1)
+        p_nw = p_ne = p_se = p_sw = None
+        height_key = None
+        if terrain_warp:
+            p_nw = camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+            p_ne = camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+            p_se = camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+            p_sw = camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE * TERRAIN_HEIGHT_SCALE)
+            # Quarter-level quantization so smooth camera motion doesn't
+            # thrash the cache; heights change only when the world does.
+            height_key = (int(h_nw * 4), int(h_ne * 4), int(h_sw * 4), int(h_se * 4))
+
         tkey = (
-            x, y, biome_name, shade_key,
+            x, y, biome_name, shade_key, height_key,
             int(yaw * 720), int(zoom * 200), int(pitch_factor * 500),
         )
-        sprite = self._xform_cache.get(tkey)
-        if sprite is None:
+        cached = self._xform_cache.get(tkey)
+        if cached is None:
             sprite = terrain_sprite
             # Bake per-corner brightness/AO as sub-tile multiplicative shading
             if corner_brightness is not None:
@@ -461,7 +484,16 @@ class TileRenderer:
             cos_y = math.cos(yaw)
             sin_y = math.sin(yaw)
             axis_aligned = abs(sin_y) < 0.01 and cos_y > 0
-            if axis_aligned:
+            if p_nw is not None:
+                # Warp mode: the quad is already yaw-rotated in screen
+                # space, so the source must stay un-rotated — strip rows
+                # are parameterized along the tile's local axes, not the
+                # rotated diamond's. Neighbouring tiles share corner
+                # heights exactly, so no +4 margin is needed.
+                scaled_w = max(1, int(round(sprite.get_width() * zoom)))
+                scaled_h = max(1, int(round(sprite.get_height() * zoom * pitch_factor)))
+                sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
+            elif axis_aligned:
                 scaled_w = max(1, int(round(sprite.get_width() * zoom)) + 4)
                 scaled_h = max(1, int(round(sprite.get_height() * zoom * pitch_factor)) + 4)
                 sprite = pygame.transform.scale(sprite, (scaled_w, scaled_h))
@@ -480,18 +512,46 @@ class TileRenderer:
                 scaled_h = max(1, int(round(bbox * zoom * pitch_factor)) + 4)
                 sprite = pygame.transform.smoothscale(rotated, (scaled_w, scaled_h))
 
+            base_w, base_h = sprite.get_size()
+            dx = dy = 0
+            if p_nw is not None:
+                warped = warp_sprite_to_quad(sprite, p_nw, p_ne, p_se, p_sw)
+                if warped is not None:
+                    sprite, wx, wy = warped
+                    # Blit delta is stored relative to where the flat blit
+                    # would have gone, so camera panning (a pure screen
+                    # translation) keeps the cache valid.
+                    tile_center_x = x * 64 + 32
+                    tile_center_y = y * 64 + 32
+                    avg_height = self.tile_map.get_tile_center_height(x, y)
+                    cx, cy = camera.world_to_screen(
+                        tile_center_x, tile_center_y,
+                        elevation=avg_height * Z_SCALE * TERRAIN_HEIGHT_SCALE,
+                    )
+                    flat_x = int(cx) - base_w // 2
+                    flat_y = int(cy) - base_h // 2
+                    dx, dy = wx - flat_x, wy - flat_y
+
             if len(self._xform_cache) > 4096:
                 self._xform_cache.clear()
-            self._xform_cache[tkey] = sprite
+            cached = (sprite, base_w, base_h, dx, dy)
+            self._xform_cache[tkey] = cached
 
-        # Draw centered on the projected tile center
+        sprite, base_w, base_h, dx, dy = cached
+
+        # Draw centered on the projected tile center, plus the warp delta.
         tile_center_x = x * 64 + 32
         tile_center_y = y * 64 + 32
         avg_height = self.tile_map.get_tile_center_height(x, y)
         screen_x, screen_y = camera.world_to_screen(
-            tile_center_x, tile_center_y, elevation=avg_height * Z_SCALE,
+            tile_center_x, tile_center_y, elevation=avg_height * Z_SCALE * TERRAIN_HEIGHT_SCALE,
         )
-        rect = sprite.get_rect(center=(int(screen_x), int(screen_y)))
+        rect = pygame.Rect(
+            int(screen_x) - base_w // 2 + dx,
+            int(screen_y) - base_h // 2 + dy,
+            sprite.get_width(),
+            sprite.get_height(),
+        )
         self.screen.blit(sprite, rect)
 
         # Fog overlay drawn as a screen-space quad so player movement (which
