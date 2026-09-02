@@ -1,7 +1,6 @@
 {
   "_description": "Item definitions for all Phase 1 items.",
   "_note": "Items referenced by resources, recipes, and food tables.",
-
   "items": [
     {
       "id": "oak_logs",
@@ -279,7 +278,6 @@
       "is_food": false,
       "sprite_key": "items/ore_rare"
     },
-
     {
       "id": "cooked_chicken",
       "name": "Cooked Chicken",
@@ -322,7 +320,6 @@
       "sprite_key": "items/meat_cooked",
       "cooking_base_item": "raw_meat"
     },
-
     {
       "id": "planks",
       "name": "Planks",
@@ -360,7 +357,6 @@
       "is_structure": true,
       "sprite_key": "world/campfire"
     },
-
     {
       "id": "axe",
       "name": "Axe",
@@ -383,7 +379,6 @@
       "durability": 100,
       "sprite_key": "items/pickaxe"
     },
-
     {
       "id": "tin_ore",
       "name": "Tin Ore",
@@ -393,7 +388,6 @@
       "is_food": false,
       "sprite_key": "items/ore_tin"
     },
-
     {
       "id": "smelted_iron_ingot",
       "name": "Smelted Iron Ingot",
@@ -403,7 +397,6 @@
       "is_food": false,
       "sprite_key": "items/ingot_iron"
     },
-
     {
       "id": "smelted_copper_ingot",
       "name": "Smelted Copper Ingot",
@@ -413,7 +406,6 @@
       "is_food": false,
       "sprite_key": "items/ingot_copper"
     },
-
     {
       "id": "smelted_bronze_ingot",
       "name": "Smelted Bronze Ingot",
@@ -423,7 +415,6 @@
       "is_food": false,
       "sprite_key": "items/ingot_bronze"
     },
-
     {
       "id": "smelted_steel_ingot",
       "name": "Smelted Steel Ingot",
@@ -433,7 +424,6 @@
       "is_food": false,
       "sprite_key": "items/ingot_steel"
     },
-
     {
       "id": "fired_brick",
       "name": "Fired Brick",
@@ -443,7 +433,6 @@
       "is_food": false,
       "sprite_key": "items/brick"
     },
-
     {
       "id": "cobblestone",
       "name": "Cobblestone",
@@ -453,7 +442,6 @@
       "is_food": false,
       "sprite_key": "items/cobblestone"
     },
-
     {
       "id": "stick",
       "name": "Stick",
@@ -463,7 +451,6 @@
       "is_food": false,
       "sprite_key": "items/stick"
     },
-
     {
       "id": "wolf_pelt",
       "name": "Wolf Pelt",
@@ -473,7 +460,6 @@
       "is_food": false,
       "sprite_key": "items/pelt_wolf"
     },
-
     {
       "id": "wolf_bone",
       "name": "Wolf Bone",
@@ -483,7 +469,6 @@
       "is_food": false,
       "sprite_key": "items/bone_wolf"
     },
-
     {
       "id": "bear_hide",
       "name": "Bear Hide",
@@ -493,7 +478,6 @@
       "is_food": false,
       "sprite_key": "items/hide_bear"
     },
-
     {
       "id": "bear_claw",
       "name": "Bear Claw",
@@ -503,7 +487,6 @@
       "is_food": false,
       "sprite_key": "items/claw_bear"
     },
-
     {
       "id": "poison_gland",
       "name": "Poison Gland",
@@ -513,7 +496,6 @@
       "is_food": false,
       "sprite_key": "items/gland_poison"
     },
-
     {
       "id": "scorpion_carapace",
       "name": "Scorpion Carapace",
@@ -523,7 +505,6 @@
       "is_food": false,
       "sprite_key": "items/carapace_scorpion"
     },
-
     {
       "id": "golem_core",
       "name": "Golem Core",
@@ -533,7 +514,6 @@
       "is_food": false,
       "sprite_key": "items/core_golem"
     },
-
     {
       "id": "boar_meat",
       "name": "Raw Boar Meat",
@@ -547,7 +527,6 @@
       "hp_restore": 0,
       "sprite_key": "items/meat_boar_raw"
     },
-
     {
       "id": "crab_meat",
       "name": "Crab Meat",
@@ -561,7 +540,6 @@
       "hp_restore": 0,
       "sprite_key": "items/meat_crab_raw"
     },
-
     {
       "id": "animal_fat",
       "name": "Animal Fat",
@@ -571,7 +549,6 @@
       "is_food": false,
       "sprite_key": "items/fat_animal"
     },
-
     {
       "id": "torch",
       "name": "Torch",
@@ -581,7 +558,6 @@
       "is_food": false,
       "sprite_key": "items/torch"
     },
-
     {
       "id": "ash",
       "name": "Ash",
@@ -591,7 +567,6 @@
       "is_food": false,
       "sprite_key": "items/ash"
     },
-
     {
       "id": "tree_sap",
       "name": "Tree Sap",
@@ -601,7 +576,6 @@
       "is_food": false,
       "sprite_key": "items/sap"
     },
-
     {
       "id": "polished_bone",
       "name": "Polished Bone",
@@ -611,7 +585,6 @@
       "is_food": false,
       "sprite_key": "items/bone_polished"
     },
-
     {
       "id": "bone_powder",
       "name": "Bone Powder",
@@ -621,7 +594,6 @@
       "is_food": false,
       "sprite_key": "items/bone_powder"
     },
-
     {
       "id": "refined_resin",
       "name": "Refined Resin",
@@ -631,7 +603,6 @@
       "is_food": false,
       "sprite_key": "items/resin"
     },
-
     {
       "id": "pitch",
       "name": "Pitch",
@@ -641,7 +612,6 @@
       "is_food": false,
       "sprite_key": "items/pitch"
     },
-
     {
       "id": "evaporated_salt",
       "name": "Evaporated Salt",
@@ -651,7 +621,6 @@
       "is_food": false,
       "sprite_key": "items/salt_evaporated"
     },
-
     {
       "id": "refined_salt",
       "name": "Refined Salt",
@@ -661,7 +630,6 @@
       "is_food": false,
       "sprite_key": "items/salt_refined"
     },
-
     {
       "id": "rendered_tallow",
       "name": "Rendered Tallow",
@@ -671,7 +639,6 @@
       "is_food": false,
       "sprite_key": "items/tallow"
     },
-
     {
       "id": "candle",
       "name": "Candle",
@@ -681,7 +648,6 @@
       "is_food": false,
       "sprite_key": "items/candle"
     },
-
     {
       "id": "filtered_honey",
       "name": "Filtered Honey",
@@ -695,7 +661,6 @@
       "hp_restore": 0,
       "sprite_key": "items/honey_filtered"
     },
-
     {
       "id": "mead_base",
       "name": "Mead Base",
@@ -709,7 +674,6 @@
       "hp_restore": 0,
       "sprite_key": "items/mead"
     },
-
     {
       "id": "reed",
       "name": "Reed",
@@ -719,7 +683,6 @@
       "is_food": false,
       "sprite_key": "items/reed"
     },
-
     {
       "id": "pressed_papyrus",
       "name": "Pressed Papyrus",
@@ -729,7 +692,6 @@
       "is_food": false,
       "sprite_key": "items/papyrus"
     },
-
     {
       "id": "paper",
       "name": "Paper",
@@ -739,7 +701,6 @@
       "is_food": false,
       "sprite_key": "items/paper"
     },
-
     {
       "id": "honeycomb",
       "name": "Honeycomb",
@@ -749,7 +710,6 @@
       "is_food": false,
       "sprite_key": "items/honeycomb"
     },
-
     {
       "id": "gold",
       "name": "Gold Coin",
@@ -760,7 +720,6 @@
       "is_currency": true,
       "sprite_key": "items/gold"
     },
-
     {
       "id": "healing_herbs",
       "name": "Healing Herbs",
@@ -913,7 +872,6 @@
       "is_food": false,
       "sprite_key": "items/sand_glass"
     },
-
     {
       "id": "steel_ingot_trade",
       "name": "Steel Ingot",
@@ -1017,7 +975,6 @@
       "is_food": false,
       "sprite_key": "items/djinn_essence"
     },
-
     {
       "id": "goblin_trophy",
       "name": "Goblin Trophy",
@@ -1404,6 +1361,244 @@
       "is_essential_tool": false,
       "is_food": false,
       "sprite_key": "items/celestial_chestplate"
+    },
+    {
+      "id": "polished_obsidian",
+      "name": "Polished Obsidian",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/polished_obsidian"
+    },
+    {
+      "id": "dragonbone_shard",
+      "name": "Dragonbone Shard",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/dragonbone_shard"
+    },
+    {
+      "id": "stone_axe",
+      "name": "Stone Axe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": true,
+      "is_food": false,
+      "tool_type": "axe",
+      "durability": 60,
+      "sprite_key": "items/stone_axe"
+    },
+    {
+      "id": "stone_pickaxe",
+      "name": "Stone Pickaxe",
+      "stack_size": 1,
+      "is_equippable": true,
+      "is_essential_tool": true,
+      "is_food": false,
+      "tool_type": "pickaxe",
+      "durability": 60,
+      "sprite_key": "items/stone_pickaxe"
+    },
+    {
+      "id": "boar_tusk",
+      "name": "Boar Tusk",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/boar_tusk"
+    },
+    {
+      "id": "crab_claw",
+      "name": "Crab Claw",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/crab_claw"
+    },
+    {
+      "id": "crocodile_hide",
+      "name": "Crocodile Hide",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/crocodile_hide"
+    },
+    {
+      "id": "crocodile_tooth",
+      "name": "Crocodile Tooth",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/crocodile_tooth"
+    },
+    {
+      "id": "djinn_amulet",
+      "name": "Djinn Amulet",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/djinn_amulet"
+    },
+    {
+      "id": "djinn_essence",
+      "name": "Djinn Essence",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/djinn_essence"
+    },
+    {
+      "id": "drake_egg",
+      "name": "Drake Egg",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/drake_egg"
+    },
+    {
+      "id": "drake_scale",
+      "name": "Drake Scale",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/drake_scale"
+    },
+    {
+      "id": "eagle_claw",
+      "name": "Eagle Claw",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/eagle_claw"
+    },
+    {
+      "id": "eagle_feather",
+      "name": "Eagle Feather",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/eagle_feather"
+    },
+    {
+      "id": "goblin_dagger",
+      "name": "Goblin Dagger",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/goblin_dagger"
+    },
+    {
+      "id": "golem_stone",
+      "name": "Golem Stone",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/golem_stone"
+    },
+    {
+      "id": "hawk_bile",
+      "name": "Hawk Bile",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/hawk_bile"
+    },
+    {
+      "id": "hawk_feather",
+      "name": "Hawk Feather",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/hawk_feather"
+    },
+    {
+      "id": "scorpion_tail",
+      "name": "Scorpion Tail",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/scorpion_tail"
+    },
+    {
+      "id": "serpent_gland",
+      "name": "Serpent Gland",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/serpent_gland"
+    },
+    {
+      "id": "snake_fang",
+      "name": "Snake Fang",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/snake_fang"
+    },
+    {
+      "id": "snake_skin",
+      "name": "Snake Skin",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/snake_skin"
+    },
+    {
+      "id": "troll_club",
+      "name": "Troll Club",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/troll_club"
+    },
+    {
+      "id": "troll_hide",
+      "name": "Troll Hide",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/troll_hide"
+    },
+    {
+      "id": "worm_heart",
+      "name": "Worm Heart",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/worm_heart"
+    },
+    {
+      "id": "worm_segment",
+      "name": "Worm Segment",
+      "stack_size": 10,
+      "is_equippable": false,
+      "is_essential_tool": false,
+      "is_food": false,
+      "sprite_key": "items/worm_segment"
     }
   ]
 }
