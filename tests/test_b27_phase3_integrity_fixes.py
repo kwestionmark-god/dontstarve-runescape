@@ -362,3 +362,37 @@ class TestBuildingConsistency:
         ok2, _ = bs.assign_npc_to_structure("ballista", "npc_b")
         assert ok1 and ok2, f"second same-type structure must be assignable ({ok1}, {ok2})"
         assert bs.get_assigned_structure("npc_a") is not bs.get_assigned_structure("npc_b")
+
+
+class TestBuildingPanelNotify:
+    def test_notify_works_with_registry_structure_source(self):
+        """Regression: _notify_building_select crashed when structure_defs was a
+        StructureDefRegistry (scroll-click on a structure in the build panel)."""
+        from input.panel_dispatcher import PanelDispatcher
+        from building.structure import StructureDef
+
+        struct_def = StructureDef(
+            structure_id="ballista", name="Ballista", structure_type="fixed",
+            construction_sub_stat="offensive", hp=100, materials=[],
+            requires_structure_level=0, requires_skill_level=0,
+            biome_compatible=[], sprite_key="ballista",
+        )
+
+        class FakeRegistry:
+            def get_all_structures(self):
+                return {"offensive": {"ballista": struct_def}}
+
+        notes = []
+        action_sys = type("AS", (), {
+            "add_notification": lambda self, msg, color=None: notes.append(msg),
+        })()
+        game = type("G", (), {
+            "player": type("P", (), {"action_system": action_sys})(),
+            "building_system": type("BS", (), {
+                "structure_defs": FakeRegistry(),
+            })(),
+        })()
+
+        dispatcher = PanelDispatcher(game)
+        dispatcher._notify_building_select(game, "ballista")
+        assert notes and "Ballista" in notes[0]

@@ -325,7 +325,13 @@ class PanelDispatcher:
         if game.player is None or game.player.action_system is None:
             return
         struct_def = None
-        for cat in game.building_system.structure_defs.values():
+        source = game.building_system.structure_defs
+        # Accept both the registry object and a plain {category: {id: def}} dict
+        categories = (
+            source.get_all_structures() if hasattr(source, "get_all_structures")
+            else source
+        )
+        for cat in categories.values():
             if structure_id in cat:
                 struct_def = cat[structure_id]
                 break
