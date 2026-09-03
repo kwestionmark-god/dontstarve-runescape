@@ -135,6 +135,10 @@ class ResourcePlacer:
         """
         self._resource_cache = ResourcePlacer._load_resource_definitions()
         self._available_resources = self._precompute_available()
+        # Density minus the per-tile clustering bonus, keyed
+        # (resource_id, biome_id, zone); all inputs to it are constant over
+        # a place() run.
+        self._density_base_cache: dict[tuple[str, str, int], float] = {}
         if previous_season is not None:
             # Only place newly-in-season resources; everything available in
             # the previous season has already had its placement chance.
@@ -182,7 +186,7 @@ class ResourcePlacer:
 
         # Precompute available resources per biome to avoid dict lookups in hot loop
         biome_available_resources: dict[str, list[ResourceNode]] = {}
-        for biome_id in set(tile_map.tiles[x][y].biome.id for x in range(tile_map.width) for y in range(tile_map.height) if tile_map.tiles[x][y].biome is not None):
+        for biome_id in sorted(set(tile_map.tiles[x][y].biome.id for x in range(tile_map.width) for y in range(tile_map.height) if tile_map.tiles[x][y].biome is not None)):
             biome_obj = tile_map.tiles[0][0].biome.__class__.__bases__[0]  # dummy to get type
             # Find a tile with this biome to get its resource_spawns
             spawns = []
@@ -276,7 +280,7 @@ class ResourcePlacer:
                                 continue
 
                         # Single-tile placement
-                        tile.resource_node = replace(resource)
+                        tile.resource_node = resource.clone()
                         assigned_tiles.add((x, y))
                         record_placement(resource.resource_id)
 
@@ -352,7 +356,7 @@ class ResourcePlacer:
                     for rx, ry in region_tiles:
                         t = tile_map.tiles[rx][ry]
                         if t.resource_node is None:
-                            t.resource_node = replace(resource)
+                            t.resource_node = resource.clone()
                             self._assigned_tiles.add((rx, ry))
                             placed = True
                             break
@@ -360,7 +364,7 @@ class ResourcePlacer:
                         continue
                     self._record_placement(resource.resource_id)
                 else:
-                    tile.resource_node = replace(resource)
+                    tile.resource_node = resource.clone()
                     self._assigned_tiles.add((cx, cy))
                     self._record_placement(resource.resource_id)
 
@@ -393,9 +397,10 @@ class ResourcePlacer:
                     if resource and resource.rarity in ("ubiquitous", "common"):
                         biome_resources[biome_id].append(res_id)
         
-        # Deduplicate
+        # Deduplicate (sorted: rng.choice(res_list) consumes the RNG in list
+        # order, and set order varies between processes)
         for biome_id, res_list in biome_resources.items():
-            biome_resources[biome_id] = list(set(res_list))
+            biome_resources[biome_id] = sorted(set(res_list))
         
         # For each biome, place resources using Bridson's Poisson disc
         for biome_id, res_list in biome_resources.items():
@@ -474,7 +479,7 @@ class ResourcePlacer:
                     continue
                 
                 if self.rng.random() < density:
-                    tile.resource_node = replace(resource)
+                    tile.resource_node = resource.clone()
                     self._assigned_tiles.add((x, y))
                     grid[gx][gy] = (x, y)
                     self._record_placement(resource.resource_id)
@@ -543,39 +548,46 @@ class ResourcePlacer:
         Returns:
             Adjusted density (0.0–1.0+).
         """
-        density = resource.effective_density
+        cache = getattr(self, "_density_base_cache", None)
+        key = (resource.resource_id, biome_id, zone)
+        density = cache.get(key) if cache is not None else None
+        if density is None:
+            density = resource.effective_density
 
-        # Biome affinity (default 1.0)
-        density *= resource.biome_affinity.get(biome_id, 1.0)
+            # Biome affinity (default 1.0)
+            density *= resource.biome_affinity.get(biome_id, 1.0)
 
-        # Seasonal multiplier
-        if self.season_system is not None:
-            try:
-                density *= self.season_system.get_resource_multiplier(resource.category)
-            except Exception:
-                pass
+            # Seasonal multiplier
+            if self.season_system is not None:
+                try:
+                    density *= self.season_system.get_resource_multiplier(resource.category)
+                except Exception:
+                    pass
 
-        # Seasonal compensation: boost density for season-gated resources when in-season
-        if resource.seasons_available and self.season_system is not None:
-            if self.season_system.current_season in resource.seasons_available:
-                density *= 4.0 / len(resource.seasons_available)
+            # Seasonal compensation: boost density for season-gated resources when in-season
+            if resource.seasons_available and self.season_system is not None:
+                if self.season_system.current_season in resource.seasons_available:
+                    density *= 4.0 / len(resource.seasons_available)
 
-        # Zone density falloff: further zones get slightly lower density
-        # (compensates for larger area, keeps total counts balanced)
-        zone_multipliers = (1.0, 0.9, 0.8, 0.7)
-        if zone < len(zone_multipliers):
-            density *= zone_multipliers[zone]
+            # Zone density falloff: further zones get slightly lower density
+            # (compensates for larger area, keeps total counts balanced)
+            zone_multipliers = (1.0, 0.9, 0.8, 0.7)
+            if zone < len(zone_multipliers):
+                density *= zone_multipliers[zone]
 
-        # Dynamic density scaling for multiplayer
-        # Scale by player_count * density_multiplier, but cap to avoid overcrowding
-        if self.player_count > 1:
-            scale = self.player_count * self.density_multiplier
-            # Cap scaling: max 2x for 4 players, sqrt scaling for more
-            if scale > 2.0:
-                scale = 1.0 + (scale - 1.0) * 0.5  # Diminishing returns
-            density *= scale
+            # Dynamic density scaling for multiplayer
+            # Scale by player_count * density_multiplier, but cap to avoid overcrowding
+            if self.player_count > 1:
+                scale = self.player_count * self.density_multiplier
+                # Cap scaling: max 2x for 4 players, sqrt scaling for more
+                if scale > 2.0:
+                    scale = 1.0 + (scale - 1.0) * 0.5  # Diminishing returns
+                density *= scale
 
-        # Clustering bonus
+            if cache is not None:
+                cache[key] = density
+
+        # Clustering bonus (depends on live neighbor state, never cached)
         density += self._get_clustering_bonus(tile, resource.resource_id, tile_map)
 
         return density
@@ -584,11 +596,14 @@ class ResourcePlacer:
         self, tile: object, resource_id: str, tile_map: "TileMap",
     ) -> float:
         """Return density bonus if an orthogonal neighbor has the same resource."""
-        directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-        for dx, dy in directions:
-            neighbor = tile_map.get_tile(tile.x + dx, tile.y + dy)
-            if neighbor is not None and neighbor.resource_node is not None:
-                if neighbor.resource_node.resource_id == resource_id:
+        tiles = tile_map.tiles
+        w, h = tile_map.width, tile_map.height
+        tx, ty = tile.x, tile.y
+        for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+            nx, ny = tx + dx, ty + dy
+            if 0 <= nx < w and 0 <= ny < h:
+                node = tiles[nx][ny].resource_node
+                if node is not None and node.resource_id == resource_id:
                     return self.CLUSTER_BONUS
         return 0.0
 
@@ -652,7 +667,7 @@ class ResourcePlacer:
         # Only place if we got at least 3 tiles
         if len(vein_tiles) >= 3:
             for t in vein_tiles:
-                t.resource_node = replace(resource)
+                t.resource_node = resource.clone()
                 self._assigned_tiles.add((t.x, t.y))
             self._record_placement(resource.resource_id, len(vein_tiles))
             return True

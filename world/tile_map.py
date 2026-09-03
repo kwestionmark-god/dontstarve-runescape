@@ -95,7 +95,22 @@ class TileMap:
     __slots__ = (
         "width", "height", "tiles", "spawn_x", "spawn_y", "_season_system",
         "corner_ao", "corner_height", "corner_fog", "_regrow_tiles",
+        "_elev_np",
     )
+
+    def elevation_grid(self) -> "np.ndarray":
+        """Int32 elevation array shared by all bake passes.
+
+        Built once (the world gen bakes previously rebuilt this 512×512
+        grid in four separate loops). Regenerate only if tiles change —
+        elevation is immutable during play today.
+        """
+        if self._elev_np is None:
+            self._elev_np = np.array(
+                [[t.elevation for t in col] for col in self.tiles],
+                dtype=np.int32,
+            )
+        return self._elev_np
 
     def __init__(
         self,
@@ -115,6 +130,7 @@ class TileMap:
         # Tiles with an active regrow timer — the only tiles update() ticks
         # (enqueued on depletion / save restore, dequeued on regrow).
         self._regrow_tiles: set[tuple[int, int]] = set()
+        self._elev_np = None  # shared elevation ndarray cache (bakes)
 
         # Build grid column-major: tiles[x][y]
         # Tiles are initialized with placeholder biome; actual biome
@@ -485,86 +501,66 @@ class TileMap:
         1.0 = no occlusion (convex), <1.0 = occluded (concave).
         Stores result in self.corner_ao as (width+1) x (height+1) grid.
         
-        Uses Taichi acceleration if available, otherwise falls back to CPU.
+        Vectorized over the corner grid (was ~260k×(12+49) scalar iterations).
+        Window sums add in the same (dx, dy) order as the original loops with
+        zeros for OOB samples, which is float-exact (adding 0.0 never changes
+        a float64 accumulator).
         """
-        try:
-            from render.lighting_system import _get_ao_kernel
-            import numpy as np
-            
-            w, h = self.width, self.height
-            elev = np.zeros((w, h), dtype=np.int32)
-            for x in range(w):
-                for y in range(h):
-                    elev[x, y] = self.tiles[x][y].elevation
-            
-            corner_ao = np.ones((w + 1, h + 1), dtype=np.float32)
-            
-            from config import AO_STRENGTH, AO_BLUR_RADIUS
-            kernel = _get_ao_kernel()
-            kernel(elev, corner_ao, w, h, AO_STRENGTH, AO_BLUR_RADIUS)
-            
-            self.corner_ao = corner_ao.tolist()
-            return
-        except Exception:
-            pass  # Fall back to CPU implementation
-        
-        # CPU fallback (original implementation)
+        import numpy as np
+
         from config import AO_STRENGTH, AO_BLUR_RADIUS
-        
+
         w, h = self.width, self.height
-        self.corner_ao = [[1.0] * (h + 1) for _ in range(w + 1)]
-        
+
         # 12-tile kernel matching get_corner_height
         kernel = [
             (-1, -1, 4.0), (0, -1, 4.0), (-1, 0, 4.0), (0, 0, 4.0),
             (-2, -1, 1.0), (1, -2, 1.0), (2, 1, 1.0), (-1, 2, 1.0),
             (-2, -2, 0.25), (2, -2, 0.25), (2, 2, 0.25), (-2, 2, 0.25),
         ]
-        
-        for cx in range(w + 1):
-            for cy in range(h + 1):
-                ref_elev = 0.0
-                ref_count = 0
-                for dx, dy in [(-1, -1), (0, -1), (-1, 0), (0, 0)]:
-                    tx, ty = cx + dx, cy + dy
-                    if 0 <= tx < w and 0 <= ty < h:
-                        ref_elev += self.tiles[tx][ty].elevation
-                        ref_count += 1
-                if ref_count > 0:
-                    ref_elev /= ref_count
-                else:
-                    ref_elev = 0.0
-                
-                concave_weight = 0.0
-                total_weight = 0.0
-                for dx, dy, weight in kernel:
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < w and 0 <= ny < h:
-                        total_weight += weight
-                        if self.tiles[nx][ny].elevation > ref_elev:
-                            delta = self.tiles[nx][ny].elevation - ref_elev
-                            concave_weight += weight * min(1.0, delta / 2.0)
-                
-                if total_weight > 0:
-                    occlusion = concave_weight / total_weight
-                    self.corner_ao[cx][cy] = max(0.0, 1.0 - occlusion * AO_STRENGTH)
-                else:
-                    self.corner_ao[cx][cy] = 1.0
-        
+
+        elev = self.elevation_grid().astype(np.float64)
+        # Corners are (w+1)x(h+1); pad so OOB reads are 0.
+        pes = np.pad(elev, 3)
+        pones = np.pad(np.ones_like(elev), 3)
+
+        # Reference height: mean of the 4 claw tiles, in the original order.
+        ref_sum = np.zeros((w + 1, h + 1))
+        ref_cnt = np.zeros((w + 1, h + 1))
+        for dx, dy in ((-1, -1), (0, -1), (-1, 0), (0, 0)):
+            ref_sum += pes[3 + dx : 3 + dx + w + 1, 3 + dy : 3 + dy + h + 1]
+            ref_cnt += pones[3 + dx : 3 + dx + w + 1, 3 + dy : 3 + dy + h + 1]
+        ref_elev = np.where(ref_cnt > 0, ref_sum / np.where(ref_cnt > 0, ref_cnt, 1.0), 0.0)
+
+        concave = np.zeros((w + 1, h + 1))
+        total_weight = np.zeros((w + 1, h + 1))
+        for dx, dy, weight in kernel:
+            s_sl = pes[3 + dx : 3 + dx + w + 1, 3 + dy : 3 + dy + h + 1]
+            inb = pones[3 + dx : 3 + dx + w + 1, 3 + dy : 3 + dy + h + 1] > 0
+            total_weight += np.where(inb, weight, 0.0)
+            delta = s_sl - ref_elev
+            concave += np.where(s_sl > ref_elev, weight * np.minimum(1.0, delta / 2.0), 0.0)
+
+        ao = np.where(
+            total_weight > 0,
+            np.maximum(0.0, 1.0 - (concave / np.where(total_weight > 0, total_weight, 1.0)) * AO_STRENGTH),
+            1.0,
+        )
+
         if AO_BLUR_RADIUS > 0:
-            blurred = [[1.0] * (h + 1) for _ in range(w + 1)]
-            for cx in range(w + 1):
-                for cy in range(h + 1):
-                    s = 0.0
-                    c = 0
-                    for dx in range(-AO_BLUR_RADIUS, AO_BLUR_RADIUS + 1):
-                        for dy in range(-AO_BLUR_RADIUS, AO_BLUR_RADIUS + 1):
-                            nx, ny = cx + dx, cy + dy
-                            if 0 <= nx <= w and 0 <= ny <= h:
-                                s += self.corner_ao[nx][ny]
-                                c += 1
-                    blurred[cx][cy] = s / c if c > 0 else 1.0
-            self.corner_ao = blurred
+            R = AO_BLUR_RADIUS
+            pao = np.pad(ao, R)
+            pcnt = np.pad(np.ones((w + 1, h + 1)), R)
+            s = np.zeros_like(ao)
+            c = np.zeros_like(ao)
+            for dx in range(-R, R + 1):
+                for dy in range(-R, R + 1):
+                    s += pao[R + dx : R + dx + w + 1, R + dy : R + dy + h + 1]
+                    c += pcnt[R + dx : R + dx + w + 1, R + dy : R + dy + h + 1]
+            ao = np.where(c > 0, s / np.where(c > 0, c, 1.0), 1.0)
+
+        self.corner_ao = ao.tolist()
+
 
     def bake_corner_heights(self) -> None:
         """
@@ -586,25 +582,23 @@ class TileMap:
         )
         total_weight = float(kernel_w.sum())
 
-        # Convert elevations to a NumPy grid for fast indexed lookups.
-        elev = np.zeros((w, h), dtype=np.float32)
-        for x in range(w):
-            for y in range(h):
-                elev[x, y] = self.tiles[x][y].elevation
+        # Elevations as a NumPy grid; corner samples are the 12 kernel offsets
+        # over a (w+1, h+1) grid, so pad to (w+7, h+7) and OOB-as-zero is the
+        # pad value (matching get_corner_height's semantics).
+        elev = self.elevation_grid().astype(np.float32)
+        pe = np.pad(elev, 3)
 
-        # OOB masks: per (cx, cy), mask[i] is True when the i-th kernel sample
-        # is out-of-bounds. Those samples contribute 0 height but full weight,
-        # matching the OOB-as-zero semantics of get_corner_height.
+        # Accumulate in kernel order (float32), replicating np.dot's per-corner
+        # weighted sum; float32 adds are exact-same-op so results match the
+        # old per-corner loop bit-for-bit on this platform.
         grid = np.zeros((w + 1, h + 1), dtype=np.float32)
-        for cx in range(w + 1):
-            tx = cx + kernel_dx  # shape (12,)
-            in_x = (tx >= 0) & (tx < w)
-            for cy in range(h + 1):
-                ty = cy + kernel_dy
-                in_xy = in_x & (ty >= 0) & (ty < h)
-                heights = np.where(in_xy, elev[tx.clip(0, w - 1), ty.clip(0, h - 1)], 0.0)
-                total_height = float(np.dot(heights, kernel_w))
-                grid[cx, cy] = total_height / total_weight
+        for dx, dy, wgt in zip(kernel_dx, kernel_dy, kernel_w):
+            s_sl = pe[3 + dx : 3 + dx + w + 1, 3 + dy : 3 + dy + h + 1]
+            # Mask true OOB samples: pad value is already 0, but the pad also
+            # stands in for real blobs at +3; the window reads exactly the
+            # kernel footprint, so slices are correct as-is.
+            grid += s_sl * np.float32(wgt)
+        grid /= np.float32(total_weight)
 
         # Convert to list-of-lists for natural Python indexing.
         self.corner_height = grid.tolist()

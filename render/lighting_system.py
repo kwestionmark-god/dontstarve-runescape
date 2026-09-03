@@ -207,20 +207,25 @@ class LightingSystem:
         """Precompute exp(-elev / scale) per tile using NumPy."""
         if self._fog_precomputed:
             return
-        
-        w, h = tile_map.width, tile_map.height
-        elev = np.zeros((w, h), dtype=np.float32)
-        for x in range(w):
-            for y in range(h):
-                elev[x, y] = tile_map.tiles[x][y].elevation
-        
+
+        # Shared elevation grid from TileMap bakes (was rebuilt here).
+        elev = tile_map.elevation_grid().astype(np.float32) \
+            if hasattr(tile_map, "elevation_grid") \
+            else np.array(
+                [[t.elevation for t in col] for col in tile_map.tiles],
+                dtype=np.float32,
+            )
         fog_density = np.exp(-elev / FOG_SCALE_HEIGHT)
-        
+
         # Store on tiles for fast per-tile lookup
-        for x in range(w):
-            for y in range(h):
-                tile_map.tiles[x][y].fog_density = float(fog_density[x, y])
-        
+        flat = fog_density.tolist()
+        tiles = tile_map.tiles
+        for x in range(tile_map.width):
+            col_src = flat[x]
+            col = tiles[x]
+            for y in range(tile_map.height):
+                col[y].fog_density = col_src[y]
+
         self._fog_precomputed = True
     
     def compute_all_shading(

@@ -104,35 +104,75 @@ def _domain_warp(x: int, y: int, seed: int, scale: float, octaves: int, amplitud
     return x + warp_x, y + warp_y
 
 
+# ── Vectorized noise grids (exact float-order replicas of the scalar loops) ──
+
+def _fbm_grid(xs: "np.ndarray", ys: "np.ndarray", scale: float, octaves: int,
+              persistence: float, lacunarity: float, seed: int) -> "np.ndarray":
+    """Vectorized _fbm_noise over a coordinate grid. float64 accumulate,
+    matching the Python loop's arithmetic order bit-for-bit."""
+    from world.noise_np import pnoise2_grid
+
+    value = np.zeros(xs.shape, dtype=np.float64)
+    amplitude = 1.0
+    frequency = scale
+    for _ in range(octaves):
+        n = pnoise2_grid(xs * frequency, ys * frequency, 10000.0, 10000.0, seed)
+        value += amplitude * n.astype(np.float64)
+        amplitude *= persistence
+        frequency *= lacunarity
+    return value
+
+
+def _ridge_grid(xs: "np.ndarray", ys: "np.ndarray", scale: float, octaves: int,
+                persistence: float, lacunarity: float, seed: int) -> "np.ndarray":
+    """Vectorized _ridge_noise over a coordinate grid (float64)."""
+    from world.noise_np import pnoise2_grid
+
+    value = np.zeros(xs.shape, dtype=np.float64)
+    amplitude = 1.0
+    frequency = scale
+    for _ in range(octaves):
+        n = pnoise2_grid(xs * frequency, ys * frequency, 10000.0, 10000.0, seed).astype(np.float64)
+        n = 1.0 - 2.0 * np.abs(n)
+        value += amplitude * n
+        amplitude *= persistence
+        frequency *= lacunarity
+    return value
+
+
+def _coord_grid(width: int, height: int) -> tuple["np.ndarray", "np.ndarray"]:
+    """float64 coordinate grids with column-major layout: grid[x, y]."""
+    xs, ys = np.meshgrid(
+        np.arange(width, dtype=np.float64),
+        np.arange(height, dtype=np.float64),
+        indexing="ij",
+    )
+    return xs, ys
+
+
 def _generate_base_elevation(seed: int, width: int, height: int) -> list[list[float]]:
-    """Generate base elevation using combined Perlin + Ridge noise with domain warping."""
-    elev = [[0.0] * height for _ in range(width)]
-    
-    for y in range(height):
-        for x in range(width):
-            # Apply domain warping to coordinates
-            wx, wy = _domain_warp(x, y, seed, DOMAIN_WARP_SCALE, DOMAIN_WARP_OCTAVES, DOMAIN_WARP_AMPLITUDE)
-            
-            # Base Perlin noise (continental shape)
-            base = _fbm_noise(wx, wy, NOISE_SCALE, ELEVATION_OCTAVES, 0.5, 2.0, seed)
-            
-            # Ridge noise (mountain ridges, sharp features)
-            ridge = _ridge_noise(wx, wy, RIDGE_NOISE_SCALE, RIDGE_OCTAVES, RIDGE_PERSISTENCE, RIDGE_LACUNARITY, seed + 500)
-            
-            # Combine: base provides large-scale shape, ridges add detail
-            # Weight: 85% base, 15% ridge (further reduced ridge influence)
-            combined = 0.85 * base + 0.15 * ridge
-            
-            # Add a stronger negative bias to center elevation around middle (16 for 32 levels)
-            # and spread more towards lower elevations
-            combined -= 0.2
-            
-            # Normalize to 0-1, then scale to elevation levels (0 to ELEVATION_LEVELS-1)
-            normalized = (combined + 1.0) / 2.0
-            from config import ELEVATION_LEVELS
-            elev[x][y] = max(0, min(ELEVATION_LEVELS - 1, int(normalized * ELEVATION_LEVELS)))
-    
-    return elev
+    """Generate base elevation using combined Perlin + Ridge noise with domain warping.
+
+    Vectorized replica of the original per-tile loop (same float ops in the
+    same order, so results are bitwise identical).
+    """
+    from config import ELEVATION_LEVELS
+
+    xs, ys = _coord_grid(width, height)
+
+    # Domain warp
+    wx = xs + _fbm_grid(xs, ys, DOMAIN_WARP_SCALE, DOMAIN_WARP_OCTAVES, 0.5, 2.0, seed + 1000) * DOMAIN_WARP_AMPLITUDE
+    wy = ys + _fbm_grid(xs, ys, DOMAIN_WARP_SCALE, DOMAIN_WARP_OCTAVES, 0.5, 2.0, seed + 2000) * DOMAIN_WARP_AMPLITUDE
+
+    base = _fbm_grid(wx, wy, NOISE_SCALE, ELEVATION_OCTAVES, 0.5, 2.0, seed)
+    ridge = _ridge_grid(wx, wy, RIDGE_NOISE_SCALE, RIDGE_OCTAVES, RIDGE_PERSISTENCE, RIDGE_LACUNARITY, seed + 500)
+
+    combined = 0.85 * base + 0.15 * ridge
+    combined = combined - 0.2
+    normalized = (combined + 1.0) / 2.0
+    elev = (normalized * ELEVATION_LEVELS).astype(np.int64)
+    np.clip(elev, 0, ELEVATION_LEVELS - 1, out=elev)
+    return elev.tolist()
 
 
 def _generate_elevation_map(seed: int, width: int | None = None, height: int | None = None) -> list[list[float]]:
@@ -171,21 +211,30 @@ def _generate_moisture_map(seed: int, width: int | None = None, height: int | No
     Returns:
         2D list of moisture values (0.0–1.0).
     """
-    moisture = [[0.0] * height for _ in range(width)]
+    from world.noise_np import pnoise2_grid
 
-    for y in range(height):
-        for x in range(width):
-            value = noise.pnoise2(
-                x * MOISTURE_SCALE + 100,
-                y * MOISTURE_SCALE + 100,
-                octaves=MOISTURE_OCTAVES,
-                base=seed + 1,
-            )
-            # Apply range multiplier to expand moisture variation
-            value *= MOISTURE_RANGE_MULTIPLIER
-            moisture[x][y] = max(0.0, min(1.0, (value + 1.0) / 2.0))
-
-    return moisture
+    xs, ys = _coord_grid(width, height)
+    # C-side octaves>1 loop (float32 freq/repeat accumulation), replicated.
+    x32 = (xs * MOISTURE_SCALE + 100.0).astype(np.float32)
+    y32 = (ys * MOISTURE_SCALE + 100.0).astype(np.float32)
+    freq = np.float32(1.0)
+    amp = np.float32(1.0)
+    max_total = np.float32(0.0)
+    total = np.zeros(x32.shape, dtype=np.float32)
+    for _ in range(MOISTURE_OCTAVES):
+        n = pnoise2_grid(
+            x32 * freq, y32 * freq,
+            np.float32(1024.0) * freq, np.float32(1024.0) * freq,
+            seed + 1,
+        )
+        total += n * amp
+        max_total += amp
+        freq = np.float32(freq * np.float32(2.0))
+        amp = np.float32(amp * np.float32(0.5))
+    value = (total / max_total).astype(np.float64) * MOISTURE_RANGE_MULTIPLIER
+    moisture = (value + 1.0) / 2.0
+    np.clip(moisture, 0.0, 1.0, out=moisture)
+    return moisture.tolist()
 
 
 def generate(
@@ -328,57 +377,56 @@ def _apply_biome_noise(elevation: list[list[int]], moisture: list[list[float]], 
     After initial biome classification, apply biome-specific noise to create
     more distinctive terrain features per biome type.
     """
-    # First pass: classify initial biomes
-    biome_map = [[None] * height for _ in range(width)]
-    for y in range(height):
-        for x in range(width):
-            biome_map[x][y] = classify_biome(elevation[x][y], moisture[x][y])
-    
-    # Second pass: apply biome-specific noise refinement
-    refined = [[0] * height for _ in range(width)]
-    for y in range(height):
-        for x in range(width):
-            biome_id = biome_map[x][y]
-            params = BIOME_NOISE_PARAMS.get(biome_id, {})
-            
-            if not params:
-                refined[x][y] = elevation[x][y]
-                continue
-            
-            # Generate biome-specific detail noise
-            detail_scale = params.get("scale", NOISE_SCALE)
-            detail_octaves = params.get("octaves", ELEVATION_OCTAVES)
-            detail_persistence = params.get("persistence", 0.5)
-            detail_lacunarity = params.get("lacunarity", 2.0)
-            ridge_weight = params.get("ridge_weight", 0.0)
-            warp_amp = params.get("domain_warp", 0.0)
-            
-            # Apply domain warping if specified
-            if warp_amp > 0:
-                wx, wy = _domain_warp(x, y, seed + 3000, DOMAIN_WARP_SCALE, DOMAIN_WARP_OCTAVES, warp_amp)
-            else:
-                wx, wy = x, y
-            
-            # Base detail noise
-            detail = _fbm_noise(wx, wy, detail_scale, detail_octaves, detail_persistence, detail_lacunarity, seed + 4000)
-            
-            # Add ridge noise if specified
-            if ridge_weight > 0:
-                ridge = _ridge_noise(wx, wy, RIDGE_NOISE_SCALE, RIDGE_OCTAVES, RIDGE_PERSISTENCE, RIDGE_LACUNARITY, seed + 5000)
-                combined = (1.0 - ridge_weight) * detail + ridge_weight * ridge
-            else:
-                combined = detail
-            
-            # Normalize and blend with base elevation (subtle refinement)
-            normalized = (combined + 1.0) / 2.0
-            from config import ELEVATION_LEVELS
-            detail_elev = int(normalized * (ELEVATION_LEVELS - 1))
-            
-            # Blend: 80% base elevation, 20% biome-specific detail
-            refined[x][y] = int(0.8 * elevation[x][y] + 0.2 * detail_elev)
-            refined[x][y] = max(0, min(ELEVATION_LEVELS - 1, refined[x][y]))
-    
-    return refined
+    from config import ELEVATION_LEVELS
+
+    # First pass: classify initial biomes (vectorized decision tree matching
+    # classify_biome() case-structure exactly).
+    biome_map = _classify_biome_grid(elevation, moisture, width, height)
+
+    elev_arr = np.asarray(elevation, dtype=np.int64)
+    refined = elev_arr.copy()
+    xs, ys = _coord_grid(width, height)
+
+    # Second pass: apply biome-specific noise refinement, one vectorized
+    # pass per distinct parameter set (identical float64 op order as the
+    # original nested loop).
+    groups: dict[tuple, list[str]] = {}
+    for biome_id, params in BIOME_NOISE_PARAMS.items():
+        groups.setdefault(tuple(sorted(params.items())), []).append(biome_id)
+
+    for params_key, biome_ids in groups.items():
+        mask = np.isin(biome_map, biome_ids)
+        if not mask.any():
+            continue
+        params = BIOME_NOISE_PARAMS[biome_ids[0]]
+        detail_scale = params.get("scale", NOISE_SCALE)
+        detail_octaves = params.get("octaves", ELEVATION_OCTAVES)
+        detail_persistence = params.get("persistence", 0.5)
+        detail_lacunarity = params.get("lacunarity", 2.0)
+        ridge_weight = params.get("ridge_weight", 0.0)
+        warp_amp = params.get("domain_warp", 0.0)
+
+        if warp_amp > 0:
+            wx = xs + _fbm_grid(xs, ys, DOMAIN_WARP_SCALE, DOMAIN_WARP_OCTAVES, 0.5, 2.0, seed + 3000 + 1000) * warp_amp
+            wy = ys + _fbm_grid(xs, ys, DOMAIN_WARP_SCALE, DOMAIN_WARP_OCTAVES, 0.5, 2.0, seed + 3000 + 2000) * warp_amp
+        else:
+            wx, wy = xs, ys
+
+        detail = _fbm_grid(wx, wy, detail_scale, detail_octaves, detail_persistence, detail_lacunarity, seed + 4000)
+
+        if ridge_weight > 0:
+            ridge = _ridge_grid(wx, wy, RIDGE_NOISE_SCALE, RIDGE_OCTAVES, RIDGE_PERSISTENCE, RIDGE_LACUNARITY, seed + 5000)
+            combined = (1.0 - ridge_weight) * detail + ridge_weight * ridge
+        else:
+            combined = detail
+
+        normalized = (combined + 1.0) / 2.0
+        detail_elev = (normalized * (ELEVATION_LEVELS - 1)).astype(np.int64)
+        merged = (0.8 * elev_arr + 0.2 * detail_elev).astype(np.int64)
+        np.clip(merged, 0, ELEVATION_LEVELS - 1, out=merged)
+        refined = np.where(mask, merged, refined)
+
+    return refined.tolist()
 
 
 def _simulate_erosion(elevation: list[list[int]], width: int, height: int, seed: int) -> list[list[int]]:
@@ -415,65 +463,81 @@ def _simulate_erosion(elevation: list[list[int]], width: int, height: int, seed:
         (-1,  1), (0,  1), (1,  1),
     ]
     
+    # Per-tile downhill neighbor lists with normalized slope weights are
+    # rebuilt whenever elevations change — the update order is strict
+    # Gauss-Seidel (x-major scan), so this pass cannot be vectorized without
+    # changing results; we micro-optimize the scalar loop instead.
+    evap_keep = 1.0 - EROSION_EVAPORATION
+
     for iteration in range(EROSION_ITERATIONS):
-        # Add rain
-        for x in range(width):
+        # Add rain (flat, no loop branch)
+        for col in water:
             for y in range(height):
-                water[x][y] += EROSION_RAIN_AMOUNT
-        
+                col[y] += EROSION_RAIN_AMOUNT
+
         # Flow water and transport sediment
         for x in range(width):
+            ecol = elev[x]
+            wcol = water[x]
+            scol = sediment[x]
             for y in range(height):
-                if water[x][y] <= 0:
+                w_xy = wcol[y]
+                if w_xy <= 0:
                     continue
-                
-                current_height = elev[x][y]
-                
+
+                current_height = ecol[y]
+
                 # Find neighbors and calculate slopes
                 slopes = []
+                slopes_append = slopes.append
                 total_slope = 0.0
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
                     if 0 <= nx < width and 0 <= ny < height:
-                        neighbor_height = elev[nx][ny]
-                        slope = current_height - neighbor_height
+                        slope = current_height - elev[nx][ny]
                         if slope > 0:
                             dist = 1.0 if dx == 0 or dy == 0 else 1.414
                             slope /= dist
-                            slopes.append((nx, ny, slope))
+                            slopes_append((nx, ny, slope))
                             total_slope += slope
-                
+
                 if total_slope > 0:
                     # Distribute water and sediment downhill
                     for nx, ny, slope in slopes:
-                        flow = water[x][y] * (slope / total_slope)
+                        flow = w_xy * (slope / total_slope)
                         sediment_capacity = flow * slope * EROSION_SEDIMENT_CAPACITY_FACTOR * EROSION_GRAVITY
-                        
-                        if sediment[x][y] > sediment_capacity:
+
+                        if scol[y] > sediment_capacity:
                             # Deposit excess sediment
-                            deposit = min(sediment[x][y] - sediment_capacity, sediment[x][y])
-                            elev[x][y] += deposit
-                            sediment[x][y] -= deposit
-                        elif sediment[x][y] < sediment_capacity:
+                            deposit = min(scol[y] - sediment_capacity, scol[y])
+                            ecol[y] += deposit
+                            scol[y] -= deposit
+                        elif scol[y] < sediment_capacity:
                             # Erode terrain
-                            erode = min(sediment_capacity - sediment[x][y], current_height * EROSION_SOLUBILITY)
-                            elev[x][y] -= erode
-                            sediment[x][y] += erode
-                        
+                            erode = min(sediment_capacity - scol[y], current_height * EROSION_SOLUBILITY)
+                            ecol[y] -= erode
+                            scol[y] += erode
+
                         # Move water
                         water[nx][ny] += flow
-                        water[x][y] -= flow
-        
+                        w_xy -= flow
+                    wcol[y] = w_xy
+
         # Evaporate water
         for x in range(width):
+            wcol = water[x]
+            scol = sediment[x]
+            ecol = elev[x]
             for y in range(height):
-                water[x][y] *= (1.0 - EROSION_EVAPORATION)
-                if water[x][y] < 0.001:
-                    water[x][y] = 0.0
+                w_xy = wcol[y] * evap_keep
+                if w_xy < 0.001:
+                    wcol[y] = 0.0
                     # Deposit remaining sediment
-                    if sediment[x][y] > 0:
-                        elev[x][y] += sediment[x][y]
-                        sediment[x][y] = 0.0
+                    if scol[y] > 0:
+                        ecol[y] += scol[y]
+                        scol[y] = 0.0
+                else:
+                    wcol[y] = w_xy
     
     # Convert back to int
     result = [[0] * height for _ in range(width)]
@@ -482,6 +546,56 @@ def _simulate_erosion(elevation: list[list[int]], width: int, height: int, seed:
             result[x][y] = max(0, min(ELEVATION_LEVELS - 1, int(elev[x][y])))
     
     return result
+
+
+def _classify_biome_grid(elevation, moisture, width: int, height: int) -> "np.ndarray":
+    """Vectorized classify_biome(): returns an object array [x][y] of biome ids.
+
+    Mirrors the nested if/elif thresholds of the scalar version exactly
+    (both compare the same float64 moisture values).
+    """
+    elev = np.asarray(elevation)
+    moist = np.asarray(moisture, dtype=np.float64)
+    out = np.empty(elev.shape, dtype=object)
+
+    m = elev >= 26
+    out[m] = "mountains"
+
+    m = (elev >= 20) & (elev < 26)
+    sel = m
+    out[sel & (moist < 0.15)] = "desert"
+    out[sel & (moist >= 0.15) & (moist < 0.35)] = "plains"
+    out[sel & (moist >= 0.35)] = "mountains"
+
+    m = (elev >= 14) & (elev < 20)
+    sel = m
+    out[sel & (moist < 0.15)] = "desert"
+    out[sel & (moist >= 0.15) & (moist < 0.3)] = "plains"
+    out[sel & (moist >= 0.3) & (moist < 0.6)] = "forest"
+    out[sel & (moist >= 0.6) & (moist < 0.8)] = "mountains"
+    out[sel & (moist >= 0.8)] = "swamp"
+
+    m = (elev >= 8) & (elev < 14)
+    sel = m
+    out[sel & (moist < 0.2)] = "desert"
+    out[sel & (moist >= 0.2) & (moist < 0.35)] = "plains"
+    out[sel & (moist >= 0.35)] = "forest"  # <0.55/0.75 branches both swamp below
+    out[sel & (moist >= 0.55)] = "swamp"
+
+    m = (elev >= 4) & (elev < 8)
+    sel = m
+    out[sel & (moist < 0.2)] = "desert"
+    out[sel & (moist >= 0.2) & (moist < 0.35)] = "plains"
+    out[sel & (moist >= 0.35) & (moist < 0.4)] = "forest"
+    out[sel & (moist >= 0.4)] = "coastal"
+
+    m = elev < 4
+    sel = m
+    out[sel & (moist < 0.25)] = "desert"
+    out[sel & (moist >= 0.25) & (moist < 0.4)] = "plains"
+    out[sel & (moist >= 0.4)] = "coastal"
+
+    return out
 
 
 def classify_biome(elevation: int, moisture: float, is_water: bool = False) -> str:
@@ -955,89 +1069,106 @@ def _build_biome_transitions(
         from data import load_json_list
         resource_defs = {r["id"]: r for r in load_json_list("resources.json", "resources")}
 
-    # Step 1: Identify border tiles (tiles with at least one different-biome neighbor)
-    border_tiles: list[tuple[int, int]] = []
-    for x in range(tile_map.width):
-        for y in range(tile_map.height):
-            tile = tile_map.tiles[x][y]
-            if tile.biome is None:
-                continue
-            current_id = tile.biome.id
-            # Check 4-connected neighbors for different biome
-            for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-                neighbor = tile_map.get_tile(x + dx, y + dy)
-                if neighbor is not None and neighbor.biome is not None:
-                    if neighbor.biome.id != current_id:
-                        border_tiles.append((x, y))
-                        break
+    # Vectorized implementation: identical blend content as the scalar
+    # version, computed per unique (own biome, neighbor-biome set) combo.
 
-    # Step 2: Collect all tiles within transition radius of borders
-    tiles_to_process: set[tuple[int, int]] = set()
-    for bx, by in border_tiles:
-        for dx in range(-TRANSITION_RADIUS, TRANSITION_RADIUS + 1):
-            for dy in range(-TRANSITION_RADIUS, TRANSITION_RADIUS + 1):
-                x, y = bx + dx, by + dy
-                if 0 <= x < tile_map.width and 0 <= y < tile_map.height:
-                    tiles_to_process.add((x, y))
+    w, h = tile_map.width, tile_map.height
 
-    # Step 3: Precompute blended spawn lists for biome pairs (cached)
+    # Integer biome-id grid (None → -1).
+    id_to_ix: dict[str, int] = {}
+    grid = np.full((w, h), -1, dtype=np.int64)
+    tiles = tile_map.tiles
+    for x in range(w):
+        col = tiles[x]
+        for y in range(h):
+            b = col[y].biome
+            if b is not None:
+                ix = id_to_ix.get(b.id)
+                if ix is None:
+                    ix = len(id_to_ix)
+                    id_to_ix[b.id] = ix
+                grid[x, y] = ix
+    ix_to_id = [None] * len(id_to_ix)
+    for bid, ix in id_to_ix.items():
+        ix_to_id[ix] = bid
+    n_biomes = len(id_to_ix)
+    if n_biomes > 60:
+        raise RuntimeError("too many biomes for ecotone bitmask")
+
+    R = TRANSITION_RADIUS
+    padded = np.full((w + 2 * R, h + 2 * R), -1, dtype=np.int64)
+    padded[R : R + w, R : R + h] = grid
+
+    # Border tiles: any 4-connected neighbor with a different biome id.
+    border = np.zeros((w, h), dtype=bool)
+    for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+        nb = padded[R + dx : R + dx + w, R + dy : R + dy + h]
+        border |= (nb != grid) & (nb != -1) & (grid != -1)
+
+    # Process mask: square dilation of borders by R (5×5 neighborhood).
+    padded_border = np.pad(border, R)
+    process = np.zeros((w, h), dtype=bool)
+    for dx in range(-R, R + 1):
+        for dy in range(-R, R + 1):
+            process |= padded_border[R + dx : R + dx + w, R + dy : R + dy + h]
+
+    # Per-tile neighbor-biome presence bitset over the 5×5 neighborhood.
+    keys = grid.astype(np.int64) << n_biomes
+    for b in range(n_biomes):
+        pres = np.zeros((w, h), dtype=bool)
+        for dx in range(-R, R + 1):
+            for dy in range(-R, R + 1):
+                pres |= padded[R + dx : R + dx + w, R + dy : R + dy + h] == b
+        keys |= pres.astype(np.int64) << b
+
+    # Blend content per (own biome, other biome) pair — cache keyed on the
+    # pair, filtered against the tile's own spawn list only (never against a
+    # growing merged set: that made results depend on set iteration order
+    # and therefore on PYTHONHASHSEED).
     blended_cache: dict[tuple[str, str], list[str]] = {}
 
-    # Step 4: Only process tiles near biome borders
-    for x, y in tiles_to_process:
-        tile = tile_map.tiles[x][y]
-        if tile.biome is None:
-            continue
-        
-        current_biome_id = tile.biome.id
-        neighbor_biomes: set[str] = set()
-
-        # Check all neighbors within transition radius
-        for dx in range(-TRANSITION_RADIUS, TRANSITION_RADIUS + 1):
-            for dy in range(-TRANSITION_RADIUS, TRANSITION_RADIUS + 1):
-                if dx == 0 and dy == 0:
-                    continue
-                neighbor = tile_map.get_tile(x + dx, y + dy)
-                if neighbor is not None and neighbor.biome is not None:
-                    neighbor_biomes.add(neighbor.biome.id)
-
-        # If we have neighboring biomes different from current, blend
-        other_biomes = neighbor_biomes - {current_biome_id}
-        if not other_biomes:
-            continue
-
-        # Build blended spawn list (cache per direction: adding desert
-        # resources into forest is not the same as the reverse)
-        base_spawns = set(tile.biome.resource_spawns)
-        for other_id in other_biomes:
-            cache_key = (current_biome_id, other_id)
-            if cache_key in blended_cache:
-                base_spawns.update(blended_cache[cache_key])
-                continue
-            
-            other_biome = biome_registry.get(other_id)
-            if other_biome is None:
-                continue
-            # Add resources from other biome that aren't already in base,
-            # but only if they have reasonable affinity for the current biome
-            added = []
+    def _pair_added(current_biome_id: str, other_id: str, own_spawns: set) -> list[str]:
+        added = blended_cache.get((current_biome_id, other_id))
+        if added is not None:
+            return added
+        added = []
+        other_biome = biome_registry.get(other_id)
+        if other_biome is not None:
             for res_id in other_biome.resource_spawns:
-                if res_id in base_spawns:
+                if res_id in own_spawns:
                     continue
-                # Check biome affinity
                 res_data = resource_defs.get(res_id)
                 if res_data is None:
                     continue
                 affinity = res_data.get("biome_affinity", {}).get(current_biome_id, 1.0)
                 if affinity >= MIN_AFFINITY_THRESHOLD:
                     added.append(res_id)
-            blended_cache[cache_key] = added
-            base_spawns.update(added)
+        blended_cache[(current_biome_id, other_id)] = added
+        return added
 
-        # Store the blended spawn list on the tile — mutating tile.biome here
-        # would write into the shared registry Biome seen by every tile of
-        # that biome.
-        tile.blended_spawns = list(base_spawns)
+    sel = process & (grid != -1)
+    if not sel.any():
+        return
+
+    for k in np.unique(keys[sel]):
+        own_ix = int(k) >> n_biomes
+        other_bits = int(k) & ((1 << n_biomes) - 1)
+        other_ixs = [b for b in range(n_biomes) if other_bits & (1 << b) and b != own_ix]
+        if not other_ixs:
+            continue
+        current_biome_id = ix_to_id[own_ix]
+        own_spawns = set(biome_registry.get(current_biome_id).resource_spawns)
+        merged = set(own_spawns)
+        for b in other_ixs:
+            merged.update(_pair_added(current_biome_id, ix_to_id[b], own_spawns))
+        blended = sorted(merged)
+
+        # Assign to every tile with this combo. Sorted so downstream resource
+        # placement (which consumes the list in order, feeding the RNG) is
+        # identical in every process.
+        combo = np.nonzero(sel & (keys == k))
+        for x, y in zip(combo[0].tolist(), combo[1].tolist()):
+            tiles[x][y].blended_spawns = blended
 
 
 def _has_swamp_neighbor(tile_map: TileMap, x: int, y: int) -> bool:
