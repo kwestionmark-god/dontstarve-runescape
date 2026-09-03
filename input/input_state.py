@@ -38,6 +38,8 @@ class InputState:
         "faction_negotiate", "faction_negotiate_pressed",
         "hotbar_slot",  # 1-8 one-shot flag for hotbar key presses
         "attack",  # One-shot: set by J key press
+        "light_fire",  # One-shot: set by F key press
+        "save_game",  # One-shot: set by F5 key press
     )
 
     def __init__(self) -> None:
@@ -96,6 +98,11 @@ class InputState:
         # Hotbar (one-shot: set by key press, cleared each frame)
         self.hotbar_slot = 0  # 0 = none, 1-8 = slot pressed
 
+        # One-shot action flags (set by key press, cleared each frame)
+        self.attack = False
+        self.light_fire = False
+        self.save_game = False
+
     def clear_frame(self) -> None:
         """
         Reset per-frame / one-shot flags.
@@ -128,3 +135,8 @@ class InputState:
 
         # Hotbar one-shot (set by key press, cleared each frame)
         self.hotbar_slot = 0
+
+        # One-shot action flags
+        self.attack = False
+        self.light_fire = False
+        self.save_game = False

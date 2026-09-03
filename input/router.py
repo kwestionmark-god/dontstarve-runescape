@@ -213,9 +213,11 @@ class InputRouter:
         if is_state.trade_accept_pressed and game.state == GameState.TRADE_PANEL:
             is_state.trade_accept_pressed = False
             self._npc_flows.handle_trade_accept_keyboard()
+            return
         if is_state.quest_accept_pressed and game.state == GameState.QUEST_PANEL:
             is_state.quest_accept_pressed = False
             self._npc_flows.handle_quest_accept_keyboard()
+            return
 
         # Diplomacy negotiate is handled by the panel's unified on_key ->
         # dispatch path below (single canonical negotiate, no double-fire).

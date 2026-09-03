@@ -246,11 +246,12 @@ class FactionSystem:
                     dist = self._distance(npc.world_x, npc.world_y,
                                           player.world_x, player.world_y)
                     if dist <= self.FACTION_AGGRESSION_RANGE:
-                        if self._faction_npc_cooldowns.get(npc_id, 0) <= 0:
-                            # Attack player (apply through SurvivalSystem)
-                            self._attack_player(npc, player)
+                        if dist <= self.FACTION_COMBAT_MELEE:
+                            if self._faction_npc_cooldowns.get(npc_id, 0) <= 0:
+                                # Attack player (apply through SurvivalSystem)
+                                self._attack_player(npc, player)
                         else:
-                            # Chase player
+                            # Chase player until in melee range
                             self._faction_npc_movement[npc_id] = (player.world_x, player.world_y)
                         continue
 
@@ -400,11 +401,11 @@ class FactionSystem:
             if hasattr(self.game.player, 'skill_manager') and self.game.player.skill_manager:
                 self.game.player.skill_manager.add_xp("combat", 1.0)
 
-        # Check monster death
+        # Check monster death (faction NPC kills must not penalize the player)
         if not monster.is_alive() and self.game is not None:
             cs = getattr(self.game, 'combat_system', None)
             if cs is not None:
-                cs._monster_died(monster)
+                cs._monster_died(monster, killed_by_player=False)
 
         # Set cooldown (2.0s for faction NPCs)
         self._faction_npc_cooldowns[npc_id] = 2.0

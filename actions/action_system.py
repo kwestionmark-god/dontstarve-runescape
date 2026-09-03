@@ -228,10 +228,14 @@ class ActionSystem:
                 if food is not None and food.spoilage_rate > 0:
                     spoilage_seconds = food.spoilage_rate
 
-            # Add yield to inventory (spoilage applied to new stacks only)
-            if not inventory.add_item(result.item_id, result.quantity, spoilage_seconds=spoilage_seconds):
-                self.add_notification("Inventory is full!", (255, 100, 100))
+            # Capacity pre-check: add_item otherwise fills partial stacks and
+            # returns False, yielding items while claiming the inventory is full.
+            if not inventory.can_add(result.item_id, result.quantity):
+                self.add_notification(
+                    "Inventory is full — nothing was gathered.", (255, 100, 100),
+                )
             else:
+                inventory.add_item(result.item_id, result.quantity, spoilage_seconds=spoilage_seconds)
                 self.add_notification(f"+{result.quantity} {result.item_id}", (100, 255, 100))
 
                 # Determine skill from active resource
@@ -302,7 +306,7 @@ class ActionSystem:
         """
         action = self.active
 
-        if action.action_type == ActionType.WOODCUTTING or action.action_type == ActionType.MINING:
+        if action.action_type in (ActionType.WOODCUTTING, ActionType.MINING, ActionType.FORAGING):
             result = self._complete_gathering(action)
 
             # Reset to idle

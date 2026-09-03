@@ -308,11 +308,16 @@ class QuestSystem:
             if intel_level < quest_def.min_total_intelligence:
                 stat_ok = False
 
-        # Check faction status
+        # Check faction status against the quest's faction
         faction_ok = True
         if quest_def.required_faction_status is not None:
             req = quest_def.required_faction_status
-            current_status = self.faction_system.get_status(req) if self.faction_system else "neutral"
+            faction_id = quest_def.giver_faction
+            current_status = (
+                self.faction_system.get_status(faction_id)
+                if self.faction_system and faction_id
+                else "neutral"
+            )
             if not self._status_meets_threshold(current_status, req):
                 faction_ok = False
 
@@ -525,15 +530,15 @@ class QuestSystem:
 
     def record_negotiation(self, faction_id: str) -> None:
         """
-        Record a faction negotiation — tracks quest progress AND updates standing.
+        Record a successful faction negotiation for quest tracking.
+
+        Standing changes are applied by FactionSystem.negotiate() — this
+        method only counts the event so standing is never applied twice.
 
         Args:
             faction_id: The faction that was negotiated with.
         """
         self._negotiation_counts[faction_id] = self._negotiation_counts.get(faction_id, 0) + 1
-        # Update faction standing positively
-        if self.faction_system is not None:
-            self.faction_system.update_standing(faction_id, 0.05)
 
     # ── Quest Completion ────────────────────────────────────────────
 
@@ -600,7 +605,12 @@ class QuestSystem:
             for reward in quest_def.item_rewards:
                 item_id = reward[0]
                 count = int(reward[1])
-                player.inventory.add_item(item_id, count)
+                if not player.inventory.add_item(item_id, count):
+                    if hasattr(player, "action_system") and player.action_system is not None:
+                        player.action_system.add_notification(
+                            f"Inventory full — quest reward {item_id} x{count} lost!",
+                            (255, 150, 100),
+                        )
 
         # 5. Notification
         if player is not None and hasattr(player, "action_system") and player.action_system is not None:

@@ -35,10 +35,19 @@ class ParticleSystem:
         self.particles: list[Particle] = []
         self.current_weather: str = "clear"
         self._spawn_rate = 0  # Initialized to match "clear" weather
+        self._spawn_accum = 0.0  # Fractional particle carry-over between frames
         self._rng = random.Random(42)
         # Defaults; overwritten with the real surface size on first draw().
         self.screen_w = 1280
         self.screen_h = 720
+        self._fog_overlay: "pygame.Surface | None" = None
+
+    def _get_fog_overlay(self, screen) -> "pygame.Surface":
+        """Return the cached screen-sized SRCALPHA fog overlay."""
+        size = (self.screen_w, self.screen_h)
+        if self._fog_overlay is None or self._fog_overlay.get_size() != size:
+            self._fog_overlay = pygame.Surface(size, pygame.SRCALPHA)
+        return self._fog_overlay
 
     def sync(self, weather: str) -> None:
         """Update particle settings based on current weather."""
@@ -57,13 +66,19 @@ class ParticleSystem:
 
     def update(self, dt: float) -> None:
         """Update particle positions and spawn new ones."""
-        # Spawn
+        # Spawn (accumulate fractional spawns so low rates still produce
+        # particles: int(rate * dt) is 0 at 60 FPS for every weather type)
         if self._spawn_rate > 0:
-            to_spawn = int(self._spawn_rate * dt)
+            self._spawn_accum += self._spawn_rate * dt
+            to_spawn = int(self._spawn_accum)
+            self._spawn_accum -= to_spawn
             for _ in range(to_spawn):
                 if len(self.particles) >= self.max_particles:
+                    self._spawn_accum = 0.0
                     break
                 self._spawn_particle()
+        else:
+            self._spawn_accum = 0.0
 
         # Update
         for p in self.particles:
@@ -111,13 +126,15 @@ class ParticleSystem:
             return
 
         if self.current_weather == "fog":
-            # Fog: draw circles
+            # Fog: soft translucent circles. Alpha only works on a SRCALPHA
+            # overlay, so keep one per screen size and blit once.
+            overlay = self._get_fog_overlay(screen)
+            overlay.fill((0, 0, 0, 0))
             for p in self.particles:
-                color = (200, 200, 210, p.alpha)
-                try:
-                    pygame.draw.circle(screen, (200, 200, 210), (int(p.x), int(p.y)), p.size)
-                except (ValueError, TypeError):
-                    pass
+                pygame.draw.circle(
+                    overlay, (200, 200, 210, p.alpha), (int(p.x), int(p.y)), p.size,
+                )
+            screen.blit(overlay, (0, 0))
         else:
             # Rain/snow: draw lines or small rects
             for p in self.particles:

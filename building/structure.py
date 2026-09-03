@@ -300,6 +300,7 @@ class Structure:
     is_portable: bool = False
     assigned_npc_id: Optional[str] = None
     fire_timer: float = 0.0
+    instance_id: int = 0  # Unique per placed structure; 0 = unassigned
 
     def take_damage(self, damage: int) -> bool:
         """

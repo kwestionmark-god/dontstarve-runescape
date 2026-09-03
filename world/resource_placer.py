@@ -231,6 +231,15 @@ class ResourcePlacer:
                 if not avail_resources:
                     continue
 
+                # Ecotone tiles carry a per-tile blended spawn list
+                if tile.blended_spawns is not None:
+                    blended_ids = set(tile.blended_spawns)
+                    avail_resources = [
+                        r for r in avail_resources if r.resource_id in blended_ids
+                    ]
+                    if not avail_resources:
+                        continue
+
                 zone = tile_zones.get((x, y), 0) if enforce_zones else 0
 
                 # Check if tile is empty (for non-overwrite mode)
@@ -296,7 +305,12 @@ class ResourcePlacer:
                     continue
                 
                 biome_id = tile_map.tiles[x][y].biome.id
-                landmarks = LANDMARK_RESOURCES.get(biome_id, [])
+                # Seasonal gating applies to landmarks too — otherwise
+                # winter-only resources spawn in spring.
+                landmarks = [
+                    r for r in LANDMARK_RESOURCES.get(biome_id, [])
+                    if r in self._available_resources
+                ]
                 if not landmarks:
                     continue
                 
@@ -366,7 +380,13 @@ class ResourcePlacer:
                 biome_id = tile.biome.id
                 if biome_id not in biome_resources:
                     biome_resources[biome_id] = []
-                for res_id in tile.biome.resource_spawns:
+                # Per-tile ecotone blend takes precedence over the biome list
+                spawn_ids = (
+                    tile.blended_spawns
+                    if tile.blended_spawns is not None
+                    else tile.biome.resource_spawns
+                )
+                for res_id in spawn_ids:
                     if res_id not in self._available_resources:
                         continue
                     resource = self._resource_cache.get(res_id)

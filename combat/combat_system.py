@@ -309,22 +309,33 @@ class CombatSystem:
 
     def _monster_counter_attack(self) -> int:
         """
-        Execute monster counter-attack on the player.
+        Execute monster counter-attack on the player (selected target).
+        """
+        if not self.selected_target:
+            return 0
+        return self._monster_attack_player(self.selected_target)
+
+    def _monster_attack_player(self, monster: "Monster") -> int:
+        """
+        Apply a monster's attack to the player.
 
         Damage is applied through the SurvivalSystem (which handles
         death detection). If the player dies, a soft-death sequence
         is triggered: XP penalty, respawn with 50% HP/hunger, monster
         drops are kept.
 
+        Args:
+            monster: The attacking monster.
+
         Returns:
             Damage dealt to the player.
         """
-        if not self.selected_target:
+        if monster is None:
             return 0
 
         # Calculate damage monster deals to player (inverted direction)
         # Monster attack * 0.5 (monsters are weaker than player stats)
-        base_monster_attack = self.selected_target.attack
+        base_monster_attack = monster.attack
 
         # Player defence reduces damage
         player_defence = self._get_player_defence()
@@ -516,9 +527,18 @@ class CombatSystem:
         if npc.health <= 0:
             self._on_npc_death(npc)
 
-        # Deselect target
-        self.deselect_target()
-        self.selected_target = None
+        # Quest tracking: attacking a faction member advances combat_faction
+        # fail conditions (e.g. Goblin Diplomacy).
+        faction = getattr(npc, "faction", None)
+        if faction and self.game is not None:
+            qs = getattr(self.game, "quest_system", None)
+            if qs is not None:
+                qs.record_faction_attack(faction)
+
+        # Deselect only if the NPC was the selected target; damaging an NPC
+        # must not drop an unrelated monster lock.
+        if self.selected_target is npc:
+            self.deselect_target()
 
     def _on_npc_death(self, npc: "NPC") -> None:
         """
@@ -570,12 +590,15 @@ class CombatSystem:
         dy = self.selected_target.world_y - self.player.world_y
         return math.sqrt(dx * dx + dy * dy)
 
-    def _monster_died(self, monster: Monster) -> None:
+    def _monster_died(self, monster: Monster, killed_by_player: bool = True) -> None:
         """
         Handle monster death: drop loot, grant XP, remove from list.
 
         Args:
             monster: The dead monster.
+            killed_by_player: True when the player dealt the killing blow.
+                Only player kills affect faction standing; faction NPC and
+                offensive-structure kills must not penalize the player.
         """
         # Grant XP for kill
         xp_reward = monster.xp_reward
@@ -613,7 +636,7 @@ class CombatSystem:
         # treated as faction-linked. Killing one is a hostile act and worsens
         # relations. (Wild-in-territory improvement is a separate, future path;
         # explicit faction_owned flags will also worsen — see ownership plan.)
-        if self.faction_system is not None and monster.monster_id:
+        if killed_by_player and self.faction_system is not None and monster.monster_id:
             faction_id = self.faction_system.get_faction_for_monster(monster.monster_id)
             if faction_id is not None:
                 self.faction_system.update_standing(faction_id, -0.10)
@@ -723,6 +746,26 @@ class CombatSystem:
             if monster.is_alive():
                 monster.update_ai(self.player, dt)
 
+                # Hostile monsters actively attack the player when in range
+                if (
+                    monster.ai_state == "attack"
+                    and monster.is_hostile
+                    and monster.attack_cooldown_timer <= 0
+                    and self.player is not None
+                    and monster.is_alive()
+                ):
+                    dx = self.player.world_x - monster.world_x
+                    dy = self.player.world_y - monster.world_y
+                    dist_sq = dx * dx + dy * dy
+                    attack_range = getattr(monster, "_attack_range", 40.0)
+                    if dist_sq <= attack_range * attack_range:
+                        damage = self._monster_attack_player(monster)
+                        if damage > 0:
+                            self.combat_log.append(
+                                f"The {monster.name} hits you for {damage} damage!"
+                            )
+                        monster.attack_cooldown_timer = monster.attack_cooldown
+
                 # Monster structure attacks (if monster is attacking and near structure)
                 if (
                     monster.ai_state == "attack"
@@ -819,6 +862,6 @@ class CombatSystem:
 
         # Check if monster died
         if not monster.is_alive():
-            self._monster_died(monster)
+            self._monster_died(monster, killed_by_player=False)
             struct_name = structure.structure_def.name if hasattr(structure, "structure_def") else "Turret"
             self.combat_log.append(f"{struct_name} destroyed the {monster.name}!")

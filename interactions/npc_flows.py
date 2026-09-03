@@ -36,7 +36,7 @@ class NPCFlows:
         self._game._trade_panel._player_ref = self._game.player
         opened = self._game._trade_panel.open_session(merchant)
         if opened:
-            self._game.state = GameState.TRADE_PANEL
+            self._game.set_state(GameState.TRADE_PANEL)
         else:
             if self._game.player.action_system is not None:
                 self._game.player.action_system.add_notification(
@@ -50,7 +50,7 @@ class NPCFlows:
         self._game._quest_panel.set_player(self._game.player)
         opened = self._game._quest_panel.open_session(npc)
         if opened:
-            self._game.state = GameState.QUEST_PANEL
+            self._game.set_state(GameState.QUEST_PANEL)
         else:
             if self._game.player is not None and self._game.player.action_system is not None:
                 self._game.player.action_system.add_notification(
@@ -162,7 +162,7 @@ class NPCFlows:
                     if nearby is not None:
                         # Type validation: ensure NPC is a QuestGiverNPC
                         npc_type = getattr(nearby, "npc_type", "")
-                        if npc_type != "quest_giver":
+                        if npc_type not in ("quest_giver", "faction_leader"):
                             if game.player is not None:
                                 action_sys = game.player.action_system
                                 if action_sys is not None:
@@ -302,14 +302,18 @@ class NPCFlows:
         if game._diplomacy_panel is None or game._diplomacy_panel._faction_info is None:
             return
         faction_id = game._diplomacy_panel._faction_info.faction_id
+        success = False
         if game.faction_system is not None and game.player is not None:
             result = game.faction_system.negotiate(game.player, faction_id)
+            success = bool(result.get("success"))
             if game.player.action_system is not None:
                 game.player.action_system.add_notification(
                     result.get("message", "Negotiation attempted."),
                     (100, 255, 100) if result.get("success") else (180, 100, 100),
                 )
-        if game.quest_system is not None:
+        # Quest tracking counts successful negotiations only; standing is
+        # applied by faction_system.negotiate (single source of truth).
+        if success and game.quest_system is not None:
             game.quest_system.record_negotiation(faction_id)
         self.close_diplomacy_panel()
 
@@ -418,7 +422,7 @@ class NPCFlows:
                 nearby = game.npc_system.check_proximity(player)
                 if nearby is not None:
                     npc_type = getattr(nearby, "npc_type", "")
-                    if npc_type != "quest_giver":
+                    if npc_type not in ("quest_giver", "faction_leader"):
                         if player.action_system:
                             player.action_system.add_notification(
                                 "This NPC cannot offer quests.", (180, 100, 100),

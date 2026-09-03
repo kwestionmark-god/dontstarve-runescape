@@ -115,6 +115,7 @@ class TradeSystem:
         "tick_timer",
         "_npc_system",
         "_faction_system",
+        "quest_system",
     )
 
     def __init__(self, intelligence_skill: "IntelligenceSkill") -> None:
@@ -130,6 +131,11 @@ class TradeSystem:
         self.tick_timer: float = 0.0
         self._npc_system: Any = None
         self._faction_system: Any = None
+        self.quest_system: Any = None  # wired by bootstrap for quest tracking
+
+    def set_quest_system(self, quest_system: Any) -> None:
+        """Wire the quest system so trades/deliveries advance quests."""
+        self.quest_system = quest_system
 
     def set_npc_system(self, npc_system: Any) -> None:
         """
@@ -320,7 +326,10 @@ class TradeSystem:
         base_price = trade_item.buy_price
         commerce_price = self.intelligence_skill.calculate_buy_price(base_price)
         faction_buy_modifier = self.get_faction_buy_modifier(merchant)
-        buy_price = max(1, int(round(commerce_price * faction_buy_modifier)))
+        buy_price = max(1, int(round(
+            commerce_price * faction_buy_modifier
+            * getattr(merchant, "price_modifier", 1.0)
+        )))
         total_cost = buy_price * quantity
 
         player_gold_before = player.inventory.gold
@@ -342,6 +351,7 @@ class TradeSystem:
                     message=f"Not enough gold. Need {total_cost}, have {player_gold_before}.",
                 )
             quantity = affordable
+            total_cost = buy_price * quantity
 
         # Execute transaction
         player.inventory.gold -= total_cost
@@ -366,6 +376,10 @@ class TradeSystem:
 
         # Reduce merchant stock
         self._set_stock_for_merchant(merchant, trade_item_id, current_stock - quantity)
+
+        # Quest tracking: a completed buy counts as a trade with this merchant
+        if self.quest_system is not None:
+            self.quest_system.record_trade(getattr(merchant, "npc_id", "unknown"))
 
         return TradeResult(
             success=True,
@@ -448,7 +462,10 @@ class TradeSystem:
         base_price = trade_item.sell_price
         commerce_trade_price = self.intelligence_skill.calculate_sell_price_with_trade(base_price)
         faction_sell_modifier = self.get_faction_sell_modifier(merchant)
-        sell_price = max(1, int(round(commerce_trade_price * faction_sell_modifier)))
+        sell_price = max(1, int(round(
+            commerce_trade_price * faction_sell_modifier
+            * getattr(merchant, "price_modifier", 1.0)
+        )))
         total_revenue = sell_price * quantity
 
         # Check merchant gold
@@ -469,6 +486,7 @@ class TradeSystem:
                     message=f"Merchant cannot afford this trade. Has {merchant_gold_before} gold.",
                 )
             quantity = affordable
+            total_revenue = sell_price * quantity
 
         # Execute transaction
         player.inventory.gold += total_revenue
@@ -477,6 +495,12 @@ class TradeSystem:
 
         # Increase merchant stock
         self._increment_stock_for_merchant(merchant, trade_item.trade_item_id, quantity)
+
+        # Quest tracking: a sale counts as a trade with this merchant, and
+        # selling goods doubles as delivering them (deliver_item conditions).
+        if self.quest_system is not None:
+            self.quest_system.record_trade(getattr(merchant, "npc_id", "unknown"))
+            self.quest_system.record_delivery(item_id)
 
         return TradeResult(
             success=True,
@@ -611,10 +635,22 @@ class TradeSystem:
                         f"Tolerance: {int(tolerance)}.",
             )
 
-        # Execute barter — give player item, remove from merchant stock, give trade item to player
-        player.inventory.remove_item(player_item_id, player_quantity)
-        # Fair barter: both sides exchange the same quantity
+        # Execute barter — both sides must fit BEFORE anything is removed,
+        # or a full inventory would destroy both sides' goods.
         give_quantity = min(player_quantity, merchant_stock)
+        if not player.inventory.can_add(trade_item.item_id, give_quantity):
+            return BarterResult(
+                success=False,
+                player_item_id=player_item_id,
+                player_item_quantity=player_quantity,
+                merchant_item_id=trade_item_id,
+                merchant_item_quantity=0,
+                fair_value=barter_value,
+                price_difference=price_difference,
+                is_fair=is_fair,
+                message="Inventory full — barter aborted.",
+            )
+        player.inventory.remove_item(player_item_id, player_quantity)
         player.inventory.add_item(trade_item.item_id, give_quantity)
         self._set_stock_for_merchant(merchant, trade_item_id, merchant_stock - give_quantity)
 

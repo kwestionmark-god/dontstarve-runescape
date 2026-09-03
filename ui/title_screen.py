@@ -246,8 +246,9 @@ def _draw_save_slots(game: "Game", screen: pygame.Surface) -> None:
     if not game.save_system:
         return
     
-    # Populate save slots
-    game._save_slots = game.save_system.list_slots()
+    # Populate save slots (cached — the disk scan happens once per title visit)
+    if not getattr(game, "_save_slots", None):
+        game._save_slots = game.save_system.list_slots()
     if not game._save_slots:
         return
     
@@ -261,8 +262,8 @@ def _draw_save_slots(game: "Game", screen: pygame.Surface) -> None:
     
     for i, slot in enumerate(game._save_slots[:3]):  # Show max 3
         y = y_start + 22 + i * 20
-        if slot.get("exists"):
-            slot_text = f"  Slot {slot['slot']}: Day {slot.get('day', 1)} • {slot.get('playtime', '0:00')}"
+        if slot.get("has_save"):
+            slot_text = f"  Slot {slot['slot']}: Seed {slot.get('seed', '?')} • Deaths {slot.get('death_count', 0)}"
             color = (160, 150, 120)
         else:
             slot_text = f"  Slot {slot['slot']}: Empty"
@@ -301,7 +302,7 @@ def _draw_menu_buttons(game: "Game", screen: pygame.Surface, state: TitleScreenS
     screen.blit(continue_surf, continue_rect)
     
     # Continue button (if saves exist)
-    if game._save_slots and any(s.get("exists") for s in game._save_slots):
+    if game._save_slots and any(s.get("has_save") for s in game._save_slots):
         cont_y = continue_y + 35
         cont_color = (80, 140, 80)
         cont_surf = font.render("CONTINUE", True, (220, 255, 220))
@@ -363,7 +364,7 @@ def handle_title_event(game: "Game", event) -> None:
         if event.key in (pygame.K_RETURN, pygame.K_SPACE):
             game.set_state(GameState.CHARACTER_SELECT)
         elif event.key == pygame.K_c:
-            if game._save_slots and any(s.get("exists") for s in game._save_slots):
+            if game._save_slots and any(s.get("has_save") for s in game._save_slots):
                 game.set_state(GameState.LOADING_SAVE)
         elif event.key == pygame.K_ESCAPE:
             pygame.event.post(pygame.event.Event(pygame.QUIT))

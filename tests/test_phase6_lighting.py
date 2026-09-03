@@ -58,7 +58,9 @@ class TestTimeOfDay:
         ss.time_of_day = 0.5  # Noon
         lp = ss.get_lighting_params()
         alt_deg = np.degrees(lp["sun_altitude"])
-        assert alt_deg > 55.0, f"Noon sun should be high, got {alt_deg:.1f}°"
+        assert 25.0 < alt_deg <= 30.1, (
+            f"Noon sun should peak at +30°, got {alt_deg:.1f}°"
+        )
 
     def test_midnight_has_low_sun(self):
         ss = SeasonSystem()
@@ -87,10 +89,10 @@ class TestTimeOfDay:
 
     def test_sun_direction_changes_with_time(self):
         ss = SeasonSystem()
-        # The sun path is symmetric around noon (t=0.5), so we test that
-        # adjacent positions (morning rise, noon, afternoon) differ.
-        # t=0.1 → morning rising, t=0.4 → afternoon high, t=0.9 → night low
-        pairs = [(0.1, 0.4), (0.1, 0.9), (0.4, 0.9)]
+        # The sun path is symmetric around noon (t=0.5). Night-time positions
+        # symmetric around midnight share an altitude (and azimuth is fixed),
+        # so we compare morning / noon / afternoon, which must all differ.
+        pairs = [(0.3, 0.5), (0.5, 0.6), (0.55, 0.9)]
         for t1, t2 in pairs:
             ss.time_of_day = t1
             lp1 = ss.get_lighting_params()

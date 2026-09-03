@@ -33,8 +33,14 @@ class Bootstrap:
         self.game = game
         self.biome_registry = biome_registry
 
-    def initialize(self) -> None:
-        """Run the full subsystem initialization pipeline."""
+    def initialize(self, skip_initial_spawn: bool = False) -> None:
+        """Run the full subsystem initialization pipeline.
+
+        Args:
+            skip_initial_spawn: When True, skip spawning the initial monster
+                population (used by the save-load path, which restores saved
+                monsters via load_into_game instead).
+        """
         self._build_inventory()
         self._build_survival()
         self._build_player_actions()
@@ -63,7 +69,10 @@ class Bootstrap:
         # return value; only starvation needed a bridge.
         if self.game.survival is not None and self.game.combat_system is not None:
             self.game.combat_system.set_player_death_handler(self.game.survival.on_death)
-        self._spawn_initial_monsters()
+        # Saved monsters are restored by load_into_game() after initialize();
+        # skip the fresh population on the load path or they'd be duplicated.
+        if not skip_initial_spawn:
+            self._spawn_initial_monsters()
         self._build_renderers()
         self._build_hud()
         self._wire_phase4()
@@ -298,6 +307,8 @@ class Bootstrap:
         self.game.quest_system = QuestSystem(self.game.intelligence)
         self.game.quest_system.load_quest_data()
         self.game.quest_system.game = self.game
+        if self.game.trade_system is not None:
+            self.game.trade_system.set_quest_system(self.game.quest_system)
 
     def _build_faction_system(self) -> None:
         """Initialize the faction standing system and wire cross-references."""
@@ -526,8 +537,9 @@ class Bootstrap:
                 spawn_px_y = self.game.world.spawn_y * TILE_SIZE + TILE_SIZE // 2
                 self.game.player = Player(spawn_px_x, spawn_px_y)
 
-                # Initialize subsystems via bootstrap
-                self.initialize()
+                # Initialize subsystems via bootstrap (skip initial monster
+                # spawn — saved monsters are restored by load_into_game)
+                self.initialize(skip_initial_spawn=True)
                 self.game.loading_progress = 0.8
 
                 # Restore state from save (order: skills -> survival -> inventory -> gear -> position -> structures -> fires)

@@ -308,6 +308,11 @@ class CraftingSystem:
         if recipe is None:
             return CraftResult(success=False, message="Unknown recipe.")
 
+        # Quest-locked recipes are gated in the system layer too, not just
+        # filtered out of the panel.
+        if self.is_recipe_locked(recipe_id):
+            return CraftResult(success=False, message="This recipe is locked.")
+
         # Station proximity validation
         if structures and player_pos and recipe.requires_structure:
             from utils.structure_utils import is_structure_nearby
@@ -402,6 +407,9 @@ class CraftingSystem:
         recipe = self.recipes.get(recipe_id)
         if recipe is None:
             return CraftResult(success=False, message="Unknown recipe.")
+
+        if self.is_recipe_locked(recipe_id):
+            return CraftResult(success=False, message="This recipe is locked.")
 
         # Station proximity validation
         if structures and player_pos and recipe.requires_structure:

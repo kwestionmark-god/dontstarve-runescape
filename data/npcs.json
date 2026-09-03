@@ -1,632 +1,705 @@
 {
-  "_description": "NPC definitions for Phase 3. Includes all world NPC entities: merchants, quest-givers, faction leaders, and potential recruits.",
-  "_note": "NPCs are placed at spawn points defined in the spawn_points array. Faction references use faction_id from factions.json. Item references use item_id from items.json.",
-
-  "npcs": [
-    {
-      "npc_id": "merchant_forest_1",
-      "name": "Old Man Hemlock",
-      "npc_type": "merchant",
-      "world_x": 100,
-      "world_y": 100,
-      "sprite_key": "npc/merchant_male_0",
-      "faction": "forest_villagers",
-      "dialogue_lines": [
-        "Welcome to my shop, traveler!",
-        "I have the finest herbs in the forest.",
-        "Need wood? I can trade oak logs for herbs."
-      ],
-      "behavior": "trade",
-      "patrol_area": [80, 80, 120, 120],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.2,
-      "health": 20,
-      "max_health": 20,
-      "inventory_tier": 1,
-      "starting_gold": 200,
-      "price_modifier": 1.0,
-      "commerce_requirement": 0
-    },
-    {
-      "npc_id": "quest_giver_forest_1",
-      "name": "Old Man Hemlock",
-      "npc_type": "quest_giver",
-      "world_x": 100,
-      "world_y": 100,
-      "sprite_key": "npc/quest_giver_male_0",
-      "faction": "forest_villagers",
-      "dialogue_lines": [
-        "I need help gathering timber for my workshop.",
-        "The goblins have been causing trouble lately.",
-        "Would you like to take on a task for me?"
-      ],
-      "behavior": "idle",
-      "patrol_area": [80, 80, 120, 120],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.2,
-      "health": 15,
-      "max_health": 15,
-      "available_quest_ids": ["timber_collection"],
-      "giver_faction": "forest_villagers"
-    },
-    {
-      "npc_id": "faction_leader_forest_goblins",
-      "name": "Goblin Chief Grak",
-      "npc_type": "faction_leader",
-      "world_x": 200,
-      "world_y": 300,
-      "sprite_key": "npc/faction_leader_male_0",
-      "faction": "goblins",
-      "dialogue_lines": [
-        "You dare enter goblin territory?",
-        "Perhaps we can come to an agreement...",
-        "My warriors are strong. You should leave."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [180, 280, 220, 320],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.7,
-      "health": 30,
-      "max_health": 30,
-      "faction_id": "goblins",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["wolf", "goblin"]
-    },
-    {
-      "npc_id": "merchant_plains_1",
-      "name": "Traveling Merchant Joss",
-      "npc_type": "merchant",
-      "world_x": 150,
-      "world_y": 150,
-      "sprite_key": "npc/merchant_male_1",
-      "faction": null,
-      "dialogue_lines": [
-        "Hey there! Got some good supplies today.",
-        "I trade wheat for beast parts. Deal?",
-        "Best prices in the plains!"
-      ],
-      "behavior": "trade",
-      "patrol_area": [130, 130, 170, 170],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.3,
-      "health": 20,
-      "max_health": 20,
-      "inventory_tier": 1,
-      "starting_gold": 150,
-      "price_modifier": 1.0,
-      "commerce_requirement": 0
-    },
-    {
-      "npc_id": "merchant_coastal_1",
-      "name": "Coastal Trader Maris",
-      "npc_type": "merchant",
-      "world_x": 50,
-      "world_y": 400,
-      "sprite_key": "npc/merchant_female_0",
-      "faction": "coastal_merchants",
-      "dialogue_lines": [
-        "Fresh catch from the sea today!",
-        "Salt blocks and driftwood - best in the coast.",
-        "Sea serpents keep the waters dangerous. You should be careful."
-      ],
-      "behavior": "trade",
-      "patrol_area": [30, 380, 70, 420],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.4,
-      "health": 20,
-      "max_health": 20,
-      "inventory_tier": 1,
-      "starting_gold": 300,
-      "price_modifier": 0.9,
-      "commerce_requirement": 0
-    },
-    {
-      "npc_id": "faction_leader_coastal",
-      "name": "Captain Rourke",
-      "npc_type": "faction_leader",
-      "world_x": 30,
-      "world_y": 380,
-      "sprite_key": "npc/faction_leader_male_0",
-      "faction": "coastal_merchants",
-      "dialogue_lines": [
-        "Captain Rourke of the Coastal Merchants.",
-        "We control the sea routes. Trade with us or face the consequences.",
-        "Negotiate? Let's see what you bring to the table."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [10, 360, 50, 400],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.4,
-      "health": 35,
-      "max_health": 35,
-      "faction_id": "coastal_merchants",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["sea_serpent"]
-    },
-    
-    {
-      "npc_id": "quest_giver_mountains_1",
-      "name": "Stone Guardian",
-      "npc_type": "quest_giver",
-      "world_x": 400,
-      "world_y": 100,
-      "sprite_key": "npc/quest_giver_male_0",
-      "faction": "mountain_clans",
-      "dialogue_lines": [
-        "The mountains test the weak. Only the strong survive.",
-        "Stone golems guard the deep veins. Respect them.",
-        "Bring me rare ores and I will teach you the ways of the clans."
-      ],
-      "behavior": "idle",
-      "patrol_area": [380, 80, 420, 120],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.5,
-      "health": 25,
-      "max_health": 25,
-      "available_quest_ids": ["mountain_pass", "gem_mining"],
-      "giver_faction": "mountain_clans"
-    },
-    {
-      "npc_id": "merchant_desert_1",
-      "name": "Djinn Trader Zahir",
-      "npc_type": "merchant",
-      "world_x": 350,
-      "world_y": 350,
-      "sprite_key": "npc/merchant_male_0",
-      "faction": "desert_djinn",
-      "dialogue_lines": [
-        "Welcome to the Djinn market, traveler.",
-        "Rare items for rare people. What do you have to trade?",
-        "The desert djinn value knowledge and patience."
-      ],
-      "behavior": "trade",
-      "patrol_area": [330, 330, 370, 370],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.6,
-      "health": 22,
-      "max_health": 22,
-      "inventory_tier": 1,
-      "starting_gold": 400,
-      "price_modifier": 0.85,
-      "commerce_requirement": 5
-    },
-    {
-      "npc_id": "quest_giver_desert_1",
-      "name": "Djinn Trader Zahir",
-      "npc_type": "quest_giver",
-      "world_x": 350,
-      "world_y": 350,
-      "sprite_key": "npc/quest_giver_male_0",
-      "faction": "desert_djinn",
-      "dialogue_lines": [
-        "I can help you establish a trade route through the desert.",
-        "Bring salt blocks and I will share djinn secrets.",
-        "The desert djinn clan values fair trade above all."
-      ],
-      "behavior": "idle",
-      "patrol_area": [330, 330, 370, 370],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.6,
-      "health": 18,
-      "max_health": 18,
-      "available_quest_ids": ["desert_trade_route"],
-      "giver_faction": "desert_djinn"
-    },
-    {
-      "npc_id": "faction_leader_desert_djinn",
-      "name": "Djinn Elder Zara",
-      "npc_type": "faction_leader",
-      "world_x": 380,
-      "world_y": 380,
-      "sprite_key": "npc/faction_leader_female_0",
-      "faction": "desert_djinn",
-      "dialogue_lines": [
-        "I am Elder Zara of the Djinn Clan.",
-        "Trade routes through our desert are sacred. Honor them.",
-        "Negotiate well and the desert shall reward you."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [360, 360, 400, 400],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.6,
-      "health": 40,
-      "max_health": 40,
-      "faction_id": "desert_djinn",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["scorpion", "sand_worm"]
-    },
-    {
-      "npc_id": "elder_mara",
-      "name": "Elder Mara",
-      "npc_type": "faction_leader",
-      "world_x": 90,
-      "world_y": 100,
-      "sprite_key": "npc/faction_leader_female_0",
-      "faction": "forest_villagers",
-      "dialogue_lines": [
-        "I am Elder Mara of the Forest Villagers.",
-        "Our community has thrived here for generations. Trade with us.",
-        "The forest is our home. Protect it, and we shall protect you."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [70, 80, 110, 120],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.2,
-      "health": 25,
-      "max_health": 25,
-      "faction_id": "forest_villagers",
-      "faction_strength": 1.0,
-      "hostile_monster_types": []
-    },
-    {
-      "npc_id": "goblin_chief_grak",
-      "name": "Goblin Chief Grak",
-      "npc_type": "faction_leader",
-      "world_x": 200,
-      "world_y": 300,
-      "sprite_key": "npc/faction_leader_male_0",
-      "faction": "goblins",
-      "dialogue_lines": [
-        "You dare enter goblin territory?",
-        "Perhaps we can come to an agreement...",
-        "My warriors are strong. You should leave."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [180, 280, 220, 320],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.7,
-      "health": 30,
-      "max_health": 30,
-      "faction_id": "goblins",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["wolf", "goblin"]
-    },
-    {
-      "npc_id": "captain_rourke",
-      "name": "Captain Rourke",
-      "npc_type": "faction_leader",
-      "world_x": 30,
-      "world_y": 380,
-      "sprite_key": "npc/faction_leader_male_0",
-      "faction": "coastal_merchants",
-      "dialogue_lines": [
-        "Captain Rourke of the Coastal Merchants.",
-        "We control the sea routes. Trade with us or face the consequences.",
-        "Negotiate? Let's see what you bring to the table."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [10, 360, 50, 400],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.4,
-      "health": 35,
-      "max_health": 35,
-      "faction_id": "coastal_merchants",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["sea_serpent"]
-    },
-    {
-      "npc_id": "djinn_elder_zara",
-      "name": "Djinn Elder Zara",
-      "npc_type": "faction_leader",
-      "world_x": 380,
-      "world_y": 380,
-      "sprite_key": "npc/faction_leader_female_0",
-      "faction": "desert_djinn",
-      "dialogue_lines": [
-        "I am Elder Zara of the Djinn Clan.",
-        "Trade routes through our desert are sacred. Honor them.",
-        "Negotiate well and the desert shall reward you."
-      ],
-      "behavior": "patrol",
-      "patrol_area": [360, 360, 400, 400],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.6,
-      "health": 40,
-      "max_health": 40,
-      "faction_id": "desert_djinn",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["scorpion", "sand_worm"]
-    },
-    {
-      "npc_id": "shaman_kree",
-      "name": "Shaman Kree",
-      "npc_type": "faction_leader",
-      "world_x": 245,
-      "world_y": 245,
-      "sprite_key": "npc/faction_leader_female_0",
-      "faction": "swamp_factions",
-      "dialogue_lines": [
-        "The swamp hides many secrets, outsider.",
-        "Poison frogs and crocodiles patrol these waters.",
-        "Prove yourself and I will share my knowledge."
-      ],
-      "behavior": "idle",
-      "patrol_area": [230, 230, 270, 270],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.8,
-      "health": 18,
-      "max_health": 18,
-      "faction_id": "swamp_factions",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["poison_frog", "crocodile"],
-      "available_quest_ids": ["swamp_crossing", "poison_antidote"]
-    },
-    {
-      "npc_id": "stone_guardian",
-      "name": "Stone Guardian",
-      "npc_type": "faction_leader",
-      "world_x": 395,
-      "world_y": 100,
-      "sprite_key": "npc/faction_leader_male_0",
-      "faction": "mountain_clans",
-      "dialogue_lines": [
-        "The mountains test the weak. Only the strong survive.",
-        "Stone golems guard the deep veins. Respect them.",
-        "Bring me rare ores and I will teach you the ways of the clans."
-      ],
-      "behavior": "idle",
-      "patrol_area": [380, 80, 420, 120],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.5,
-      "health": 25,
-      "max_health": 25,
-      "faction_id": "mountain_clans",
-      "faction_strength": 1.0,
-      "hostile_monster_types": ["stone_golem"]
-    },
-    {
-      "npc_id": "recruit_forest_assistant",
-      "name": "Young Scout Elara",
-      "npc_type": "recruit",
-      "world_x": 110,
-      "world_y": 110,
-      "sprite_key": "npc/recruit_female_0",
-      "faction": "forest_villagers",
-      "dialogue_lines": [
-        "I want to follow you, but I need to earn your trust first.",
-        "I can gather herbs and help you survive the wilderness."
-      ],
-      "behavior": "idle",
-      "patrol_area": [90, 90, 130, 130],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.3,
-      "health": 12,
-      "max_health": 12,
-      "recruit_commerce_requirement": 2,
-      "recruit_persuasion_requirement": 3,
-      "recruit_composite_stat": 5,
-      "available_behaviors": ["assistant", "guard"],
-      "recruit_sprite_key": "recruit_forest_assistant"
-    },
-    {
-      "npc_id": "recruit_coastal_trader",
-      "name": "Dock Hand Finn",
-      "npc_type": "recruit",
-      "world_x": 40,
-      "world_y": 390,
-      "sprite_key": "npc/recruit_male_0",
-      "faction": "coastal_merchants",
-      "dialogue_lines": [
-        "I know all the merchants along the coast. Hire me and I'll trade for you.",
-        "Best trader you'll find - I know the prices inside and out."
-      ],
-      "behavior": "idle",
-      "patrol_area": [20, 370, 60, 410],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.3,
-      "health": 12,
-      "max_health": 12,
-      "recruit_commerce_requirement": 5,
-      "recruit_persuasion_requirement": 3,
-      "recruit_composite_stat": 8,
-      "available_behaviors": ["trader"],
-      "recruit_sprite_key": "recruit_coastal_trader"
-    },
-    {
-      "npc_id": "recruit_mountain_guard",
-      "name": "Rock Breaker Thorg",
-      "npc_type": "recruit",
-      "world_x": 410,
-      "world_y": 110,
-      "sprite_key": "npc/recruit_male_0",
-      "faction": "mountain_clans",
-      "dialogue_lines": [
-        "I'm strong. I can protect your base from those stone golems.",
-        "Mountains taught me to fight. Hire me as your guard."
-      ],
-      "behavior": "idle",
-      "patrol_area": [390, 90, 430, 130],
-      "is_active": true,
-      "is_recruited": false,
-      "recruit_behavior": null,
-      "hostility_level": 0.5,
-      "health": 18,
-      "max_health": 18,
-      "recruit_commerce_requirement": 3,
-      "recruit_persuasion_requirement": 5,
-      "recruit_composite_stat": 8,
-      "available_behaviors": ["guard", "assistant"],
-      "recruit_sprite_key": "recruit_mountain_guard"
-    }
-  ],
-
-  "spawn_points": [
-    {
-      "spawn_id": "spawn_forest_1",
-      "tile_x": 100,
-      "tile_y": 100,
-      "npc_types": ["merchant", "quest_giver"],
-      "faction": "forest_villagers",
-      "biome": "forest",
-      "is_safe_zone": true,
-      "min_distance_from_player": 200
-    },
-    {
-      "spawn_id": "spawn_forest_2",
-      "tile_x": 200,
-      "tile_y": 300,
-      "npc_types": ["faction_leader"],
-      "faction": "goblins",
-      "biome": "forest",
-      "is_safe_zone": false,
-      "min_distance_from_player": 300
-    },
-    {
-      "spawn_id": "spawn_plains_1",
-      "tile_x": 150,
-      "tile_y": 150,
-      "npc_types": ["merchant"],
-      "faction": null,
-      "biome": "plains",
-      "is_safe_zone": true,
-      "min_distance_from_player": 150
-    },
-    {
-      "spawn_id": "spawn_coastal_1",
-      "tile_x": 50,
-      "tile_y": 400,
-      "npc_types": ["merchant"],
-      "faction": "coastal_merchants",
-      "biome": "coastal",
-      "is_safe_zone": true,
-      "min_distance_from_player": 150
-    },
-    {
-      "spawn_id": "spawn_coastal_2",
-      "tile_x": 30,
-      "tile_y": 380,
-      "npc_types": ["faction_leader"],
-      "faction": "coastal_merchants",
-      "biome": "coastal",
-      "is_safe_zone": false,
-      "min_distance_from_player": 200
-    },
-    
-    {
-      "spawn_id": "spawn_mountains_1",
-      "tile_x": 400,
-      "tile_y": 100,
-      "npc_types": ["quest_giver"],
-      "faction": "mountain_clans",
-      "biome": "mountains",
-      "is_safe_zone": false,
-      "min_distance_from_player": 250
-    },
-    {
-      "spawn_id": "spawn_desert_1",
-      "tile_x": 350,
-      "tile_y": 350,
-      "npc_types": ["merchant", "quest_giver"],
-      "faction": "desert_djinn",
-      "biome": "desert",
-      "is_safe_zone": true,
-      "min_distance_from_player": 200
-    },
-    {
-      "spawn_id": "spawn_desert_2",
-      "tile_x": 380,
-      "tile_y": 380,
-      "npc_types": ["faction_leader"],
-      "faction": "desert_djinn",
-      "biome": "desert",
-      "is_safe_zone": false,
-      "min_distance_from_player": 250
-    },
-    {
-      "spawn_id": "spawn_forest_3",
-      "tile_x": 110,
-      "tile_y": 110,
-      "npc_types": ["recruit"],
-      "faction": "forest_villagers",
-      "biome": "forest",
-      "is_safe_zone": true,
-      "min_distance_from_player": 150
-    },
-    {
-      "spawn_id": "spawn_forest_4",
-      "tile_x": 90,
-      "tile_y": 100,
-      "npc_types": ["faction_leader"],
-      "faction": "forest_villagers",
-      "biome": "forest",
-      "is_safe_zone": true,
-      "min_distance_from_player": 150
-    },
-    {
-      "spawn_id": "spawn_coastal_3",
-      "tile_x": 40,
-      "tile_y": 390,
-      "npc_types": ["recruit"],
-      "faction": "coastal_merchants",
-      "biome": "coastal",
-      "is_safe_zone": true,
-      "min_distance_from_player": 150
-    },
-    {
-      "spawn_id": "spawn_mountains_2",
-      "tile_x": 410,
-      "tile_y": 110,
-      "npc_types": ["recruit"],
-      "faction": "mountain_clans",
-      "biome": "mountains",
-      "is_safe_zone": false,
-      "min_distance_from_player": 200
-    },
-    {
-      "spawn_id": "spawn_swamp_2",
-      "tile_x": 245,
-      "tile_y": 245,
-      "npc_types": ["faction_leader"],
-      "faction": "swamp_factions",
-      "biome": "swamp",
-      "is_safe_zone": false,
-      "min_distance_from_player": 200
-    },
-    {
-      "spawn_id": "spawn_mountains_3",
-      "tile_x": 395,
-      "tile_y": 100,
-      "npc_types": ["faction_leader"],
-      "faction": "mountain_clans",
-      "biome": "mountains",
-      "is_safe_zone": false,
-      "min_distance_from_player": 200
-    }
-  ]
+ "_description": "NPC definitions for Phase 3. Includes all world NPC entities: merchants, quest-givers, faction leaders, and potential recruits.",
+ "_note": "NPCs are placed at spawn points defined in the spawn_points array. Faction references use faction_id from factions.json. Item references use item_id from items.json.",
+ "npcs": [
+  {
+   "npc_id": "merchant_forest_1",
+   "name": "Old Man Hemlock",
+   "npc_type": "merchant",
+   "world_x": 100,
+   "world_y": 100,
+   "sprite_key": "npc/merchant_male_0",
+   "faction": "forest_villagers",
+   "dialogue_lines": [
+    "Welcome to my shop, traveler!",
+    "I have the finest herbs in the forest.",
+    "Need wood? I can trade oak logs for herbs."
+   ],
+   "behavior": "trade",
+   "patrol_area": [
+    80,
+    80,
+    120,
+    120
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.2,
+   "health": 20,
+   "max_health": 20,
+   "inventory_tier": 1,
+   "starting_gold": 200,
+   "price_modifier": 1.0,
+   "commerce_requirement": 0
+  },
+  {
+   "npc_id": "quest_giver_forest_1",
+   "name": "Old Man Hemlock",
+   "npc_type": "quest_giver",
+   "world_x": 100,
+   "world_y": 100,
+   "sprite_key": "npc/quest_giver_male_0",
+   "faction": "forest_villagers",
+   "dialogue_lines": [
+    "I need help gathering timber for my workshop.",
+    "The goblins have been causing trouble lately.",
+    "Would you like to take on a task for me?"
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    80,
+    80,
+    120,
+    120
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.2,
+   "health": 15,
+   "max_health": 15,
+   "available_quest_ids": [
+    "timber_collection"
+   ],
+   "giver_faction": "forest_villagers"
+  },
+  {
+   "npc_id": "merchant_plains_1",
+   "name": "Traveling Merchant Joss",
+   "npc_type": "merchant",
+   "world_x": 150,
+   "world_y": 150,
+   "sprite_key": "npc/merchant_male_1",
+   "faction": null,
+   "dialogue_lines": [
+    "Hey there! Got some good supplies today.",
+    "I trade wheat for beast parts. Deal?",
+    "Best prices in the plains!"
+   ],
+   "behavior": "trade",
+   "patrol_area": [
+    130,
+    130,
+    170,
+    170
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.3,
+   "health": 20,
+   "max_health": 20,
+   "inventory_tier": 1,
+   "starting_gold": 150,
+   "price_modifier": 1.0,
+   "commerce_requirement": 0
+  },
+  {
+   "npc_id": "merchant_coastal_1",
+   "name": "Coastal Trader Maris",
+   "npc_type": "merchant",
+   "world_x": 50,
+   "world_y": 400,
+   "sprite_key": "npc/merchant_female_0",
+   "faction": "coastal_merchants",
+   "dialogue_lines": [
+    "Fresh catch from the sea today!",
+    "Salt blocks and driftwood - best in the coast.",
+    "Sea serpents keep the waters dangerous. You should be careful."
+   ],
+   "behavior": "trade",
+   "patrol_area": [
+    30,
+    380,
+    70,
+    420
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.4,
+   "health": 20,
+   "max_health": 20,
+   "inventory_tier": 1,
+   "starting_gold": 300,
+   "price_modifier": 0.9,
+   "commerce_requirement": 0
+  },
+  {
+   "npc_id": "quest_giver_mountains_1",
+   "name": "Stone Guardian",
+   "npc_type": "quest_giver",
+   "world_x": 400,
+   "world_y": 100,
+   "sprite_key": "npc/quest_giver_male_0",
+   "faction": "mountain_clans",
+   "dialogue_lines": [
+    "The mountains test the weak. Only the strong survive.",
+    "Stone golems guard the deep veins. Respect them.",
+    "Bring me rare ores and I will teach you the ways of the clans."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    380,
+    80,
+    420,
+    120
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.5,
+   "health": 25,
+   "max_health": 25,
+   "available_quest_ids": [
+    "mountain_pass",
+    "gem_mining"
+   ],
+   "giver_faction": "mountain_clans"
+  },
+  {
+   "npc_id": "merchant_desert_1",
+   "name": "Djinn Trader Zahir",
+   "npc_type": "merchant",
+   "world_x": 350,
+   "world_y": 350,
+   "sprite_key": "npc/merchant_male_0",
+   "faction": "desert_djinn",
+   "dialogue_lines": [
+    "Welcome to the Djinn market, traveler.",
+    "Rare items for rare people. What do you have to trade?",
+    "The desert djinn value knowledge and patience."
+   ],
+   "behavior": "trade",
+   "patrol_area": [
+    330,
+    330,
+    370,
+    370
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.6,
+   "health": 22,
+   "max_health": 22,
+   "inventory_tier": 1,
+   "starting_gold": 400,
+   "price_modifier": 0.85,
+   "commerce_requirement": 5
+  },
+  {
+   "npc_id": "quest_giver_desert_1",
+   "name": "Djinn Trader Zahir",
+   "npc_type": "quest_giver",
+   "world_x": 350,
+   "world_y": 350,
+   "sprite_key": "npc/quest_giver_male_0",
+   "faction": "desert_djinn",
+   "dialogue_lines": [
+    "I can help you establish a trade route through the desert.",
+    "Bring salt blocks and I will share djinn secrets.",
+    "The desert djinn clan values fair trade above all."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    330,
+    330,
+    370,
+    370
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.6,
+   "health": 18,
+   "max_health": 18,
+   "available_quest_ids": [
+    "desert_trade_route"
+   ],
+   "giver_faction": "desert_djinn"
+  },
+  {
+   "npc_id": "elder_mara",
+   "name": "Elder Mara",
+   "npc_type": "faction_leader",
+   "world_x": 90,
+   "world_y": 100,
+   "sprite_key": "npc/faction_leader_female_0",
+   "faction": "forest_villagers",
+   "dialogue_lines": [
+    "I am Elder Mara of the Forest Villagers.",
+    "Our community has thrived here for generations. Trade with us.",
+    "The forest is our home. Protect it, and we shall protect you."
+   ],
+   "behavior": "patrol",
+   "patrol_area": [
+    70,
+    80,
+    110,
+    120
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.2,
+   "health": 25,
+   "max_health": 25,
+   "faction_id": "forest_villagers",
+   "faction_strength": 1.0,
+   "hostile_monster_types": []
+  },
+  {
+   "npc_id": "goblin_chief_grak",
+   "name": "Goblin Chief Grak",
+   "npc_type": "faction_leader",
+   "world_x": 200,
+   "world_y": 300,
+   "sprite_key": "npc/faction_leader_male_0",
+   "faction": "goblins",
+   "dialogue_lines": [
+    "You dare enter goblin territory?",
+    "Perhaps we can come to an agreement...",
+    "My warriors are strong. You should leave."
+   ],
+   "behavior": "patrol",
+   "patrol_area": [
+    180,
+    280,
+    220,
+    320
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.7,
+   "health": 30,
+   "max_health": 30,
+   "faction_id": "goblins",
+   "faction_strength": 1.0,
+   "hostile_monster_types": [
+    "wolf",
+    "goblin"
+   ],
+   "available_quest_ids": [
+    "goblin_diplomacy",
+    "goblin_truce"
+   ]
+  },
+  {
+   "npc_id": "captain_rourke",
+   "name": "Captain Rourke",
+   "npc_type": "faction_leader",
+   "world_x": 30,
+   "world_y": 380,
+   "sprite_key": "npc/faction_leader_male_0",
+   "faction": "coastal_merchants",
+   "dialogue_lines": [
+    "Captain Rourke of the Coastal Merchants.",
+    "We control the sea routes. Trade with us or face the consequences.",
+    "Negotiate? Let's see what you bring to the table."
+   ],
+   "behavior": "patrol",
+   "patrol_area": [
+    10,
+    360,
+    50,
+    400
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.4,
+   "health": 35,
+   "max_health": 35,
+   "faction_id": "coastal_merchants",
+   "faction_strength": 1.0,
+   "hostile_monster_types": [
+    "sea_serpent"
+   ],
+   "available_quest_ids": [
+    "sea_trade",
+    "coastal_defense"
+   ]
+  },
+  {
+   "npc_id": "djinn_elder_zara",
+   "name": "Djinn Elder Zara",
+   "npc_type": "faction_leader",
+   "world_x": 380,
+   "world_y": 380,
+   "sprite_key": "npc/faction_leader_female_0",
+   "faction": "desert_djinn",
+   "dialogue_lines": [
+    "I am Elder Zara of the Djinn Clan.",
+    "Trade routes through our desert are sacred. Honor them.",
+    "Negotiate well and the desert shall reward you."
+   ],
+   "behavior": "patrol",
+   "patrol_area": [
+    360,
+    360,
+    400,
+    400
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.6,
+   "health": 40,
+   "max_health": 40,
+   "faction_id": "desert_djinn",
+   "faction_strength": 1.0,
+   "hostile_monster_types": [
+    "scorpion",
+    "sand_worm"
+   ],
+   "available_quest_ids": [
+    "sand_storm_warning"
+   ]
+  },
+  {
+   "npc_id": "shaman_kree",
+   "name": "Shaman Kree",
+   "npc_type": "faction_leader",
+   "world_x": 245,
+   "world_y": 245,
+   "sprite_key": "npc/faction_leader_female_0",
+   "faction": "swamp_factions",
+   "dialogue_lines": [
+    "The swamp hides many secrets, outsider.",
+    "Poison frogs and crocodiles patrol these waters.",
+    "Prove yourself and I will share my knowledge."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    230,
+    230,
+    270,
+    270
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.8,
+   "health": 18,
+   "max_health": 18,
+   "faction_id": "swamp_factions",
+   "faction_strength": 1.0,
+   "hostile_monster_types": [
+    "poison_frog",
+    "crocodile"
+   ],
+   "available_quest_ids": [
+    "swamp_crossing",
+    "poison_antidote"
+   ]
+  },
+  {
+   "npc_id": "stone_guardian",
+   "name": "Stone Guardian",
+   "npc_type": "faction_leader",
+   "world_x": 395,
+   "world_y": 100,
+   "sprite_key": "npc/faction_leader_male_0",
+   "faction": "mountain_clans",
+   "dialogue_lines": [
+    "The mountains test the weak. Only the strong survive.",
+    "Stone golems guard the deep veins. Respect them.",
+    "Bring me rare ores and I will teach you the ways of the clans."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    380,
+    80,
+    420,
+    120
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.5,
+   "health": 25,
+   "max_health": 25,
+   "faction_id": "mountain_clans",
+   "faction_strength": 1.0,
+   "hostile_monster_types": [
+    "stone_golem"
+   ]
+  },
+  {
+   "npc_id": "recruit_forest_assistant",
+   "name": "Young Scout Elara",
+   "npc_type": "recruit",
+   "world_x": 110,
+   "world_y": 110,
+   "sprite_key": "npc/recruit_female_0",
+   "faction": "forest_villagers",
+   "dialogue_lines": [
+    "I want to follow you, but I need to earn your trust first.",
+    "I can gather herbs and help you survive the wilderness."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    90,
+    90,
+    130,
+    130
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.3,
+   "health": 12,
+   "max_health": 12,
+   "recruit_commerce_requirement": 2,
+   "recruit_persuasion_requirement": 3,
+   "recruit_composite_stat": 5,
+   "available_behaviors": [
+    "assistant",
+    "guard"
+   ],
+   "recruit_sprite_key": "recruit"
+  },
+  {
+   "npc_id": "recruit_coastal_trader",
+   "name": "Dock Hand Finn",
+   "npc_type": "recruit",
+   "world_x": 40,
+   "world_y": 390,
+   "sprite_key": "npc/recruit_male_0",
+   "faction": "coastal_merchants",
+   "dialogue_lines": [
+    "I know all the merchants along the coast. Hire me and I'll trade for you.",
+    "Best trader you'll find - I know the prices inside and out."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    20,
+    370,
+    60,
+    410
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.3,
+   "health": 12,
+   "max_health": 12,
+   "recruit_commerce_requirement": 5,
+   "recruit_persuasion_requirement": 3,
+   "recruit_composite_stat": 8,
+   "available_behaviors": [
+    "trader"
+   ],
+   "recruit_sprite_key": "recruit"
+  },
+  {
+   "npc_id": "recruit_mountain_guard",
+   "name": "Rock Breaker Thorg",
+   "npc_type": "recruit",
+   "world_x": 410,
+   "world_y": 110,
+   "sprite_key": "npc/recruit_male_0",
+   "faction": "mountain_clans",
+   "dialogue_lines": [
+    "I'm strong. I can protect your base from those stone golems.",
+    "Mountains taught me to fight. Hire me as your guard."
+   ],
+   "behavior": "idle",
+   "patrol_area": [
+    390,
+    90,
+    430,
+    130
+   ],
+   "is_active": true,
+   "is_recruited": false,
+   "recruit_behavior": null,
+   "hostility_level": 0.5,
+   "health": 18,
+   "max_health": 18,
+   "recruit_commerce_requirement": 3,
+   "recruit_persuasion_requirement": 5,
+   "recruit_composite_stat": 8,
+   "available_behaviors": [
+    "guard",
+    "assistant"
+   ],
+   "recruit_sprite_key": "recruit"
+  }
+ ],
+ "spawn_points": [
+  {
+   "spawn_id": "spawn_forest_1",
+   "tile_x": 100,
+   "tile_y": 100,
+   "npc_types": [
+    "merchant",
+    "quest_giver"
+   ],
+   "faction": "forest_villagers",
+   "biome": "forest",
+   "is_safe_zone": true,
+   "min_distance_from_player": 200
+  },
+  {
+   "spawn_id": "spawn_forest_2",
+   "tile_x": 200,
+   "tile_y": 300,
+   "npc_types": [
+    "faction_leader"
+   ],
+   "faction": "goblins",
+   "biome": "forest",
+   "is_safe_zone": false,
+   "min_distance_from_player": 300
+  },
+  {
+   "spawn_id": "spawn_plains_1",
+   "tile_x": 150,
+   "tile_y": 150,
+   "npc_types": [
+    "merchant"
+   ],
+   "faction": null,
+   "biome": "plains",
+   "is_safe_zone": true,
+   "min_distance_from_player": 150
+  },
+  {
+   "spawn_id": "spawn_coastal_1",
+   "tile_x": 50,
+   "tile_y": 400,
+   "npc_types": [
+    "merchant"
+   ],
+   "faction": "coastal_merchants",
+   "biome": "coastal",
+   "is_safe_zone": true,
+   "min_distance_from_player": 150
+  },
+  {
+   "spawn_id": "spawn_coastal_2",
+   "tile_x": 30,
+   "tile_y": 380,
+   "npc_types": [
+    "faction_leader"
+   ],
+   "faction": "coastal_merchants",
+   "biome": "coastal",
+   "is_safe_zone": false,
+   "min_distance_from_player": 200
+  },
+  {
+   "spawn_id": "spawn_mountains_1",
+   "tile_x": 400,
+   "tile_y": 100,
+   "npc_types": [
+    "quest_giver"
+   ],
+   "faction": "mountain_clans",
+   "biome": "mountains",
+   "is_safe_zone": false,
+   "min_distance_from_player": 250
+  },
+  {
+   "spawn_id": "spawn_desert_1",
+   "tile_x": 350,
+   "tile_y": 350,
+   "npc_types": [
+    "merchant",
+    "quest_giver"
+   ],
+   "faction": "desert_djinn",
+   "biome": "desert",
+   "is_safe_zone": true,
+   "min_distance_from_player": 200
+  },
+  {
+   "spawn_id": "spawn_desert_2",
+   "tile_x": 380,
+   "tile_y": 380,
+   "npc_types": [
+    "faction_leader"
+   ],
+   "faction": "desert_djinn",
+   "biome": "desert",
+   "is_safe_zone": false,
+   "min_distance_from_player": 250
+  },
+  {
+   "spawn_id": "spawn_forest_3",
+   "tile_x": 110,
+   "tile_y": 110,
+   "npc_types": [
+    "recruit"
+   ],
+   "faction": "forest_villagers",
+   "biome": "forest",
+   "is_safe_zone": true,
+   "min_distance_from_player": 150
+  },
+  {
+   "spawn_id": "spawn_forest_4",
+   "tile_x": 90,
+   "tile_y": 100,
+   "npc_types": [
+    "faction_leader"
+   ],
+   "faction": "forest_villagers",
+   "biome": "forest",
+   "is_safe_zone": true,
+   "min_distance_from_player": 150
+  },
+  {
+   "spawn_id": "spawn_coastal_3",
+   "tile_x": 40,
+   "tile_y": 390,
+   "npc_types": [
+    "recruit"
+   ],
+   "faction": "coastal_merchants",
+   "biome": "coastal",
+   "is_safe_zone": true,
+   "min_distance_from_player": 150
+  },
+  {
+   "spawn_id": "spawn_mountains_2",
+   "tile_x": 410,
+   "tile_y": 110,
+   "npc_types": [
+    "recruit"
+   ],
+   "faction": "mountain_clans",
+   "biome": "mountains",
+   "is_safe_zone": false,
+   "min_distance_from_player": 200
+  },
+  {
+   "spawn_id": "spawn_swamp_2",
+   "tile_x": 245,
+   "tile_y": 245,
+   "npc_types": [
+    "faction_leader"
+   ],
+   "faction": "swamp_factions",
+   "biome": "swamp",
+   "is_safe_zone": false,
+   "min_distance_from_player": 200
+  },
+  {
+   "spawn_id": "spawn_mountains_3",
+   "tile_x": 395,
+   "tile_y": 100,
+   "npc_types": [
+    "faction_leader"
+   ],
+   "faction": "mountain_clans",
+   "biome": "mountains",
+   "is_safe_zone": false,
+   "min_distance_from_player": 200
+  }
+ ]
 }

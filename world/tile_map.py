@@ -26,6 +26,7 @@ class Tile:
         "x", "y", "biome", "elevation",
         "resource_node", "depleted", "regrow_timer",
         "terrain_color", "fog_density",
+        "blended_spawns",
     )
 
     def __init__(
@@ -44,6 +45,9 @@ class Tile:
         self.regrow_timer = 0.0  # Seconds until regrowth (0 if not regrowing)
         self.terrain_color = (128, 128, 128)  # Default grey (placeholder)
         self.fog_density: float = 1.0  # Precomputed exp(-elev / scale) for volumetric fog
+        # Per-tile ecotone blend of spawnable resource ids (border tiles only);
+        # None = use biome.resource_spawns. Set by world_gen._build_biome_transitions.
+        self.blended_spawns: list[str] | None = None
 
     def update(self, dt: float, regrowth_mod: float = 1.0) -> None:
         """

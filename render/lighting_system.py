@@ -86,15 +86,24 @@ class LightingSystem:
     def update_from_season(self, season_system: SeasonSystem) -> None:
         """Call once per frame from Game.update()."""
         lp = season_system.get_lighting_params()
-        self.sun_direction = lp["sun_direction"]
-        self.sun_altitude = lp["sun_altitude"]
+        new_dir = lp["sun_direction"]
+        new_alt = lp["sun_altitude"]
+        # Sun direction drives corner shading → invalidate the cache, but only
+        # when the sun actually moved enough to matter (it changes with
+        # time_of_day; recomputing a 513×513 grid per frame defeats the cache).
+        sx, sy, sz = new_dir
+        ox, oy, oz = self.sun_direction
+        if (
+            abs(sx - ox) > 1e-4 or abs(sy - oy) > 1e-4 or abs(sz - oz) > 1e-4
+            or abs(new_alt - self.sun_altitude) > 1e-4
+        ):
+            self.mark_corner_shading_dirty()
+        self.sun_direction = new_dir
+        self.sun_altitude = new_alt
         self.ambient_color = lp["ambient_color"]
         self.ambient_level = lp["ambient_level"]
         self.sun_color = lp["sun_color"]
         self.fog_tint = lp["fog_tint"]
-        # Sun direction drives corner shading → invalidate the cache so the
-        # next ``compute_all_corner_shading`` call picks up the new sun.
-        self.mark_corner_shading_dirty()
     
     def update_from_weather(self, weather_system: WeatherSystem) -> None:
         """Call once per frame from Game.update()."""
@@ -354,14 +363,14 @@ def compute_sun_direction(time_of_day: float, azimuth_deg: float = 45.0,
     Returns (sun_dir_xyz, sun_altitude_rad).
     """
     t = time_of_day
-    # Altitude: -30° at midnight (0), 0° at sunrise (0.25), +30° at noon (0.5),
-    # 0° at sunset (0.75), -30° at midnight (1.0)
+    # Altitude: alt_min at midnight (0), 0 at sunrise (0.25), alt_max at
+    # noon (0.5), 0 at sunset (0.75), back to alt_min at midnight (1.0).
     if t < 0.25:
-        sun_alt_deg = alt_min + (alt_max - alt_min) * (t / 0.25)
+        sun_alt_deg = alt_min * (1.0 - t / 0.25)
     elif t < 0.5:
-        sun_alt_deg = (alt_max - alt_min) * ((t - 0.25) / 0.25)
+        sun_alt_deg = alt_max * ((t - 0.25) / 0.25)
     elif t < 0.75:
-        sun_alt_deg = (alt_max - alt_min) * (1.0 - (t - 0.5) / 0.25)
+        sun_alt_deg = alt_max * (1.0 - (t - 0.5) / 0.25)
     else:
         sun_alt_deg = alt_min * ((t - 0.75) / 0.25)
     

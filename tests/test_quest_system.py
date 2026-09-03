@@ -225,10 +225,9 @@ class TestQuestFactionRequirement(unittest.TestCase):
         """Required faction status met → eligible."""
         from npc.quest_system import QuestSystem
 
-        # The eligibility check calls get_status(req) where req is the
-        # required_faction_status. We need get_status("friendly") to return
-        # "friendly" or higher. So we store "friendly" as a faction_id.
-        fs = MockFactionSystem({"friendly": "friendly"})
+        # The eligibility check looks up the quest's giver_faction standing
+        # and compares it against required_faction_status.
+        fs = MockFactionSystem({"test_faction": "friendly"})
         qs = QuestSystem(MockIntelligenceSkill())
         qs.faction_system = fs
         qs.load_quest_data()

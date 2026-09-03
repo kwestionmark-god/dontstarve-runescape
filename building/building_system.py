@@ -69,6 +69,7 @@ class BuildingSystem:
         "npc_assignments",
         "item_drops",
         "_game_ref",
+        "_next_instance_id",
     )
 
     def __init__(
@@ -86,9 +87,10 @@ class BuildingSystem:
         self.structure_defs: StructureDefsSource = structure_defs
         self.item_drops: List[ItemDrop] = []
 
-        # NPC-structure assignments: structure_id → npc_id
-        self.npc_assignments: Dict[str, str] = {}
+        # NPC-structure assignments: structure instance_id → npc_id
+        self.npc_assignments: Dict[int, str] = {}
         self._game_ref: object | None = game_ref
+        self._next_instance_id: int = 1
 
     def _get_structure_def(self, category: str, structure_id: str) -> Optional[StructureDef]:
         """Get a structure definition by category and ID, works with both dict and registry."""
@@ -203,6 +205,8 @@ class BuildingSystem:
             is_active=True,
             is_portable=struct_def.structure_type == "portable",
         )
+        structure.instance_id = self._next_instance_id
+        self._next_instance_id += 1
 
         self.structures.append(structure)
 
@@ -243,13 +247,14 @@ class BuildingSystem:
 
     def pickup_structure(self, structure: Structure) -> RemoveResult:
         """
-        Pick up a portable structure, returning 50% materials to inventory.
+        Pick up a portable structure, refunding materials per the shared
+        building-tech return rule (portable = 100%).
 
         Args:
             structure: The structure to pick up.
 
         Returns:
-            RemoveResult with materials returned (50% of original cost).
+            RemoveResult with materials returned.
         """
         if not structure.is_portable:
             return RemoveResult(
@@ -257,8 +262,9 @@ class BuildingSystem:
                 message="Cannot pick up fixed structures.",
             )
 
-        # Pickup returns 50% of materials
-        return_rate = 0.5
+        # Return rate comes from the shared building-tech rule
+        # (portable = 100%, fixed = 50%, defensive = 30%).
+        return_rate = self.construction.get_material_return_rate(structure.structure_def)
 
         materials_returned: List[Tuple[str, int]] = []
         for item_id, qty in structure.structure_def.materials:
@@ -310,12 +316,6 @@ class BuildingSystem:
             message=f"Demolished {structure.structure_def.name}.",
         )
 
-        return RemoveResult(
-            success=True,
-            materials_returned=materials_returned,
-            message=f"Removed {structure.structure_def.name}.",
-        )
-
     # ── Monster Interaction ─────────────────────────────────────────
 
     def monster_attack_structure(
@@ -338,6 +338,10 @@ class BuildingSystem:
         if not self.structures:
             return None
 
+        # Only structures actually near the monster can be attacked
+        # (1.5 tiles); monsters must not damage structures map-wide.
+        max_range = TILE_SIZE * 1.5
+
         # Find the closest structure to the monster
         best = None
         best_dist = float("inf")
@@ -347,7 +351,7 @@ class BuildingSystem:
                 best_dist = dist
                 best = s
 
-        if best is None:
+        if best is None or best_dist > max_range:
             return None
 
         destroyed = best.take_damage(monster_attack)
@@ -526,55 +530,60 @@ class BuildingSystem:
         Returns:
             (success, message) tuple.
         """
-        # 1. Find the structure by ID in self.structures
+        # 1. Find the first UNASSIGNED structure of that type (a second
+        # ballista of the same type must remain assignable).
         structure = None
         for s in self.structures:
-            if s.structure_def.structure_id == structure_id:
+            if (
+                s.structure_def.structure_id == structure_id
+                and s.assigned_npc_id is None
+            ):
                 structure = s
                 break
         if structure is None:
-            return (False, f"Structure '{structure_id}' not found.")
+            return (False, f"Structure '{structure_id}' not found (or all assigned).")
 
         # 2. Check if structure is a valid guard post
         if not self._is_guard_post(structure):
             return (False, f"Structure '{structure_id}' is not a guard post.")
 
-        # 3. Check if structure already has an NPC assigned (one guard per structure)
-        if structure.assigned_npc_id is not None:
-            return (
-                False,
-                f"Structure already assigned to NPC '{structure.assigned_npc_id}'.",
-            )
-
-        # 4. Check if NPC already has a different structure assigned
-        for existing_struct_id, existing_npc_id in list(
+        # 3. Check if NPC already has a different structure assigned
+        for existing_key, existing_npc_id in list(
             self.npc_assignments.items()
         ):
             if existing_npc_id == npc_id:
-                old_struct_id = existing_struct_id
-                # Unassign from old structure first
-                old_struct = None
-                for s in self.structures:
-                    if s.structure_def.structure_id == old_struct_id:
-                        old_struct = s
-                        break
+                old_struct = self._structure_by_instance_key(existing_key)
                 if old_struct:
                     old_struct.assigned_npc_id = None
-                del self.npc_assignments[old_struct_id]
+                del self.npc_assignments[existing_key]
                 break
 
-        # 5. Perform assignment
+        # 4. Perform assignment (keyed by instance so same-type structures
+        # are independent)
+        key = self._instance_key(structure)
         structure.assigned_npc_id = npc_id
-        self.npc_assignments[structure_id] = npc_id
+        self.npc_assignments[key] = npc_id
 
-        # 6. Update NPC.assigned_structure_id via game reference
+        # 5. Update NPC.assigned_structure_id via game reference
         if hasattr(self, "_game_ref") and self._game_ref and self._game_ref.npc_system:
             for npc in self._game_ref.npc_system.npcs:
                 if npc.npc_id == npc_id:
-                    npc.assigned_structure_id = structure_id
+                    npc.assigned_structure_id = key
                     break
 
         return (True, f"Guard assigned to {structure.structure_def.name}.")
+
+    @staticmethod
+    def _instance_key(structure: Structure) -> str:
+        """Assignment key: '<structure_id>#<instance_id>' (unique per structure)."""
+        return f"{structure.structure_def.structure_id}#{structure.instance_id}"
+
+    def _structure_by_instance_key(self, key: str) -> Optional[Structure]:
+        """Resolve an assignment key back to its Structure instance."""
+        for s in self.structures:
+            if self._instance_key(s) == key:
+                return s
+        return None
 
     def unassign_npc(self, npc_id: str) -> tuple[bool, str]:
         """
@@ -586,14 +595,13 @@ class BuildingSystem:
         Returns:
             (success, message) tuple.
         """
-        for struct_id, assigned_npc in list(self.npc_assignments.items()):
+        for struct_key, assigned_npc in list(self.npc_assignments.items()):
             if assigned_npc == npc_id:
                 # Find and clear structure assignment
-                for s in self.structures:
-                    if s.structure_def.structure_id == struct_id:
-                        s.assigned_npc_id = None
-                        break
-                del self.npc_assignments[struct_id]
+                struct = self._structure_by_instance_key(struct_key)
+                if struct is not None:
+                    struct.assigned_npc_id = None
+                del self.npc_assignments[struct_key]
 
                 # Clear NPC field
                 if (
@@ -632,20 +640,18 @@ class BuildingSystem:
         Returns:
             The assigned Structure, or None if not assigned.
         """
-        for struct_id, assigned_npc in self.npc_assignments.items():
+        for struct_key, assigned_npc in self.npc_assignments.items():
             if assigned_npc == npc_id:
-                for s in self.structures:
-                    if s.structure_def.structure_id == struct_id:
-                        return s
+                return self._structure_by_instance_key(struct_key)
         return None
 
     def _cleanup_npc_assignment_on_removal(self, structure: Structure) -> None:
         """Clean up NPC assignment when a structure is destroyed or picked up."""
         npc_id = structure.assigned_npc_id
         if npc_id is not None:
-            struct_id = structure.structure_def.structure_id
-            if struct_id in self.npc_assignments:
-                del self.npc_assignments[struct_id]
+            key = self._instance_key(structure)
+            if key in self.npc_assignments:
+                del self.npc_assignments[key]
             structure.assigned_npc_id = None
             # Clear NPC field
             if (

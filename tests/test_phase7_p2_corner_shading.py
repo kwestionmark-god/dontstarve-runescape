@@ -444,7 +444,7 @@ class TestCornerShadingCache:
         assert ls._corner_shading_dirty is False
 
     def test_update_from_season_marks_cache_dirty(self):
-        """update_from_season() invalidates the corner shading cache."""
+        """update_from_season() invalidates the cache when the sun moved."""
         from seasons.season_system import SeasonSystem
 
         tm, ls = self._setup()
@@ -452,11 +452,27 @@ class TestCornerShadingCache:
         assert ls._corner_shading_dirty is False
 
         ss = SeasonSystem()
+        ss.time_of_day = 0.5  # noon — sun differs from the default direction
         ls.update_from_season(ss)
         assert ls._corner_shading_dirty is True, (
-            "update_from_season must mark corner shading dirty"
+            "update_from_season must mark corner shading dirty when the sun moved"
         )
 
         # Recompute → dirty flag clears.
         ls.compute_all_corner_shading(tm, 0.5, 0.5, 0.7)
         assert ls._corner_shading_dirty is False
+
+    def test_update_from_season_keeps_cache_when_sun_unchanged(self):
+        """Calling update_from_season twice with the same sun is a cache hit."""
+        from seasons.season_system import SeasonSystem
+
+        tm, ls = self._setup()
+        ss = SeasonSystem()
+        ls.update_from_season(ss)
+        ls.compute_all_corner_shading(tm, 0.5, 0.5, 0.7)
+        assert ls._corner_shading_recompute_count == 1
+
+        ls.update_from_season(ss)  # same time_of_day → same sun
+        assert ls._corner_shading_dirty is False
+        ls.compute_all_corner_shading(tm, 0.5, 0.5, 0.7)
+        assert ls._corner_shading_recompute_count == 1

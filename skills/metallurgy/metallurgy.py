@@ -206,7 +206,13 @@ class MetallurgySkill:
                 message=f"Smelting failed. Fuel consumed, ore preserved.",
             )
 
-        # Success: consume fuel + ore, produce output
+        # Success: verify output fits BEFORE consuming anything, then consume
+        if not inventory.can_add(recipe.output_item, recipe.output_quantity):
+            return SmeltResult(
+                success=False,
+                message="Inventory full — smelting aborted, nothing consumed.",
+            )
+
         inventory.remove_item(recipe.fuel_item, fuel_cost)
         inventory.remove_item(recipe.ore_item, 1)
 

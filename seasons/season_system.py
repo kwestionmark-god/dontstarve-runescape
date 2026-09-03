@@ -195,38 +195,16 @@ class SeasonSystem:
         """
         profile = self.season_lighting[self.current_season]
         t = self.time_of_day
-        
-        # Sun altitude: -30° at midnight (0), 0° at sunrise (0.25), +30° at noon (0.5),
-        # 0° at sunset (0.75), -30° at midnight (1.0)
-        alt_min = math.radians(self.sun_altitude_min)
-        alt_max = math.radians(self.sun_altitude_max)
-        
-        if t < 0.25:
-            sun_alt = alt_min + (alt_max - alt_min) * (t / 0.25)
-        elif t < 0.5:
-            sun_alt = (alt_max - alt_min) * ((t - 0.25) / 0.25)
-        elif t < 0.75:
-            sun_alt = (alt_max - alt_min) * (1.0 - (t - 0.5) / 0.25)
-        else:
-            sun_alt = alt_min * ((t - 0.75) / 0.25)
-        
-        azimuth = math.radians(self.sun_azimuth)
-        sun_dir = (
-            math.cos(sun_alt) * math.sin(azimuth),
-            math.cos(sun_alt) * math.cos(azimuth),
-            math.sin(sun_alt),
+
+        # Canonical solar math lives in render.lighting_system (single source).
+        from render.lighting_system import compute_ambient_level, compute_sun_direction
+
+        sun_dir, sun_alt = compute_sun_direction(
+            t, self.sun_azimuth, self.sun_altitude_min, self.sun_altitude_max,
         )
-        
-        # Ambient lerp with dawn/dusk transitions
-        if 0.125 <= t <= 0.375:
-            day_frac = (t - 0.125) / 0.25
-        elif 0.625 <= t <= 0.875:
-            day_frac = 1.0 - (t - 0.625) / 0.25
-        elif 0.25 < t < 0.625:
-            day_frac = 1.0
-        else:
-            day_frac = 0.0
-        ambient_level = self.night_ambient_level + day_frac * (self.day_ambient_level - self.night_ambient_level)
+        ambient_level = compute_ambient_level(
+            t, self.night_ambient_level, self.day_ambient_level,
+        )
         
         return {
             "sun_direction": sun_dir,

@@ -236,9 +236,8 @@ def generate(
     water_map = _generate_water_bodies(elevation_map, moisture_map, width, height, seed, RIVER_THRESHOLD, LAKE_MIN_SIZE)
     _report(0.50)
     
-    # Detect cliffs and generate scree slopes
-    from config import CLIFF_THRESHOLD
-    cliff_mask, scree_map = _detect_cliffs_and_scree(elevation_map, width, height, CLIFF_THRESHOLD)
+    # (Cliff/scree detection was removed: its result was never consumed and
+    # its scree extension used the module-global RNG, breaking determinism.)
     _report(0.55)
     
     # Build tile grid with biomes
@@ -564,79 +563,6 @@ def classify_biome(elevation: int, moisture: float, is_water: bool = False) -> s
             return "plains"
         else:
             return "coastal"
-
-
-def _detect_cliffs_and_scree(
-    elevation: list[list[int]], width: int, height: int, cliff_threshold: float
-) -> tuple[list[list[bool]], list[list[bool]]]:
-    """
-    Detect cliffs and generate scree slope mask.
-    
-    A cliff is detected when elevation difference between adjacent tiles exceeds the threshold.
-    Scree slopes are generated on the downhill side of cliffs (the lower elevation tile).
-    
-    Args:
-        elevation: 2D elevation grid.
-        width: Map width.
-        height: Map height.
-        cliff_threshold: Minimum elevation delta to consider a cliff.
-    
-    Returns:
-        Tuple of (cliff_mask, scree_mask) where each is a 2D boolean grid.
-    """
-    cliff_mask = [[False] * height for _ in range(width)]
-    scree_mask = [[False] * height for _ in range(width)]
-    
-    # 4-connected directions for cliff detection
-    directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-    
-    # First pass: detect cliffs
-    for x in range(width):
-        for y in range(height):
-            current_elev = elevation[x][y]
-            
-            for dx, dy in directions:
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < width and 0 <= ny < height:
-                    neighbor_elev = elevation[nx][ny]
-                    delta = current_elev - neighbor_elev
-                    
-                    if delta >= cliff_threshold:
-                        # Current tile is a cliff face (higher than neighbor)
-                        cliff_mask[x][y] = True
-                        # Neighbor is the scree slope (downhill side)
-                        scree_mask[nx][ny] = True
-                    elif delta <= -cliff_threshold:
-                        # Neighbor is a cliff face
-                        cliff_mask[nx][ny] = True
-                        # Current tile is scree
-                        scree_mask[x][y] = True
-    
-    # Second pass: extend scree slopes slightly for more natural appearance
-    # Scree extends 1-2 tiles further downhill from the immediate base
-    for x in range(width):
-        for y in range(height):
-            if scree_mask[x][y]:
-                current_elev = elevation[x][y]
-                # Find the steepest downhill neighbor and extend scree there
-                steepest_slope = 0.0
-                steepest_nx, steepest_ny = -1, -1
-                
-                for dx, dy in directions:
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < width and 0 <= ny < height:
-                        slope = current_elev - elevation[nx][ny]
-                        if slope > steepest_slope:
-                            steepest_slope = slope
-                            steepest_nx, steepest_ny = nx, ny
-                
-                if steepest_nx >= 0 and steepest_slope > 0:
-                    # 50% chance to extend scree one more tile
-                    import random
-                    if random.random() < 0.5:
-                        scree_mask[steepest_nx][steepest_ny] = True
-    
-    return cliff_mask, scree_mask
 
 
 def _generate_water_bodies(
@@ -1080,10 +1006,11 @@ def _build_biome_transitions(
         if not other_biomes:
             continue
 
-        # Build blended spawn list (use cache for biome pairs)
+        # Build blended spawn list (cache per direction: adding desert
+        # resources into forest is not the same as the reverse)
         base_spawns = set(tile.biome.resource_spawns)
         for other_id in other_biomes:
-            cache_key = tuple(sorted((current_biome_id, other_id)))
+            cache_key = (current_biome_id, other_id)
             if cache_key in blended_cache:
                 base_spawns.update(blended_cache[cache_key])
                 continue
@@ -1107,8 +1034,10 @@ def _build_biome_transitions(
             blended_cache[cache_key] = added
             base_spawns.update(added)
 
-        # Update tile's biome resource_spawns with blended list
-        tile.biome.resource_spawns = list(base_spawns)
+        # Store the blended spawn list on the tile — mutating tile.biome here
+        # would write into the shared registry Biome seen by every tile of
+        # that biome.
+        tile.blended_spawns = list(base_spawns)
 
 
 def _has_swamp_neighbor(tile_map: TileMap, x: int, y: int) -> bool:

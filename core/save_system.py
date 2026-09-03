@@ -223,8 +223,14 @@ class SaveSystem:
                             hp=struct_data.get("hp", struct_def.hp),
                             max_hp=struct_data.get("max_hp", struct_def.hp),
                             is_active=struct_data.get("is_active", True),
+                            is_portable=getattr(struct_def, "structure_type", None) == "portable",
                         )
                         game.building_system.structures.append(structure)
+                        # Assign an instance id when the building system
+                        # supports it (test fakes may not).
+                        if hasattr(game.building_system, "_next_instance_id"):
+                            structure.instance_id = game.building_system._next_instance_id
+                            game.building_system._next_instance_id += 1
                         break
 
         # 6b. Restore resource nodes (depletion state, regrowth timers)
@@ -258,21 +264,32 @@ class SaveSystem:
                     tile.regrow_timer = 0.0
 
         # 6.5 Restore NPC-structure assignments (P3-S16)
+        # Saved keys are "<structure_id>#<instance_id>"; instance ids are
+        # reassigned on load, so resolve by structure type to the first
+        # unassigned matching structure instance.
+        if "npc_structure_assignments" in save_data and save_data["npc_structure_assignments"]:
             assignments = save_data["npc_structure_assignments"]
-            for npc_id, structure_id in assignments.items():
-                # Set the NPC's field
+            for npc_id, save_key in assignments.items():
+                struct_type = str(save_key).split("#", 1)[0]
+                if not game.building_system:
+                    continue
+                target = None
+                for s in game.building_system.structures:
+                    if (
+                        s.structure_def.structure_id == struct_type
+                        and s.assigned_npc_id is None
+                    ):
+                        target = s
+                        break
+                if target is None:
+                    continue
+                key = game.building_system._instance_key(target)
+                target.assigned_npc_id = npc_id
+                game.building_system.npc_assignments[key] = npc_id
                 if game.npc_system:
                     for npc in game.npc_system.npcs:
                         if npc.npc_id == npc_id:
-                            npc.assigned_structure_id = structure_id
-                            break
-
-                # Re-establish in building_system's assignment map
-                if game.building_system:
-                    game.building_system.npc_assignments[structure_id] = npc_id
-                    for s in game.building_system.structures:
-                        if s.structure_def.structure_id == structure_id:
-                            s.assigned_npc_id = npc_id
+                            npc.assigned_structure_id = key
                             break
 
         # 7. Restore active fires
