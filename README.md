@@ -87,14 +87,14 @@ The test suite is designed to run **without a display** (no Pygame window):
 python -m pytest -q
 ```
 
-> At the time of writing, the suite reports **819 passed**
-> (`python -m pytest -q`). It runs headless in this environment: it passes both
-> with and without `SDL_VIDEODRIVER=dummy`. A session-scoped fixture in
-> `tests/conftest.py` initializes Pygame once for the entire test run and
-> tears it down at the end, avoiding conflicts between test modules. Most
-> tests import pure-logic modules that never touch a display; five UI/input
-> test files instantiate Pygame and rely on the session fixture for proper
-> isolation.
+> At the time of writing, the suite reports **926 tests collected** (all
+> passing; verified 2026-09-03). The September 2026 reliability audit and its
+> fixes are tracked in `tmp/PHASE-PLAN-2026-09.md` (Phases 1–4 complete;
+> Phase 5 = performance + GPU/parallel world-gen pending).
+>
+> The suite runs headless: with or without `SDL_VIDEODRIVER=dummy`. A
+> session-scoped fixture in `tests/conftest.py` initializes Pygame once for
+> the entire run.
 
 ---
 
@@ -417,7 +417,7 @@ particles → seasonal overlay → combat damage numbers → open UI panels.
 ### 11. ui
 
 `ui/` is the presentation layer: the always-on HUD, the title/loading screens,
-and nine modal panels. Panels render game state into primitive pygame draws and
+and the player-facing menus. Panels render game state into primitive pygame draws and
 emit plain action tuples; they contain **no game logic** (all rules live in the
 corresponding subsystem).
 
@@ -428,7 +428,16 @@ panels re-read live state every `render()`. `ui/hud.py` is the one always-visibl
 overlay (hunger/HP/faction/stamina bars, gold, notifications, hotbar, damage
 flash, season/weather).
 
-**Unified panel contract.** All nine panels subclass `ui.panel_window.PanelWindow`,
+**Unified tabbed dashboard.** The five character menus (Inventory, Skills,
+Crafting, Building, Gear) are hosted as tabs in one fixed-size window
+(`ui/dashboard_panel.py`, state `GameState.DASHBOARD_OPEN`). `I`/`C`/`TAB`/`B`/`G`
+open the dashboard at their tab; the same key or ESC closes; `←/→` (or `A`/`D`,
+or clicking a tab) switch tabs. The dashboard repositions the existing panel
+instances into the shared frame, so scroll position and selections survive
+tab switches. NPC panels (trade/quest/recruit/diplomacy) remain separate
+session-scoped windows.
+
+**Unified panel contract.** All panels subclass `ui.panel_window.PanelWindow`,
 a single reusable base class that provides:
 
 - **Chrome & viewport** — translucent background + double-line border, title,
@@ -472,7 +481,7 @@ dict-of-dicts. `npcs.json` is the only file with a second top-level array
 systems bypass it and read JSON directly via a module-relative `DATA_DIR` —
 there is no single "load this file" entry point.
 
-`tests/`: an **819-test** pytest suite (runnable under `pytest`), mostly
+`tests/`: a **926-test** pytest suite (runnable under `pytest`), mostly
 headless. A session-scoped fixture in `tests/conftest.py` initializes Pygame
 once for the entire run. `tests/integration/` cross-module flows (full quest
 accept→track→complete→reward, faction/NPC integration). `tools/`: `generate_sprites.py`
@@ -535,28 +544,42 @@ structures, world). Trees and depletable resources support
 The following are curated from the subsystem documentation pass. Severity is
 the documentation author's assessment; "confirmed" means the code path was
 traced. Each cites `file:line`. Already-fixed items are retained for history.
-A fuller, actively-maintained ledger of live and resolved findings lives in
-`tmp/LIVE-ISSUES.md` (the per-subsystem exploration traces have been
-consolidated into it and `tmp/README-draft.md`).
+The current, actively-maintained ledger is `tmp/PHASE-PLAN-2026-09.md`
+(September 2026 audit: 4 phases of fixes shipped, phase 5 = performance +
+GPU world-gen pending).
 
 ### Still live
-
-The items below were re-verified against live code on 2026-09-01. Anything fixed this
-cycle was moved to [Fixed this cycle](#fixed-this-cycle); only the genuinely-unresolved
-items remain here.
 
 - 🟡 **[seasons] Weather multipliers are rolled but never applied.** `weather_system.py`
   `get_effects()` (movement/visibility/outdoor-crafting/spawn multipliers) is only
   consumed by the test suite. Weather cycles and drives particles + the HUD icon,
-  but no gameplay system applies the multipliers. (Deferred — author decision; see
-  `tmp/LIVE-ISSUES.md` #15.)
+  but no gameplay system applies the multipliers. (Scheduled in Phase 4 of the
+  September 2026 plan.)
 - 🟡 **[cooking] Cooking skill math is never applied.** `skills/cooking/cooking.py` is
   instantiated (`core/bootstrap.py:229`) but none of its math methods
   (`calculate_nutrition`, `get_spoilage_modifier`, `get_success_rate_bonus`, …) have
   callers (see [Known limitations](#known-limitations)).
-  Available to wire up — see `tmp/IMPLEMENTATION-PLAN.md` §P1.
 
-### Fixed this cycle (2026-09-01)
+### Fixed (September 2026 audit — Phases 1–4)
+
+- Crash blockers: F/F5 `AttributeError`; title-screen Continue never loading;
+  foraging permanently locking the action system; trade gold stale-total
+  dupe; faction-leader quests unacceptably gated; invisible trade/quest
+  panels; monsters duplicated on save load; build-panel scroll crash
+  (`StructureDefRegistry` vs dict). Regression tests: `tests/test_b25_*`,
+  `tests/test_b26_*`, `tests/test_b27_*`, `tests/test_dashboard.py`,
+  `tests/test_b28_*`.
+- Combat/quest sim: monsters initiate attacks; faction melee gating;
+  kill-credit-based standing; quest trade/delivery/faction-attack tracking
+  wired; faction-status eligibility fixed vs `giver_faction`.
+- World/economy: day/night sun-altitude curve; particle spawning + fog alpha;
+  corner-shading cache fix; per-tile ecotone blends; landmark seasonal
+  gating; inventory-full hardening; quest-locked recipe enforcement;
+  structures/trade/npc data integrity; portable 100% pickup; structure
+  attack range; per-instance guard assignment.
+- UI: unified tabbed **dashboard** replaces the five character-menu windows.
+
+### Fixed in earlier cycles (history)
 
 Re-verified against live code; fixed as noted. Retained here for history — see
 `tmp/LIVE-ISSUES.md` for the full, actively-maintained ledger.

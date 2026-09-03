@@ -201,11 +201,13 @@ class InputRouter:
                     game.set_state(GameState.PLAYING)
                 elif game.state == GameState.PLAYING:
                     game.open_dashboard("gear")
-        elif event.key == pygame.K_y and game.state == GameState.PLAYING:
-            if game.state != GameState.QUEST_PANEL:
-                game.set_state(GameState.QUEST_PANEL)
-            else:
+        elif event.key == pygame.K_y:
+            if game.state == GameState.QUEST_PANEL:
+                if game._quest_panel is not None:
+                    game._quest_panel.close()
                 game.set_state(GameState.PLAYING)
+            elif game.state == GameState.PLAYING:
+                game.set_state(GameState.QUEST_PANEL)
         elif event.key == pygame.K_f and game.state == GameState.PLAYING:
             self._handle_light_fire(game)
         elif event.key == pygame.K_j and game.state == GameState.PLAYING:
@@ -588,6 +590,10 @@ class InputRouter:
                 return
             elif game.state == GameState.PLAYING:
                 self._handle_hotbar_click(game, event.pos[0], event.pos[1])
+                # A hotbar click is not a world click — don't also walk there
+                # or lock a target under the hotbar.
+                if self._hotbar_hit(game, event.pos[0], event.pos[1]):
+                    return
                 # Click-to-move / attack
                 if (
                     game.player is not None

@@ -156,8 +156,13 @@ def test_scrollbar_strip_absent_when_disabled():
 def test_grid_selection_moves_by_columns():
     panel = _panel(_visible=4, _total=9)
     panel.grid_cols = 3
-    panel.select(0)
-    panel.handle_key(pygame.K_d)  # move right by one column
+    panel.selection_mode = "grid"
+    panel.select(3)
+    panel.handle_key(pygame.K_d)  # move right by one cell
+    assert panel._selected_index == 4
+    panel.handle_key(pygame.K_s)  # move down one grid row
+    assert panel._selected_index == 7
+    panel.handle_key(pygame.K_a)  # move left by one cell
+    assert panel._selected_index == 6
+    panel.handle_key(pygame.K_w)  # move up one grid row
     assert panel._selected_index == 3
-    panel.handle_key(pygame.K_a)  # move left by one column
-    assert panel._selected_index == 0

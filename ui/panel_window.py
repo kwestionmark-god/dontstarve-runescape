@@ -368,33 +368,35 @@ class PanelWindow:
 
     def handle_key(self, key: int) -> Optional[tuple]:
         """
-        Keyboard nav: arrow / WASD move the selection; page keys scroll.
-
-        All other keys are delegated to ``on_key``; navigation-only keys
-        return ``None``.
+        Keyboard nav: Up/Down (W/S) move the selection by a row (by one grid
+        row in grid mode), Left/Right (A/D) move by one cell in grid mode.
+        In list mode Left/Right are NOT consumed — panels with tabs or other
+        horizontal semantics get them through ``on_key``.
         """
+        step_row = self.grid_cols if self.selection_mode == "grid" else 1
         if key in (pygame.K_w, pygame.K_UP):
-            self.select(self._selected_index - 1)
+            self.select(self._selected_index - step_row)
             return None
         if key in (pygame.K_s, pygame.K_DOWN):
-            self.select(self._selected_index + 1)
+            self.select(self._selected_index + step_row)
             return None
-        if key in (pygame.K_a, pygame.K_LEFT):
-            self.select(self._selected_index - self.grid_cols)
-            return None
-        if key in (pygame.K_d, pygame.K_RIGHT):
-            self.select(self._selected_index + self.grid_cols)
-            return None
+        if self.selection_mode == "grid":
+            if key in (pygame.K_a, pygame.K_LEFT):
+                self.select(self._selected_index - 1)
+                return None
+            if key in (pygame.K_d, pygame.K_RIGHT):
+                self.select(self._selected_index + 1)
+                return None
         return self.on_key(key)
 
     def handle_wheel(self, delta: int) -> None:
         """Deliver a mouse-wheel delta to the panel (clamped by the base).
 
-        ``delta`` is pygame's raw ``event.y`` (positive = wheel up). With the
-        standard convention where ``_scroll_offset`` is px scrolled away from
-        the top, wheel-up must reduce the offset, so the sign is negated.
+        ``delta`` is pygame's raw ``event.y`` (positive = wheel up). The
+        offset is in pixels, so one wheel tick scrolls one row (``row_height``
+        px) — previously a tick moved a single pixel.
         """
-        self.scroll_by(-delta)
+        self.scroll_by(-delta * self.row_height)
 
     def handle_click(self, x: int, y: int, button: int = 1) -> Optional[tuple]:
         """

@@ -666,8 +666,8 @@ class QuestPanel(PanelWindow):
         super().render(screen)
 
     def handle_mouse_move(self, mx: int, my: int) -> None:
-        """Track hovered tab, hover states for Accept buttons, and quest selection."""
-        self.on_mouse_move(mx, my)
+        """Hover/scrollbar tracking from the base class, plus quest rows."""
+        super().handle_mouse_move(mx, my)  # handles scrollbar drag + _hovered
 
     def handle_click(self, x: int, y: int) -> tuple[str, ...] | None:
         """Handle a click on the quest panel (compatibility wrapper)."""

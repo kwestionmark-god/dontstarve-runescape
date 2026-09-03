@@ -406,7 +406,11 @@ def handle_loading_event(game: "Game", event) -> None:
     """Handle events during loading and error states."""
     if game.state == GameState.ERROR:
         if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
-            game.state = GameState.TITLE
+            game.set_state(GameState.TITLE)
             game.world = None
             game.player = None
+            # Clear the error + progress so a later failure/success on the
+            # title screen doesn't inherit this session's message.
+            game._world_gen_error = None
+            game.loading_progress = 0.0
     # LOADING and LOADING_SAVE: no input needed

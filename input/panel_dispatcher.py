@@ -56,12 +56,6 @@ class PanelDispatcher:
         if isinstance(action, tuple) and action[0] == "negotiate" and state == GameState.DIPLOMACY_PANEL:
             self._npc_flows.execute_negotiation(); return
 
-    def _handle_building_select(self, structure_id: str) -> None:
-        game = self._game
-        panel = getattr(game, "_building_panel", None)
-        if panel is not None:
-            panel.selected_structure_id = structure_id
-
     def dispatch_click(self, state: "GameState", panel_name: str, action) -> None:
         if panel_name == "inventory" and action is not None:
             self._handle_inventory_click(action[0], action[1])
@@ -74,12 +68,6 @@ class PanelDispatcher:
         elif panel_name == "building" and action is not None:
             if action[0] == "select":
                 self._handle_building_select(action[1])
-                game = self._game
-                panel = getattr(game, "_building_panel", None)
-                if panel is not None:
-                    panel.selected_structure_id = action[1]
-                    game.build_mode = True
-                    game._building_pending_id = action[1]
             elif action[0] == "close":
                 self._handle_building_close()
         elif panel_name == "trade" and action is not None:
@@ -174,27 +162,8 @@ class PanelDispatcher:
             game.set_state(GameState.PLAYING)
 
     def _handle_cancel(self, state: "GameState") -> None:
-        game = self._game
-        # Use the unified close() method on the active panel
-        panel_map = {
-            GameState.TRADE_PANEL: game._trade_panel,
-            GameState.QUEST_PANEL: game._quest_panel,
-            GameState.RECRUIT_PANEL: game._recruit_panel,
-            GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
-            GameState.INVENTORY_OPEN: game._inventory_panel,
-            GameState.SKILL_PANEL: game._skill_panel,
-            GameState.CRAFTING_PANEL: game._crafting_panel,
-            GameState.BUILDING_PANEL: game._building_panel,
-            GameState.GEAR_PANEL: game._gear_panel,
-            GameState.CHARACTER_SELECT: game._character_select_panel,
-        }
-        panel = panel_map.get(state)
-        if panel is not None:
-            panel.close()
-        if state == GameState.CHARACTER_SELECT:
-            game.set_state(GameState.TITLE)
-        else:
-            game.set_state(GameState.PLAYING)
+        # "cancel" and "close" are the same action.
+        self._handle_close(state)
 
     def _handle_skill_allocation(self, *args) -> None:
         game = self._game
@@ -328,10 +297,10 @@ class PanelDispatcher:
         self._notify_building_select(game, structure_id)
 
     def _handle_building_place(self, structure_id: str) -> None:
-        game = self._game
-        if game._building_panel is not None:
-            game._building_panel.selected_structure_id = structure_id
-        self._notify_building_select(game, structure_id)
+        # Keyboard path: same behavior as clicking a structure — close the
+        # palette and enter build mode (previously only set a selection and
+        # left keyboard users with no way to place).
+        self._handle_building_select(structure_id)
 
     def _notify_building_select(self, game: "Game", structure_id: str) -> None:
         if game.player is None or game.player.action_system is None:
