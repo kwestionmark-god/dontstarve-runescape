@@ -56,3 +56,6 @@ assets/
 
 # Scratch reports for README generation (agent scratch space)
 tmp/
+
+# Screenshot captures (debug artifacts, large binaries)
+shots/
