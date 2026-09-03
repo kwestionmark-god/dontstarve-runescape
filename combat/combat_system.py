@@ -82,6 +82,7 @@ class CombatSystem:
         "_npc_attack_cooldowns",
         "_player_death_handler",
         "weather_system",
+        "_monster_grid",
     )
 
     def __init__(
@@ -103,6 +104,30 @@ class CombatSystem:
 
         # Per-NPC attack cooldown tracking (guards and recruited NPCs)
         self._npc_attack_cooldowns: Dict[str, float] = {}  # npc_id → remaining cooldown
+
+        # Uniform spatial grid over alive monsters: rebuilt once per tick and
+        # shared by auto-lock, structure targeting, "nearby" queries, and the
+        # faction system (replacing several O(n × entities) scans per tick).
+        self._monster_grid: tuple[object, list] | None = None
+
+    def _get_monster_grid(self):
+        from core.spatial_grid import UniformGrid
+
+        entry = self._monster_grid
+        if entry is None:
+            monsters = list(self.monsters)
+            grid = UniformGrid(cell_size=192)
+            grid.rebuild(monsters, lambda m: m.world_x, lambda m: m.world_y)
+            entry = (grid, monsters)
+            self._monster_grid = entry
+        return entry
+
+    def _invalidate_monster_grid(self) -> None:
+        self._monster_grid = None
+
+    def get_alive_monsters_in_radius(self, world_x: float, world_y: float, radius: float) -> List["Monster"]:
+        """Alive monsters within radius, via the shared spatial grid."""
+        return [m for m in self.get_nearby_monsters(world_x, world_y, radius) if m.is_alive()]
 
     # ── Targeting ───────────────────────────────────────────────────
 
@@ -136,9 +161,7 @@ class CombatSystem:
         radius_sq = max_radius * max_radius
         nearest: Monster | None = None
         nearest_sq = float("inf")
-        for monster in self.monsters:
-            if not monster.is_alive():
-                continue
+        for monster in self.get_alive_monsters_in_radius(self.player.world_x, self.player.world_y, max_radius):
             dx = monster.world_x - self.player.world_x
             dy = monster.world_y - self.player.world_y
             dist_sq = dx * dx + dy * dy
@@ -162,8 +185,12 @@ class CombatSystem:
         Returns:
             List of monsters within range.
         """
+        # Shared spatial grid (rebuilt once per tick) — scans only the
+        # cells overlapping the query radius, then distance-checks exactly.
+        grid, monsters = self._get_monster_grid()
         result = []
-        for monster in self.monsters:
+        for i in grid.query_indices(world_x, world_y, radius):
+            monster = monsters[i]
             dx = monster.world_x - world_x
             dy = monster.world_y - world_y
             dist = math.sqrt(dx * dx + dy * dy)
@@ -737,6 +764,10 @@ class CombatSystem:
         Args:
             dt: Delta time in seconds.
         """
+        # Monster positions/health may change this tick; drop the shared
+        # spatial grid so the next query rebuilds it once.
+        self._monster_grid = None
+
         # Update player attack cooldown
         if self.player_attack_cooldown > 0:
             self.player_attack_cooldown -= dt

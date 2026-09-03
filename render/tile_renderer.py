@@ -533,6 +533,8 @@ class TileRenderer:
             int(yaw * 720), int(zoom * 200), int(pitch_factor * 500),
         )
         cached = self._xform_cache.get(tkey)
+        if cached is not None:
+            self._xform_cache.move_to_end(tkey)
         if cached is None:
             sprite = terrain_sprite
             # First crossfade neighbouring biome textures across tile
@@ -611,7 +613,11 @@ class TileRenderer:
                     dx, dy = wx - flat_x, wy - flat_y
 
             if len(self._xform_cache) > 4096:
-                self._xform_cache.clear()
+                # LRU-style: drop the oldest quarter instead of clearing
+                # everything (a full clear re-bakes all visible tiles during
+                # continuous yaw/zoom sweeps).
+                for stale_key in list(self._xform_cache)[:1024]:
+                    del self._xform_cache[stale_key]
             cached = (sprite, base_w, base_h, dx, dy)
             self._xform_cache[tkey] = cached
 

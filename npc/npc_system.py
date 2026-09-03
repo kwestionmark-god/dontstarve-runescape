@@ -57,6 +57,7 @@ class NPCSystem:
         "tile_map",
         "_patrol_targets",
         "game",
+        "_nearby_grid",
     )
 
     def __init__(self, tile_map: "TileMap") -> None:
@@ -71,6 +72,7 @@ class NPCSystem:
         self.tile_map: "TileMap" = tile_map
         self._patrol_targets: dict[str, Tuple[float, float]] = {}  # npc.id → (x, y)
         self.game: object = None  # Reference to Game instance (set by Game._initialize_subsystems)
+        self._nearby_grid: object | None = None  # lazy per-rebuild spatial index
         self.load_spawn_points()
 
     def load_spawn_points(self) -> None:
@@ -152,6 +154,9 @@ class NPCSystem:
         Args:
             dt: Delta time in seconds.
         """
+        # Positions change here; drop the proximity grid so queries rebuild it.
+        self._nearby_grid = None
+
         for npc in self.npcs:
             if not npc.is_active:
                 continue
@@ -216,10 +221,20 @@ class NPCSystem:
         Returns:
             List of nearby active NPCs, sorted by distance (nearest first).
         """
+        entry = self._nearby_grid
+        if entry is None:
+            from core.spatial_grid import UniformGrid
+
+            active = [npc for npc in self.npcs if npc.is_active]
+            grid = UniformGrid(cell_size=128)
+            grid.rebuild(active, lambda n: n.world_x, lambda n: n.world_y)
+            entry = (grid, active)  # grid + item list snapshot
+            self._nearby_grid = entry
+
+        buckets, active = entry
         result: list[Tuple[float, NPC]] = []
-        for npc in self.npcs:
-            if not npc.is_active:
-                continue
+        for i in buckets.query_indices(world_x, world_y, radius):
+            npc = active[i]
             dx = npc.world_x - world_x
             dy = npc.world_y - world_y
             dist = math.sqrt(dx * dx + dy * dy)
@@ -339,6 +354,7 @@ class NPCSystem:
         """
         if npc in self.npcs:
             self.npcs.remove(npc)
+            self._nearby_grid = None  # membership changed
 
     def _move_toward(
         self, npc: NPC, target_x: float, target_y: float, dt: float,

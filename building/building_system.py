@@ -474,9 +474,13 @@ class BuildingSystem:
             attack_range = 200.0 if struct_id == "ballista" else 300.0  # px
             attack_range_sq = attack_range * attack_range
 
-            for monster in combat_system.monsters:
-                if not monster.is_alive():
-                    continue
+            if hasattr(combat_system, "get_alive_monsters_in_radius"):
+                candidates = combat_system.get_alive_monsters_in_radius(
+                    structure.world_x, structure.world_y, attack_range,
+                )
+            else:
+                candidates = [m for m in combat_system.monsters if m.is_alive()]
+            for monster in candidates:
                 dx = monster.world_x - structure.world_x
                 dy = monster.world_y - structure.world_y
                 dist_sq = dx * dx + dy * dy

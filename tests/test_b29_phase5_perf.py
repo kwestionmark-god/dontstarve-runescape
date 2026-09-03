@@ -109,6 +109,71 @@ class TestRegrowDirtySet:
         tile_map.mark_regrowing.assert_called_once_with(7, 9)
 
 
+class TestSpatialGrid5B:
+    """5B: spatial-grid proximity queries match full-scan semantics."""
+
+    def test_grid_query_matches_full_scan(self) -> None:
+        import random
+
+        from core.spatial_grid import UniformGrid
+
+        rng = random.Random(7)
+
+        class Pt:
+            def __init__(self, x, y):
+                self.world_x, self.world_y = x, y
+
+        pts = [Pt(rng.uniform(-5000, 5000), rng.uniform(-5000, 5000)) for _ in range(500)]
+        grid = UniformGrid(cell_size=128)
+        grid.rebuild(pts, lambda p: p.world_x, lambda p: p.world_y)
+        for _ in range(50):
+            qx, qy = rng.uniform(-5500, 5500), rng.uniform(-5500, 5500)
+            r = rng.uniform(1, 700)
+            expect = [p for p in pts
+                      if (p.world_x - qx) ** 2 + (p.world_y - qy) ** 2 <= r * r]
+            # query_indices is a superset (bucket-clipped); callers filter.
+            got = [pts[i] for i in grid.query_indices(qx, qy, r)
+                   if (pts[i].world_x - qx) ** 2 + (pts[i].world_y - qy) ** 2 <= r * r]
+            assert set(map(id, got)) == set(map(id, expect))
+
+    def test_combat_nearby_uses_grid_same_results(self) -> None:
+        from combat.combat_system import CombatSystem
+
+        cs = CombatSystem(player=MagicMock(world_x=0.0, world_y=0.0))
+
+        class M:
+            def __init__(self, x, y):
+                self.world_x, self.world_y = x, y
+
+            def is_alive(self):
+                return True
+
+        cs.monsters = [M(10.0, 0.0), M(500.0, 0.0), M(-20.0, 5.0)]
+        nearby = cs.get_nearby_monsters(0.0, 0.0, 100.0)
+        assert {round(m.world_x) for m in nearby} == {10, -20}  # bucket order may differ from list order
+        alive = cs.get_alive_monsters_in_radius(0.0, 0.0, 100.0)
+        assert len(alive) == 2
+
+    def test_npc_proximity_grid_matches_full_scan(self) -> None:
+        from npc.npc_system import NPCSystem
+
+        class FakeNPC:
+            def __init__(self, x, y):
+                self.world_x, self.world_y = x, y
+                self.is_active = True
+
+        system = NPCSystem.__new__(NPCSystem)
+        system.npcs = [FakeNPC(0.0, 0.0), FakeNPC(64.0, 0.0), FakeNPC(9999.0, 0.0)]
+        system._nearby_grid = None
+        nearby = system.get_nearby_npcs(0.0, 0.0, 128.0)
+        assert [n.world_x for n in nearby] == [0.0, 64.0]
+        # Deactivation narrows results after rebuild
+        system.npcs[1].is_active = False
+        system._nearby_grid = None
+        nearby = system.get_nearby_npcs(0.0, 0.0, 128.0)
+        assert [n.world_x for n in nearby] == [0.0]
+
+
 class TestGouraudBatching:
     """5.2: batched scanline writes must match the per-pixel reference output."""
 

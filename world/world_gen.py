@@ -450,7 +450,30 @@ def _simulate_erosion(elevation: list[list[int]], width: int, height: int, seed:
         EROSION_EVAPORATION, EROSION_GRAVITY, EROSION_SEDIMENT_CAPACITY_FACTOR,
         ELEVATION_LEVELS
     )
-    
+
+    # Experimental opt-in: run the same Gauss-Seidel pass in Taichi (CPU arch,
+    # float64). Int-exact in testing, but tiny float drift (≤1e-10) vs Python
+    # is possible via LLVM codegen, so it is OFF unless DSR_EROSION_TI=1.
+    import os
+    if os.environ.get("DSR_EROSION_TI") == "1":
+        try:
+            from world.erosion_ti import taichi_erosion_available, simulate_erosion_ti
+            if taichi_erosion_available():
+                import numpy as _np
+                arr = _np.array(
+                    [[float(elevation[x][y]) for y in range(height)] for x in range(width)],
+                    dtype=_np.float64,
+                )
+                out = simulate_erosion_ti(
+                    arr, int(EROSION_ITERATIONS), float(EROSION_RAIN_AMOUNT),
+                    float(EROSION_EVAPORATION), float(EROSION_GRAVITY),
+                    float(EROSION_SEDIMENT_CAPACITY_FACTOR), float(EROSION_SOLUBILITY),
+                )
+                out_i = _np.clip(out.astype(_np.int64), 0, ELEVATION_LEVELS - 1)
+                return out_i.tolist()
+        except Exception:
+            pass  # fall back to the reference loop below
+
     # Convert to float for simulation
     elev = [[float(elevation[x][y]) for y in range(height)] for x in range(width)]
     water = [[0.0] * height for _ in range(width)]

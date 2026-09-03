@@ -87,10 +87,11 @@ The test suite is designed to run **without a display** (no Pygame window):
 python -m pytest -q
 ```
 
-> At the time of writing, the suite reports **926 tests collected** (all
+> At the time of writing, the suite reports **954 tests collected** (all
 > passing; verified 2026-09-03). The September 2026 reliability audit and its
-> fixes are tracked in `tmp/PHASE-PLAN-2026-09.md` (Phases 1–4 complete;
-> Phase 5 = performance + GPU/parallel world-gen pending).
+> fixes are tracked in `tmp/PHASE-PLAN-2026-09.md` (all complete; world
+> generation dropped from ~319 s to ~22 s, or ~14 s with the optional Taichi
+> erosion path, with bit-identical worlds).
 >
 > The suite runs headless: with or without `SDL_VIDEODRIVER=dummy`. A
 > session-scoped fixture in `tests/conftest.py` initializes Pygame once for
@@ -481,7 +482,7 @@ dict-of-dicts. `npcs.json` is the only file with a second top-level array
 systems bypass it and read JSON directly via a module-relative `DATA_DIR` —
 there is no single "load this file" entry point.
 
-`tests/`: a **926-test** pytest suite (runnable under `pytest`), mostly
+`tests/`: a **954-test** pytest suite (runnable under `pytest`), mostly
 headless. A session-scoped fixture in `tests/conftest.py` initializes Pygame
 once for the entire run. `tests/integration/` cross-module flows (full quest
 accept→track→complete→reward, faction/NPC integration). `tools/`: `generate_sprites.py`
