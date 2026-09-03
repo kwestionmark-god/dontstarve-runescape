@@ -65,7 +65,11 @@ class CombatSystem:
         player_attack_cooldown: Timer until next player attack.
         combat_log: Recent combat events for UI display.
         _npc_attack_cooldowns: Per-NPC attack cooldown tracking.
+        _respawn_queue: Pending monster respawns (Phase 1 taming loop).
     """
+
+    RESPAWN_DELAY = 45.0
+    RESPAWN_CAP_PER_TYPE = 4
 
     __slots__ = (
         "player",
@@ -83,6 +87,7 @@ class CombatSystem:
         "_player_death_handler",
         "weather_system",
         "_monster_grid",
+        "_respawn_queue",
     )
 
     def __init__(
@@ -109,6 +114,10 @@ class CombatSystem:
         # shared by auto-lock, structure targeting, "nearby" queries, and the
         # faction system (replacing several O(n × entities) scans per tick).
         self._monster_grid: tuple[object, list] | None = None
+
+        # Phase 1: respawn registry — {monster_id, biome, world_x, world_y,
+        # monster_def, timer}. Capped per monster_id so a region cannot flood.
+        self._respawn_queue: list[dict] = []
 
     def _get_monster_grid(self):
         from core.spatial_grid import UniformGrid
@@ -676,6 +685,58 @@ class CombatSystem:
                             (255, 150, 100),
                         )
 
+        self._schedule_respawn(monster)
+
+    def _schedule_respawn(self, monster: Monster) -> None:
+        """Queue a respawn of this monster type near its last position."""
+        monster_id = getattr(monster, "monster_id", None)
+        if not monster_id:
+            return
+
+        queued = sum(1 for e in self._respawn_queue if e.get("monster_id") == monster_id)
+        if queued >= self.RESPAWN_CAP_PER_TYPE:
+            return
+
+        source_def = dict(getattr(monster, "_source_def", {}) or {})
+        self._respawn_queue.append({
+            "monster_id": monster_id,
+            "biome": getattr(monster, "biome", "generic"),
+            "world_x": float(getattr(monster, "world_x", 0.0)),
+            "world_y": float(getattr(monster, "world_y", 0.0)),
+            "monster_def": source_def,
+            "timer": float(self.RESPAWN_DELAY),
+        })
+
+    def _process_respawns(self, dt: float) -> None:
+        """Advance respawn timers and rebuild monsters whose timers expire."""
+        if not self._respawn_queue:
+            return
+
+        remaining: list[dict] = []
+        from combat.monster import Monster
+
+        for entry in self._respawn_queue:
+            entry["timer"] = float(entry.get("timer", 0.0)) - dt
+            if entry["timer"] > 0:
+                remaining.append(entry)
+                continue
+
+            angle = random.uniform(0, 2 * math.pi)
+            dist = random.uniform(TILE_SIZE * 0.5, TILE_SIZE * 2.0)
+            mx = entry["world_x"] + math.cos(angle) * dist
+            my = entry["world_y"] + math.sin(angle) * dist
+            monster = Monster.from_def(
+                monster_id=entry["monster_id"],
+                biome=entry.get("biome", "generic"),
+                world_x=mx,
+                world_y=my,
+                monster_def=entry.get("monster_def") or {},
+            )
+            self.register_monster(monster)
+            self.combat_log.append(f"A {monster.name} has returned.")
+
+        self._respawn_queue = remaining
+
     # ── Monster Registration ────────────────────────────────────────
 
     def register_monster(self, monster: Monster) -> None:
@@ -852,6 +913,8 @@ class CombatSystem:
                 self._npc_attack_cooldowns[key] -= dt
             else:
                 del self._npc_attack_cooldowns[key]
+
+        self._process_respawns(dt)
 
     # ── Snapshots ───────────────────────────────────────────────────
 
