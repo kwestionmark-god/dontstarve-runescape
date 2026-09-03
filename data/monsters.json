@@ -1,6 +1,6 @@
 {
   "_description": "Monster definitions for Phase 2 combat system.",
-  "_note": "Each biome has its own set of monsters with AI behaviors, stats, and loot tables.",
+  "_note": "Each biome has its own set of monsters with AI behaviors, stats, and loot tables. Phase 0 taming flags: tamable + faction_owned.",
 
   "monsters": {
     "forest": {
@@ -16,6 +16,8 @@
         "attack_cooldown": 1.5,
         "xp_reward": 15,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": true,
         "sprite_key": "monster/wolf",
         "loot_table": [
           {"item_id": "wolf_pelt", "chance": 0.5},
@@ -35,6 +37,8 @@
         "attack_cooldown": 2.0,
         "xp_reward": 25,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": false,
         "sprite_key": "monster/bear",
         "loot_table": [
           {"item_id": "bear_hide", "chance": 0.5},
@@ -54,6 +58,8 @@
         "attack_cooldown": 1.2,
         "xp_reward": 12,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": true,
         "sprite_key": "monster/goblin",
         "loot_table": [
           {"item_id": "goblin_dagger", "chance": 0.15},
@@ -74,6 +80,8 @@
         "attack_cooldown": 2.5,
         "xp_reward": 10,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": true,
         "sprite_key": "monster/poison_frog",
         "special": "poison",
         "loot_table": [
@@ -92,6 +100,8 @@
         "attack_cooldown": 2.0,
         "xp_reward": 20,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": true,
         "sprite_key": "monster/crocodile",
         "special": "ambush",
         "loot_table": [
@@ -111,6 +121,8 @@
         "attack_cooldown": 1.8,
         "xp_reward": 30,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": false,
         "sprite_key": "monster/swamp_drake",
         "special": "ranged",
         "loot_table": [
@@ -132,6 +144,8 @@
         "attack_cooldown": 1.5,
         "xp_reward": 12,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": true,
         "sprite_key": "monster/scorpion",
         "special": "poison",
         "loot_table": [
@@ -151,6 +165,8 @@
         "attack_cooldown": 2.5,
         "xp_reward": 35,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": true,
         "sprite_key": "monster/sand_worm",
         "special": "ambush",
         "loot_table": [
@@ -170,6 +186,8 @@
         "attack_cooldown": 1.2,
         "xp_reward": 45,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": false,
         "sprite_key": "monster/djinn",
         "special": "ranged",
         "loot_table": [
@@ -191,6 +209,8 @@
         "attack_cooldown": 3.0,
         "xp_reward": 50,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": true,
         "sprite_key": "monster/stone_golem",
         "loot_table": [
           {"item_id": "golem_stone", "chance": 0.6},
@@ -209,6 +229,8 @@
         "attack_cooldown": 1.0,
         "xp_reward": 15,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": false,
         "sprite_key": "monster/eagle",
         "special": "aerial",
         "loot_table": [
@@ -228,6 +250,8 @@
         "attack_cooldown": 2.0,
         "xp_reward": 35,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": false,
         "sprite_key": "monster/cave_troll",
         "loot_table": [
           {"item_id": "troll_club", "chance": 0.3},
@@ -248,6 +272,8 @@
         "attack_cooldown": 1.5,
         "xp_reward": 10,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": false,
         "sprite_key": "monster/boar",
         "loot_table": [
           {"item_id": "boar_meat", "chance": 0.6},
@@ -266,6 +292,8 @@
         "attack_cooldown": 1.0,
         "xp_reward": 8,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": false,
         "sprite_key": "monster/snake",
         "special": "poison",
         "loot_table": [
@@ -285,6 +313,8 @@
         "attack_cooldown": 0.8,
         "xp_reward": 8,
         "is_hostile": true,
+        "tamable": true,
+        "faction_owned": false,
         "sprite_key": "monster/hawk",
         "special": "aerial",
         "loot_table": [
@@ -306,6 +336,8 @@
         "attack_cooldown": 1.5,
         "xp_reward": 6,
         "is_hostile": false,
+        "tamable": true,
+        "faction_owned": false,
         "sprite_key": "monster/crab",
         "loot_table": [
           {"item_id": "crab_claw", "chance": 0.6},
@@ -324,6 +356,8 @@
         "attack_cooldown": 2.0,
         "xp_reward": 55,
         "is_hostile": true,
+        "tamable": false,
+        "faction_owned": true,
         "sprite_key": "monster/sea_serpent",
         "loot_table": [
           {"item_id": "serpent_scale", "chance": 0.4},
