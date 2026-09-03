@@ -59,7 +59,7 @@ class Game:
         "skill_manager", "crafting", "inventory",
         "camera", "hud", "save_system", "input_manager",
         "_inventory_panel", "_skill_panel", "_crafting_panel",
-        "_gear_panel", "_building_panel",
+        "_gear_panel", "_building_panel", "_dashboard",
         "build_mode", "_building_pending_id",
         "_trade_panel", "_quest_panel", "_recruit_panel", "_diplomacy_panel",
         "quest_system", "faction_system",
@@ -119,6 +119,7 @@ class Game:
         self.trade_system = None
         self.recruitment_system = None
         self._building_panel = None
+        self._dashboard = None
         self._gear_panel = None
         self._trade_panel = None
         self._character_select_panel = None
@@ -168,6 +169,12 @@ class Game:
                 self._input_router._close_all_panels()
             elif self._input_router._is_panel_state(old_state) and self._input_router._is_panel_state(new_state):
                 self._input_router._close_all_panels()
+        if (
+            old_state == GameState.DASHBOARD_OPEN
+            and new_state != GameState.DASHBOARD_OPEN
+            and self._dashboard is not None
+        ):
+            self._dashboard.visible = False
         if new_state == GameState.INVENTORY_OPEN:
             self._inventory_panel.visible = True
         elif new_state == GameState.SKILL_PANEL:
@@ -189,6 +196,8 @@ class Game:
             # wiping it here would leave the panel open with no recruit data.
         elif new_state == GameState.DIPLOMACY_PANEL:
             self._diplomacy_panel.visible = True
+        elif new_state == GameState.DASHBOARD_OPEN and self._dashboard is not None:
+            self._dashboard.visible = True
         elif new_state == GameState.CHARACTER_SELECT:
             if self._character_select_panel is None:
                 self._character_select_panel = CharacterSelectPanel()
@@ -200,6 +209,14 @@ class Game:
             self._bootstrap.load_save()
         elif new_state == GameState.PLAYING and old_state in (GameState.LOADING, GameState.LOADING_SAVE):
             self._bootstrap.on_world_gen_complete()
+
+    def open_dashboard(self, tab: str) -> None:
+        """Open the unified dashboard on the given tab (or switch tabs when open)."""
+        if self._dashboard is None:
+            return
+        self._dashboard.set_active(tab)
+        if self.state != GameState.DASHBOARD_OPEN:
+            self.set_state(GameState.DASHBOARD_OPEN)
 
     def check_world_gen_complete(self) -> None:
         """Check if background world generation has completed and transition state."""
@@ -433,6 +450,8 @@ class Game:
                     self.hud.trigger_damage_flash()
         if self.state == GameState.INVENTORY_OPEN and self._inventory_panel is not None:
             self._inventory_panel.render(screen)
+        elif self.state == GameState.DASHBOARD_OPEN and self._dashboard is not None:
+            self._dashboard.render(screen)
         elif self.state == GameState.SKILL_PANEL and self._skill_panel is not None:
             self._skill_panel.render(screen)
         elif self.state == GameState.CRAFTING_PANEL and self._crafting_panel is not None:

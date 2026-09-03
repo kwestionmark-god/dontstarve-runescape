@@ -15,6 +15,18 @@ class PanelDispatcher:
         self._npc_flows = getattr(game, "_npc_flows", None)
 
     def dispatch(self, state: "GameState", action: tuple | str) -> None:
+        # Dashboard hosts the character-menu panels; treat them as their
+        # legacy states so the per-panel action handling below keeps working.
+        if state == GameState.DASHBOARD_OPEN:
+            dash = getattr(self._game, "_dashboard", None)
+            if dash is not None:
+                state = {
+                    "inventory": GameState.INVENTORY_OPEN,
+                    "skills": GameState.SKILL_PANEL,
+                    "crafting": GameState.CRAFTING_PANEL,
+                    "building": GameState.BUILDING_PANEL,
+                    "gear": GameState.GEAR_PANEL,
+                }.get(dash.active_tab, state)
         if isinstance(action, tuple) and action[0] == "close":
             self._handle_close(state); return
         if isinstance(action, tuple) and action[0] == "cancel":

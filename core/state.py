@@ -55,11 +55,14 @@ class GameState(Enum):
     CHARACTER_SELECT = "character_select"
     """Character/background selection screen before world generation."""
 
+    DASHBOARD_OPEN = "dashboard"
+    """Unified tabbed menu (inventory/skills/crafting/building/gear) is open."""
+
 
 # PANEL_STATES — all panel-open states where update logic is frozen
 PANEL_STATES = (
     GameState.INVENTORY_OPEN, GameState.SKILL_PANEL, GameState.CRAFTING_PANEL,
     GameState.BUILDING_PANEL, GameState.GEAR_PANEL, GameState.TRADE_PANEL,
     GameState.QUEST_PANEL, GameState.RECRUIT_PANEL, GameState.DIPLOMACY_PANEL,
-    GameState.CHARACTER_SELECT,
+    GameState.CHARACTER_SELECT, GameState.DASHBOARD_OPEN,
 )

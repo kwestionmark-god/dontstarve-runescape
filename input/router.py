@@ -79,9 +79,10 @@ class InputRouter:
         # Only process panel open/close flags when in PLAYING state,
         # or when the flag matches the current panel (for toggling).
         # This prevents TAB from opening skill panel while quest panel is open.
-        if game.state in PANEL_STATES:
+        if game.state in PANEL_STATES and game.state != GameState.DASHBOARD_OPEN:
             # In a panel state, only process the flag for the CURRENT panel (toggle close)
             # Skip all other panel open flags
+            # (DASHBOARD_OPEN is exempt: every panel key switches tabs there)
             current_panel_flag = {
                 GameState.INVENTORY_OPEN: 'open_inventory',
                 GameState.SKILL_PANEL: 'open_skill_panel',
@@ -101,9 +102,35 @@ class InputRouter:
                 if flag_name != current_panel_flag:
                     setattr(is_state, flag_name, False)
         
-        # Now process panel flags (for PLAYING/TITLE, all flags processed;
-        # for panel states, only the current panel's flag remains set)
-        if is_state.open_inventory:
+        # Dashboard routing: character menus (inventory/skills/crafting/
+        # building/gear) open as dashboard tabs. The same key closes the
+        # dashboard when its tab is active, or switches tabs otherwise.
+        DASHBOARD_TABS = {
+            'open_inventory': 'inventory',
+            'open_skill_panel': 'skills',
+            'open_crafting': 'crafting',
+            'open_building_panel': 'building',
+        }
+        dashboard_handled = False
+        if getattr(game, "_dashboard", None) is not None:
+            for flag_name, tab in DASHBOARD_TABS.items():
+                if not getattr(is_state, flag_name, False):
+                    continue
+                setattr(is_state, flag_name, False)
+                if game.state == GameState.DASHBOARD_OPEN:
+                    if game._dashboard.active_tab == tab:
+                        game.set_state(GameState.PLAYING)
+                    else:
+                        game._dashboard.set_active(tab)
+                else:
+                    if flag_name == 'open_building_panel' and getattr(game, 'build_mode', False):
+                        # A fresh selection intent supersedes active placement.
+                        game.build_mode = False
+                        game._building_pending_id = None
+                    game.open_dashboard(tab)
+                dashboard_handled = True
+                break
+        if not dashboard_handled and is_state.open_inventory:
             is_state.open_inventory = False
             if game.state == GameState.INVENTORY_OPEN:
                 game.set_state(GameState.PLAYING)
@@ -165,11 +192,15 @@ class InputRouter:
                 game._crafting_panel.visible = False
             game.set_state(GameState.PLAYING)
 
-        if event.key == pygame.K_g and game.state == GameState.PLAYING:
-            if game.state != GameState.GEAR_PANEL:
-                game.set_state(GameState.GEAR_PANEL)
-            else:
-                game.set_state(GameState.PLAYING)
+        if event.key == pygame.K_g:
+            if getattr(game, "_dashboard", None) is not None:
+                if (
+                    game.state == GameState.DASHBOARD_OPEN
+                    and game._dashboard.active_tab == "gear"
+                ):
+                    game.set_state(GameState.PLAYING)
+                elif game.state == GameState.PLAYING:
+                    game.open_dashboard("gear")
         elif event.key == pygame.K_y and game.state == GameState.PLAYING:
             if game.state != GameState.QUEST_PANEL:
                 game.set_state(GameState.QUEST_PANEL)
@@ -193,6 +224,7 @@ class InputRouter:
                     GameState.CRAFTING_PANEL: game._crafting_panel,
                     GameState.BUILDING_PANEL: game._building_panel,
                     GameState.GEAR_PANEL: game._gear_panel,
+                    GameState.DASHBOARD_OPEN: getattr(game, "_dashboard", None),
                 }
                 panel = panel_map.get(game.state)
                 if panel is not None:
@@ -457,6 +489,8 @@ class InputRouter:
             game.hud.set_hotbar_hover(hovered, mx, my)
         if game.state == GameState.INVENTORY_OPEN and game._inventory_panel is not None:
             game._inventory_panel.handle_mouse_move(mx, my)
+        elif game.state == GameState.DASHBOARD_OPEN and getattr(game, "_dashboard", None) is not None:
+            game._dashboard.handle_mouse_move(mx, my)
         elif game.state == GameState.CRAFTING_PANEL and game._crafting_panel is not None:
             game._crafting_panel.handle_mouse_move(mx, my)
         elif game.state == GameState.GEAR_PANEL and game._gear_panel is not None:
@@ -490,6 +524,14 @@ class InputRouter:
             return
 
         # Quest panel handles all mouse buttons
+        dashboard = getattr(game, "_dashboard", None)
+        if game.state == GameState.DASHBOARD_OPEN and dashboard is not None:
+            result = dashboard.handle_click(event.pos[0], event.pos[1], event.button)
+            if result is not None:
+                self._panel_dispatcher.dispatch_click(
+                    game.state, dashboard.active_dispatch_name(), result,
+                )
+            return
         if game.state == GameState.QUEST_PANEL and game._quest_panel is not None:
             result = game._quest_panel.handle_click(event.pos[0], event.pos[1])
             if result is not None:
@@ -620,5 +662,6 @@ class InputRouter:
             GameState.QUEST_PANEL: game._quest_panel,
             GameState.RECRUIT_PANEL: game._recruit_panel,
             GameState.DIPLOMACY_PANEL: game._diplomacy_panel,
+            GameState.DASHBOARD_OPEN: getattr(game, "_dashboard", None),
         }
         return panel_map.get(game.state)

@@ -75,6 +75,7 @@ class Bootstrap:
             self._spawn_initial_monsters()
         self._build_renderers()
         self._build_hud()
+        self._build_dashboard()
         self._wire_phase4()
 
     # ── Subsystem builders ──────────────────────────────────────────
@@ -175,6 +176,39 @@ class Bootstrap:
         self.game._input_router = InputRouter(
             self.game, self.game.input_manager, self.game._panel_dispatcher,
         )
+
+    def _build_dashboard(self) -> None:
+        """Create the unified dashboard hosting the character-menu panels.
+
+        The hosted panels are the existing Game panel instances — the
+        dashboard repositions them into the shared frame and delegates
+        rendering/input to the active tab.
+        """
+        from ui.dashboard_panel import DashboardPanel
+
+        game = self.game
+        dash = DashboardPanel()
+        dash.center(game.screen.get_width() if game.screen else 1280,
+                    game.screen.get_height() if game.screen else 720)
+
+        from combat.gear import GearItem
+        gear_defs = GearItem.load_all()  # cached once (was re-parsed per frame)
+
+        dash.register_tab("inventory", game._inventory_panel,
+                          lambda screen: game._inventory_panel.render(screen))
+        dash.register_tab("skills", game._skill_panel,
+                          lambda screen: game._skill_panel.render(screen))
+        dash.register_tab("crafting", game._crafting_panel,
+                          lambda screen: game._crafting_panel.render(screen))
+        dash.register_tab("building", game._building_panel,
+                          lambda screen: game._building_panel.render(
+                              screen, game.building_system, game.skill_manager))
+        dash.register_tab("gear", game._gear_panel,
+                          lambda screen: game._gear_panel.render(
+                              screen, game.player.gear, game.inventory, gear_defs))
+        dash.set_active("inventory")
+        dash.close()
+        game._dashboard = dash
 
     def _build_hud(self) -> None:
         """Create the HUD overlay."""

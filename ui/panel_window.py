@@ -198,6 +198,27 @@ class PanelWindow:
         # Wrap-text cache keyed by (text, max_width, size, bold)
         self._wrap_cache: dict = {}
 
+    def reposition(self, x: int, y: int, width: int, height: int) -> None:
+        """Move/resize the panel, recomputing derived geometry."""
+        self.x, self.y, self.width, self.height = x, y, width, height
+        self.rect = pygame.Rect(x, y, width, height)
+        content_top = y + self.title_height
+        content_bottom = y + height - self.footer_height
+        content_h = max(0, content_bottom - content_top)
+        self.content_rect = pygame.Rect(x, content_top, width, content_h)
+        self._scrollbar_strip = None
+        if self.has_scrollbar:
+            self._scrollbar_strip = pygame.Rect(
+                x + width - self.scrollbar_width, content_top,
+                self.scrollbar_width, content_h,
+            )
+            self.content_rect.width -= self.scrollbar_width
+        self._close_rect = pygame.Rect(
+            x + width - self.CLOSE_SIZE - 4, y + 4,
+            self.CLOSE_SIZE, self.CLOSE_SIZE,
+        )
+        self._scroll_offset = self._clamp_offset(self._scroll_offset)
+
     # ── Fonts (shared, cached) ───────────────────────────────────────────
     @property
     def font_title(self) -> Font:
