@@ -587,29 +587,13 @@ class TileRenderer:
             sprite.get_width(),
             sprite.get_height(),
         )
-        self.screen.blit(sprite, rect)
-
-        # Fog overlay drawn as a screen-space quad so player movement (which
-        # changes fog_alpha) doesn't invalidate the sprite cache.
+        # Fog is composited into a copy so (a) it follows the warped
+        # sprite's opaque silhouette instead of an AABB diamond and
+        # (b) player motion doesn't invalidate the transform cache.
+        # Height-fog already modulated ``fog_alpha`` in ``render()``.
         if fog_alpha > 0:
-            eff_alpha = fog_alpha
-            if corner_fog:
-                eff_alpha = int(fog_alpha * (
-                    corner_fog[x][y] + corner_fog[x + 1][y]
-                    + corner_fog[x][y + 1] + corner_fog[x + 1][y + 1]
-                ) / 4.0)
-                eff_alpha = max(0, min(255, eff_alpha))
-            if eff_alpha > 0:
-                fog_surf = pygame.Surface(rect.size, pygame.SRCALPHA)
-                # Diamond approximating the (sheared) tile footprint so fog
-                # doesn't bleed over neighbouring tiles through the rotated
-                # sprite's transparent corners.
-                w2, h2 = rect.width // 2, rect.height // 2
-                pygame.draw.polygon(
-                    fog_surf, fog_color + (eff_alpha,),
-                    [(w2, 0), (rect.width, h2), (w2, rect.height), (0, h2)],
-                )
-                self.screen.blit(fog_surf, rect)
+            sprite = self._composite_sprite_fog(sprite, fog_alpha, fog_color)
+        self.screen.blit(sprite, rect)
 
     def _bake_subtile_shading(
         self,
@@ -661,6 +645,34 @@ class TileRenderer:
         pygame.surfarray.blit_array(shade, color)
         # RGB-only multiply so terrain alpha (sprite silhouette) is untouched.
         sprite.blit(shade, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+
+    def _composite_sprite_fog(
+        self,
+        sprite: pygame.Surface,
+        alpha: int,
+        color: tuple[int, int, int],
+    ) -> pygame.Surface:
+        """Composite distance fog into a sprite's opaque pixels.
+
+        Transparent pixels stay transparent, so fog cannot miss a sheared
+        tile or stack over a neighbour through the AABB. ``alpha`` is the
+        already-modulated (distance × height) value from ``render()``.
+        Returns ``sprite`` unchanged when alpha is 0; otherwise a copy.
+        """
+        if alpha <= 0:
+            return sprite
+        import numpy as np
+
+        alpha = max(0, min(255, int(alpha)))
+        out = sprite.copy()
+        fog = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
+        fog.fill((*color, alpha))
+        mask = pygame.surfarray.array_alpha(sprite)
+        fog_a = pygame.surfarray.pixels_alpha(fog)
+        fog_a[:, :] = (mask.astype(np.uint16) * alpha // 255).astype(np.uint8)
+        del fog_a
+        out.blit(fog, (0, 0))
+        return out
 
     def _bake_biome_blending(
         self,
