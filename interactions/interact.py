@@ -59,6 +59,7 @@ class InteractSystem:
             # Delegate action construction to ActionSystem
             error = action_sys.start_action(
                 action_type, node, game.skill_manager, game.inventory,
+                tile_xy=(tx, ty),
             )
             if error:
                 action_sys.add_notification(error, game.ERROR_COLOR)

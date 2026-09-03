@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
 # Placeholder sprite cache keyed by (width, height, color_hex).
 _placeholder_cache: dict[tuple[int, int, str], pygame.Surface] = {}
+# Shared fog overlay cache: (w, h, alpha_bucket) -> Surface
+_FOG_OVERLAY_CACHE: dict[tuple[int, int, int], pygame.Surface] = {}
 
 
 class SpriteRenderer:
@@ -45,7 +47,8 @@ class SpriteRenderer:
     """
 
     __slots__ = ("sprite_dir", "_sprite_cache", "_font", "tile_map", "seasonal_renderer",
-                 "_anim_timer", "_anim_frame", "_anim_speed", "lighting_system")
+                 "_anim_timer", "_anim_frame", "_anim_speed", "lighting_system",
+                 "_tint_cache")
 
     def __init__(
         self,
@@ -63,6 +66,9 @@ class SpriteRenderer:
         self._anim_timer: float = 0.0
         self._anim_frame: int = 0
         self._anim_speed: float = 8.0  # Frames per second
+        # Tinted variants of cached sprites, keyed
+        # (id(sprite), tint_color, alpha); avoids a copy+fill+blit per draw.
+        self._tint_cache: dict[tuple[int, tuple[int, int, int], int], pygame.Surface] = {}
 
     # ── Player rendering ──────────────────────────────────────────────
 
@@ -346,13 +352,19 @@ class SpriteRenderer:
             A new Surface with the tint applied.
         """
         if alpha <= 0:
-            return sprite.copy()
+            return sprite
 
-        tinted = sprite.copy()
-        tint_surf = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
-        r, g, b = tint_color
-        tint_surf.fill((r, g, b, alpha))
-        tinted.blit(tint_surf, (0, 0))
+        key = (id(sprite), tint_color, alpha)
+        tinted = self._tint_cache.get(key)
+        if tinted is None:
+            tinted = sprite.copy()
+            tint_surf = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
+            r, g, b = tint_color
+            tint_surf.fill((r, g, b, alpha))
+            tinted.blit(tint_surf, (0, 0))
+            if len(self._tint_cache) > 512:  # bound memory across zoom levels
+                self._tint_cache.clear()
+            self._tint_cache[key] = tinted
         return tinted
 
     # ── Fog & LOD helpers ─────────────────────────────────────────────
@@ -383,14 +395,22 @@ class SpriteRenderer:
         screen: pygame.Surface, rect: pygame.Rect, alpha: float,
     ) -> None:
         """Blit a fog-coloured overlay onto the given screen region.
-        
+
         The overlay matches the region size and uses SRCALPHA with
-        ``alpha`` as its opacity.
+        ``alpha`` as its opacity. Surfaces are cached keyed on size and a
+        quantized alpha bucket (per-draw allocation was the norm before).
         """
         w = rect.width
         h = rect.height
-        fog_surf = pygame.Surface((w, h), pygame.SRCALPHA)
-        fog_surf.fill((*FOG_COLOR, int(alpha)))
+        a = int(alpha) // 8 * 8  # quantized bucket, ±4 max visual shift
+        key = (w, h, a)
+        fog_surf = _FOG_OVERLAY_CACHE.get(key)
+        if fog_surf is None:
+            fog_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            fog_surf.fill((*FOG_COLOR, a))
+            if len(_FOG_OVERLAY_CACHE) > 256:
+                _FOG_OVERLAY_CACHE.clear()
+            _FOG_OVERLAY_CACHE[key] = fog_surf
         screen.blit(fog_surf, rect)
 
     def _setup_billboard(

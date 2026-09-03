@@ -120,6 +120,8 @@ class Bootstrap:
 
         self.game.player.action_system = ActionSystem()
         self.game.player.action_system.survival = self.game.survival
+        if self.game.world is not None:
+            self.game.player.action_system.set_tile_map(self.game.world)
 
     def _build_food_registry(self) -> None:
         """Create the food registry from items data."""

@@ -114,6 +114,19 @@ class SkillManager:
 
     # ── XP & Leveling ───────────────────────────────────────────────
 
+    # Precomputed OSRS XP table (identical to the loop below; the loop remains
+    # for out-of-range queries). Indexing beats ~100 math.pow calls per lookup.
+    _XP_TABLE: "list[int] | None" = None
+
+    @staticmethod
+    def _build_xp_table() -> "list[int]":
+        table = [0]
+        total = 0
+        for L in range(1, 100):
+            total += math.floor((L + 300 * math.pow(2, L / 7)) / XP_SCALE_FACTOR)
+            table.append(total)
+        return table
+
     @staticmethod
     def get_xp_for_level(level: int) -> int:
         """
@@ -133,6 +146,10 @@ class SkillManager:
         """
         if level <= 1:
             return 0
+        if SkillManager._XP_TABLE is None:
+            SkillManager._XP_TABLE = SkillManager._build_xp_table()
+        if level <= 99:
+            return SkillManager._XP_TABLE[level - 1]
         total_xp = 0
         for L in range(1, level):
             total_xp += math.floor((L + 300 * math.pow(2, L / 7)) / XP_SCALE_FACTOR)

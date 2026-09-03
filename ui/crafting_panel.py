@@ -66,6 +66,30 @@ class CraftingPanel(PanelWindow):
         self._player_y: float = 0.0
         # Runtime rects for click handling
         self._all_recipe_rects: list[tuple[pygame.Rect, str, str]] = []  # (rect, recipe_id, type)
+        # Caches: fonts are deterministic, so (font, text, color) and
+        # (font, text, width) results are stable across frames.
+        self._text_cache: dict[tuple[int, str, tuple], pygame.Surface] = {}
+        self._fit_cache: dict[tuple[int, str, int], str] = {}
+
+    def _render_text(self, font, text: str, color) -> pygame.Surface:
+        key = (id(font), text, color)
+        surf = self._text_cache.get(key)
+        if surf is None:
+            surf = font.render(text, True, color)
+            if len(self._text_cache) > 2048:
+                self._text_cache.clear()
+            self._text_cache[key] = surf
+        return surf
+
+    def _fit(self, font, text: str, max_width: int) -> str:
+        key = (id(font), text, max_width)
+        result = self._fit_cache.get(key)
+        if result is None:
+            result = _fit_text(font, text, max_width)
+            if len(self._fit_cache) > 1024:
+                self._fit_cache.clear()
+            self._fit_cache[key] = result
+        return result
 
     def set_crafting(self, crafting: "CraftingSystem") -> None:
         """Set the crafting system reference."""
@@ -132,7 +156,7 @@ class CraftingPanel(PanelWindow):
         for chain_name, recipes in sorted(chains.items()):
             # Chain header
             chain_label = chain_name.replace("_", " ").title()
-            chain_surf = self.font_bold.render(chain_label, True, (180, 160, 120))
+            chain_surf = self._render_text(self.font_bold, chain_label, (180, 160, 120))
             screen.blit(chain_surf, (left, y))
             y += 22
 
@@ -158,13 +182,13 @@ class CraftingPanel(PanelWindow):
                 # Recipe name — dim if locked, truncated to the name column
                 # so long names can't run into the materials column.
                 name_color = (160, 160, 170) if is_locked else (220, 220, 220)
-                name_text = _fit_text(self.font_normal, recipe.name, 140)
-                name_surf = self.font_normal.render(name_text, True, name_color)
+                name_text = self._fit(self.font_normal, recipe.name, 140)
+                name_surf = self._render_text(self.font_normal, name_text, name_color)
                 screen.blit(name_surf, (left, row_y + 8))
 
                 # Locked indicator
                 if is_locked:
-                    lock_surf = self.font_normal.render("\U0001f512", True, (200, 180, 50))
+                    lock_surf = self._render_text(self.font_normal, "\U0001f512", (200, 180, 50))
                     screen.blit(lock_surf, (left + name_surf.get_width() + 8, row_y + 8))
 
                 # Material status
@@ -174,7 +198,7 @@ class CraftingPanel(PanelWindow):
                 ):
                     avail_str = f"{available}/{required}"
                     color = self.AVAILABLE_COLOR if available >= required else self.UNAVAILABLE_COLOR
-                    mat_surf = self.font_small.render(f"{item_id}: {avail_str}", True, color)
+                    mat_surf = self._render_text(self.font_small, f"{item_id}: {avail_str}", color)
                     screen.blit(mat_surf, (status_x, row_y + 8))
                     status_x += 100
 
@@ -223,19 +247,19 @@ class CraftingPanel(PanelWindow):
 
                 if is_locked:
                     btn_color = (80, 60, 60)
-                    btn_text = self.font_small.render("Locked", True, (180, 140, 140))
+                    btn_text = self._render_text(self.font_small, "Locked", (180, 140, 140))
                 elif level_missing:
                     btn_color = (60, 60, 80)
-                    btn_text = self.font_small.render(level_label, True, (150, 150, 220))
+                    btn_text = self._render_text(self.font_small, level_label, (150, 150, 220))
                 elif station_missing:
                     btn_color = (60, 60, 60)
-                    btn_text = self.font_small.render(f"Needs {station_name}", True, (180, 160, 100))
+                    btn_text = self._render_text(self.font_small, f"Needs {station_name}", (180, 160, 100))
                 elif can_craft:
                     btn_color = self.BUTTON_COLOR
-                    btn_text = self.font_small.render("Craft", True, (255, 255, 255))
+                    btn_text = self._render_text(self.font_small, "Craft", (255, 255, 255))
                 else:
                     btn_color = (60, 60, 60)
-                    btn_text = self.font_small.render("Craft", True, (255, 255, 255))
+                    btn_text = self._render_text(self.font_small, "Craft", (255, 255, 255))
 
                 is_selected = self._is_recipe_selected(recipe.recipe_id)
                 if is_selected:
@@ -255,7 +279,7 @@ class CraftingPanel(PanelWindow):
 
         # ── Smelting Recipes ─────────────────────────────
         if self.metallurgy is not None:
-            smelt_header = self.font_bold.render("Smelting", True, (180, 160, 120))
+            smelt_header = self._render_text(self.font_bold, "Smelting", (180, 160, 120))
             screen.blit(smelt_header, (left, y))
             y += 22
 
@@ -272,9 +296,10 @@ class CraftingPanel(PanelWindow):
                 row_h = 30
 
                 # Recipe name (truncated to the name column)
-                name_surf = self.font_normal.render(
-                    _fit_text(self.font_normal, smelt_recipe.name.replace("_", " ").title(), 140),
-                    True, (220, 220, 220),
+                name_surf = self._render_text(
+                    self.font_normal,
+                    self._fit(self.font_normal, smelt_recipe.name.replace("_", " ").title(), 140),
+                    (220, 220, 220),
                 )
                 screen.blit(name_surf, (left, row_y + 8))
 
@@ -283,7 +308,7 @@ class CraftingPanel(PanelWindow):
                 # Ore
                 ore_qty = self.inventory.get_item_quantity(smelt_recipe.ore_item) if self.inventory else 0
                 ore_color = self.AVAILABLE_COLOR if ore_qty >= 1 else self.UNAVAILABLE_COLOR
-                ore_surf = self.font_small.render(f"{smelt_recipe.ore_item}: {ore_qty}/1", True, ore_color)
+                ore_surf = self._render_text(self.font_small, f"{smelt_recipe.ore_item}: {ore_qty}/1", ore_color)
                 screen.blit(ore_surf, (status_x, row_y + 8))
                 status_x += 100
 
@@ -293,7 +318,7 @@ class CraftingPanel(PanelWindow):
                 else:
                     fuel_qty = 0
                 fuel_color = self.AVAILABLE_COLOR if fuel_qty >= 1 else self.UNAVAILABLE_COLOR
-                fuel_surf = self.font_small.render(f"{smelt_recipe.fuel_item}: {fuel_qty}/1", True, fuel_color)
+                fuel_surf = self._render_text(self.font_small, f"{smelt_recipe.fuel_item}: {fuel_qty}/1", fuel_color)
                 screen.blit(fuel_surf, (status_x, row_y + 8))
                 status_x += 100
 
@@ -301,8 +326,9 @@ class CraftingPanel(PanelWindow):
                 if smelt_recipe.extra_input:
                     extra_qty = self.inventory.get_item_quantity(smelt_recipe.extra_input) if self.inventory else 0
                     extra_color = self.AVAILABLE_COLOR if extra_qty >= smelt_recipe.extra_quantity else self.UNAVAILABLE_COLOR
-                    extra_surf = self.font_small.render(
-                        f"{smelt_recipe.extra_input}: {extra_qty}/{smelt_recipe.extra_quantity}", True, extra_color,
+                    extra_surf = self._render_text(
+                        self.font_small,
+                        f"{smelt_recipe.extra_input}: {extra_qty}/{smelt_recipe.extra_quantity}", extra_color,
                     )
                     screen.blit(extra_surf, (status_x, row_y + 8))
 
@@ -318,7 +344,7 @@ class CraftingPanel(PanelWindow):
                 color = self.BUTTON_HOVER if is_selected else (self.BUTTON_COLOR if can_smelt else (60, 60, 60))
                 pygame.draw.rect(screen, color, btn_rect)
                 pygame.draw.rect(screen, self.COLOR_BORDER, btn_rect, 1)
-                btn_text = self.font_small.render("Smelt", True, (255, 255, 255))
+                btn_text = self._render_text(self.font_small, "Smelt", (255, 255, 255))
                 btn_tx = btn_x + (btn_w - btn_text.get_width()) // 2
                 btn_ty = btn_y + (btn_h - btn_text.get_height()) // 2
                 screen.blit(btn_text, (btn_tx, btn_ty))
@@ -331,7 +357,7 @@ class CraftingPanel(PanelWindow):
             y += 8
 
         # Footer hint
-        hint = self.font_small.render("Press ESC or Q to close", True, (150, 150, 170))
+        hint = self._render_text(self.font_small, "Press ESC or Q to close", (150, 150, 170))
         hint_x = content_rect.x + (content_rect.width - hint.get_width()) // 2
         hint_y = content_rect.y + content_rect.height - 20
         screen.blit(hint, (hint_x, hint_y))

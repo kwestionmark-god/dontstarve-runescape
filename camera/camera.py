@@ -51,6 +51,8 @@ class Camera:
         "screen_width", "screen_height",
         "pan_x", "pan_y",
         "_prev_mouse_x", "_prev_mouse_y", "_mouse_held",
+        "_trig_yaw", "_trig_pitch",
+        "_cyaw", "_syaw", "_tan_pitch", "_sin_pitch",
     )
 
     def __init__(
@@ -78,6 +80,25 @@ class Camera:
         self._prev_mouse_x = 0.0
         self._prev_mouse_y = 0.0
         self._mouse_held = False
+        # Trig cache: world_to_screen is called per tile per frame; recompute
+        # cos/sin/tan only when yaw/pitch actually changed.
+        self._trig_yaw: float | None = None
+        self._trig_pitch: float | None = None
+        self._cyaw = 1.0
+        self._syaw = 0.0
+        self._tan_pitch = 1.0
+        self._sin_pitch = 0.0
+
+    def _refresh_trig(self) -> None:
+        """Refresh cached yaw/pitch trig if the angles changed."""
+        if self._trig_yaw != self.yaw:
+            self._trig_yaw = self.yaw
+            self._cyaw = math.cos(self.yaw)
+            self._syaw = math.sin(self.yaw)
+        if self._trig_pitch != self.pitch:
+            self._trig_pitch = self.pitch
+            self._tan_pitch = math.tan(self.pitch)
+            self._sin_pitch = math.sin(self.pitch)
 
     def set_player(self, player: object) -> None:
         """Set the camera's target player."""
@@ -177,16 +198,17 @@ class Camera:
         dy = world_y - self.player.world_y
 
         # 1. Yaw: horizontal rotation around player (orbital yaw)
-        cy = math.cos(self.yaw)
-        sy = math.sin(self.yaw)
+        self._refresh_trig()
+        cy = self._cyaw
+        sy = self._syaw
         yaw_x = dx * cy - dy * sy
         yaw_y = dx * sy + dy * cy
 
         # 2. Pitch: stretch world_Y for 2.5D perspective
-        tp = math.tan(self.pitch)
+        tp = self._tan_pitch
         screen_x = (self.screen_width / 2 + yaw_x * self.zoom + self.pan_x)
         screen_y = (self.screen_height / 2
-                    + (yaw_y * tp - elevation * math.sin(self.pitch)) * self.zoom
+                    + (yaw_y * tp - elevation * self._sin_pitch) * self.zoom
                     + self.pan_y)
 
         return (screen_x, screen_y)
@@ -218,7 +240,8 @@ class Camera:
         dy = (screen_y - self.pan_y - self.screen_height / 2) / self.zoom
 
         # Undo pitch scaling (tan(pitch) factor on world_y)
-        tp = math.tan(self.pitch)
+        self._refresh_trig()
+        tp = self._tan_pitch
         if tp > 1e-6:
             dy = dy / tp
         else:
@@ -228,8 +251,8 @@ class Camera:
             dy = 0.0
 
         # Undo yaw rotation
-        cy = math.cos(-self.yaw)
-        sy = math.sin(-self.yaw)
+        cy = self._cyaw
+        sy = -self._syaw
         world_dx = dx * cy - dy * sy
         world_dy = dx * sy + dy * cy
 

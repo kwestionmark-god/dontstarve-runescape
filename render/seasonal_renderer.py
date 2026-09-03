@@ -102,6 +102,12 @@ class SeasonalRenderer:
             alpha: Overlay alpha (0–255).
             color: Overlay RGB color.
         """
-        overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((*color, alpha))
-        screen.blit(overlay, (0, 0))
+        # The overlay surface is recreated only when its key changes — it was
+        # previously allocated and filled fresh every frame.
+        key = (screen.get_width(), screen.get_height(), color, alpha)
+        if getattr(self, "_ambient_overlay_key", None) != key:
+            overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+            overlay.fill((*color, alpha))
+            self._ambient_overlay = overlay
+            self._ambient_overlay_key = key
+        screen.blit(self._ambient_overlay, (0, 0))

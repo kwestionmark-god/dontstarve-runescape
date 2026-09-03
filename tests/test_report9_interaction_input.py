@@ -95,4 +95,5 @@ def test_handle_interact_still_works_after_deletion():
     player.find_interactable_resource.assert_called_once()
     player.action_system.start_action.assert_called_once_with(
         ActionType.FORAGING, node, game.skill_manager, game.inventory,
+        tile_xy=(0, 0),
     )

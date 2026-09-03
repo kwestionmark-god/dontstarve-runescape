@@ -44,7 +44,7 @@ class TileRenderer:
     """
 
     __slots__ = ("tile_map", "screen", "_terrain_cache", "seasonal_renderer", "lighting_system",
-                 "_xform_cache")
+                 "_xform_cache", "_wire_overlay_cache", "_fog_comp_cache")
 
     # How much higher-elevation tiles shift upward on screen (px).
     _ELEVATION_SORT_WEIGHT = 0.6
@@ -62,6 +62,12 @@ class TileRenderer:
         # tile. Rebuilt only when a tile's shading values or the camera
         # transform change — a static camera reuses everything.
         self._xform_cache: dict = {}
+        # Wireframe overlay surfaces reused across tiles (was one SRCALPHA
+        # allocation per visible tile per frame).
+        self._wire_overlay_cache: dict[tuple[int, int], pygame.Surface] = {}
+        # Fog-composited sprite variants, keyed (id(sprite), alpha bucket)
+        # (was a per-tile numpy composition every frame).
+        self._fog_comp_cache: dict[tuple[int, int], pygame.Surface] = {}
         self.seasonal_renderer = None  # set externally by bootstrap
         self.lighting_system = lighting_system
 
@@ -146,6 +152,10 @@ class TileRenderer:
         y_min = max(0, int(top // tile_size) - edge_margin_tiles)
         y_max = min(tile_map.height, int(bottom // tile_size) + 1 + edge_margin_tiles)
 
+        # Hoisted loop invariants (were recomputed per tile)
+        cos_yaw = math.cos(camera.yaw) if hasattr(camera, "yaw") else 1.0
+        sin_yaw = math.sin(camera.yaw) if hasattr(camera, "yaw") else 0.0
+
         for x in range(x_min, x_max):
             for y in range(y_min, y_max):
                 tile = tile_map.tiles[x][y]
@@ -167,8 +177,6 @@ class TileRenderer:
                 avg_corner_h = (h_nw + h_ne + h_sw + h_se) / 4.0
                 # Depth along the camera's view axis (yaw-rotated Y) so
                 # back-to-front order stays correct when the camera rotates.
-                cos_yaw = math.cos(camera.yaw) if hasattr(camera, "yaw") else 1.0
-                sin_yaw = math.sin(camera.yaw) if hasattr(camera, "yaw") else 0.0
                 depth = y * cos_yaw + x * sin_yaw + avg_corner_h * 0.5
 
                 tiles_to_render.append((depth, x, y))
@@ -176,18 +184,20 @@ class TileRenderer:
         # Sort back-to-front (largest depth first).
         tiles_to_render.sort(key=lambda t: t[0], reverse=True)
 
-        # Cache base fog alpha per tile (distance only, not elevation)
-        tile_fog_alpha = {}
+        # Cache base fog alpha per tile (distance only, not elevation);
+        # the distance rides along so the LOD check below doesn't recompute
+        # a second hypot per tile.
+        tile_fog_alpha: dict[tuple[int, int], tuple[float, int]] = {}
         if player_pos:
             px, py = player_pos
             for _depth, x, y in tiles_to_render:
                 tile_cx = x * tile_size + tile_size / 2
                 tile_cy = y * tile_size + tile_size / 2
                 dist = math.hypot(tile_cx - px, tile_cy - py)
-                tile_fog_alpha[(x, y)] = fog_alpha_for_distance(dist)  # -1 = culled
+                tile_fog_alpha[(x, y)] = (dist, fog_alpha_for_distance(dist))  # alpha -1 = culled
         else:
             for _depth, x, y in tiles_to_render:
-                tile_fog_alpha[(x, y)] = 0
+                tile_fog_alpha[(x, y)] = (0.0, 0)
 
         # ── Draw tiles ──────────────────────────────────────────────
         for _depth, x, y in tiles_to_render:
@@ -195,18 +205,14 @@ class TileRenderer:
             if tile is None:
                 continue
 
-            fog_alpha = tile_fog_alpha.get((x, y), 0)
+            dist, fog_alpha = tile_fog_alpha.get((x, y), (0.0, 0))
             if fog_alpha < 0:
                 continue  # Culled
 
             # LOD: fall back to flat rendering beyond lod_fallback_dist
             use_gouraud = (terrain_style == "flat" and corner_brightness is not None)
-            if use_lod and player_pos:
-                tile_cx = x * tile_size + tile_size / 2
-                tile_cy = y * tile_size + tile_size / 2
-                dist = math.hypot(tile_cx - player_pos[0], tile_cy - player_pos[1])
-                if dist > lod_fallback_dist:
-                    use_gouraud = False
+            if use_lod and player_pos and dist > lod_fallback_dist:
+                use_gouraud = False
 
             # Per-tile fog modulation by corner_fog density (Phase 7 P1)
             if use_height_fog and tile_map.corner_fog:
@@ -324,7 +330,14 @@ class TileRenderer:
                 ow = int(max(xs) - min(xs)) + 2
                 oh = int(max(ys) - min(ys)) + 2
                 if ow > 0 and oh > 0:
-                    overlay = pygame.Surface((ow, oh), pygame.SRCALPHA)
+                    overlay = self._wire_overlay_cache.get((ow, oh))
+                    if overlay is None:
+                        overlay = pygame.Surface((ow, oh), pygame.SRCALPHA)
+                        if len(self._wire_overlay_cache) > 32:
+                            self._wire_overlay_cache.clear()
+                        self._wire_overlay_cache[(ow, oh)] = overlay
+                    else:
+                        overlay.fill((0, 0, 0, 0))
                     pts = [(px - min(xs), py - min(ys)) for px, py in (p_nw, p_ne, p_se, p_sw)]
                     pygame.draw.polygon(overlay, (0, 0, 0, highlight_alpha), pts, 1)
                     self.screen.blit(overlay, (min(xs), min(ys)))
@@ -696,12 +709,18 @@ class TileRenderer:
         tile or stack over a neighbour through the AABB. ``alpha`` is the
         already-modulated (distance × height) value from ``render()``.
         Returns ``sprite`` unchanged when alpha is 0; otherwise a copy.
+        Copies are cached per (sprite, alpha bucket) since the source sprite
+        comes from the stable ``_xform_cache``.
         """
         if alpha <= 0:
             return sprite
         import numpy as np
 
-        alpha = max(0, min(255, int(alpha)))
+        alpha = max(0, min(255, int(alpha))) // 8 * 8
+        key = (id(sprite), alpha)
+        cached = self._fog_comp_cache.get(key)
+        if cached is not None:
+            return cached
         out = sprite.copy()
         fog = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
         fog.fill((*color, alpha))
@@ -710,6 +729,9 @@ class TileRenderer:
         fog_a[:, :] = (mask.astype(np.uint16) * alpha // 255).astype(np.uint8)
         del fog_a
         out.blit(fog, (0, 0))
+        if len(self._fog_comp_cache) > 1024:
+            self._fog_comp_cache.clear()
+        self._fog_comp_cache[key] = out
         return out
 
     # Tile-space centres of the 8 neighbours relative to this tile.

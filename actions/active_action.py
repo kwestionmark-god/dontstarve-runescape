@@ -46,6 +46,7 @@ class ActiveAction:
     extra_resources_bonus: float = 0.0
     required_tool: Optional[str] = None
     cooldown: float = 0.0
+    tile_xy: Optional[tuple[int, int]] = None  # tile coords for regrow tracking
 
     @property
     def progress(self) -> float:

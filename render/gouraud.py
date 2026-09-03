@@ -7,8 +7,8 @@ per-vertex terrain renderer (Phase 7 P4) to draw two triangles per tile.
 
 Algorithm: Sort vertices by Y. Split into a flat-bottom half and a
 flat-top half. For each scanline, compute interpolated colors at the
-left and right edges and fill the row between them using
-``pygame.Surface.set_at``.
+left and right edges and fill the row between them using one
+``pygame.PixelArray`` row-slice write per scanline.
 """
 
 from __future__ import annotations
@@ -71,6 +71,10 @@ def fill_triangle(
         # Degenerate (collinear or coincident vertices) — draw nothing
         return
 
+    # One PixelArray shared by all scanlines of this triangle — per-scanline
+    # (or per-pixel) surface writes dominate the rasterizer's cost otherwise.
+    _pa = None
+
     # Helper to interpolate color between two vertices at parameter t in [0, 1]
     def lerp_color(ca: tuple[int, int, int], cb: tuple[int, int, int], t: float) -> tuple[int, int, int]:
         r = round(ca[0] + (cb[0] - ca[0]) * t)
@@ -107,16 +111,26 @@ def fill_triangle(
         # If the span is a single pixel, just use the left color (or average)
         span_width = xr - xl
         if span_width == 0:
-            surface.set_at((xl_clipped, y), cl + (255,))
+            _pa[xl_clipped : xl_clipped + 1, y] = [cl]
             return
 
-        # Interpolate color across the scanline
-        # For each pixel, compute t = (x - xl) / span_width and lerp
+        # Interpolate color across the scanline, then write the whole row in
+        # one PixelArray assignment — per-pixel set_at() calls dominate the
+        # cost of this rasterizer, so batch the row into a single C-level copy.
+        row = []
+        append = row.append
+        clr, clg, clb = cl
+        crr, crg, crb = cr
         for x in range(xl_clipped, xr_clipped + 1):
             # Recompute t from canonical endpoints to avoid accumulated error
-            t = (x - xl) / span_width if span_width != 0 else 0.0
-            color = lerp_color(cl, cr, t)
-            surface.set_at((x, y), color + (255,))
+            t = (x - xl) / span_width
+            r = round(clr + (crr - clr) * t)
+            g = round(clg + (crg - clg) * t)
+            b = round(clb + (crb - clb) * t)
+            append((max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b))))
+        _pa[xl_clipped : xr_clipped + 1, y] = row
+
+    _pa = pygame.PixelArray(surface)
 
     # Flat-bottom triangle: y0 <= y1 == y2 (but we handle y1 < y2 generally)
     # The split point is at y1. Top half: y0 to y1. Bottom half: y1 to y2.
@@ -191,6 +205,8 @@ def fill_triangle(
                 cl, cr = cr, cl
 
             draw_scanline(y, x_left, x_right, cl, cr)
+
+    _pa.close()
 
 
 if __name__ == "__main__":

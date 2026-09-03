@@ -46,6 +46,31 @@ class HUD:
     NOTIF_FADE_IN = 0.15
     NOTIF_FADE_OUT = 0.40
 
+    # items.json lookups, cached after first load (the data file is static
+    # during play; previously re-read from disk every hotbar frame).
+    _item_colors_cache: dict[str, tuple[int, int, int]] | None = None
+    _item_sprites_cache: dict[str, str | None] | None = None
+
+    @classmethod
+    def _item_tables(cls) -> "tuple[dict[str, tuple[int, int, int]], dict[str, str | None]]":
+        if cls._item_colors_cache is None or cls._item_sprites_cache is None:
+            from data import load_json_list
+
+            colors: dict[str, tuple[int, int, int]] = {}
+            sprites: dict[str, str | None] = {}
+            for d in load_json_list("items.json", "items"):
+                iid = d.get("id", "")
+                if d.get("is_food", False):
+                    colors[iid] = (200, 80, 80)
+                elif d.get("is_equippable", False):
+                    colors[iid] = (100, 120, 200)
+                elif d.get("is_currency", False):
+                    colors[iid] = (255, 215, 0)
+                sprites[iid] = d.get("sprite_key")
+            cls._item_colors_cache = colors
+            cls._item_sprites_cache = sprites
+        return cls._item_colors_cache, cls._item_sprites_cache
+
     # ── Action / stamina references (set via setters) ─────────────────
     _action_system: object | None = None  # player.action_system
     _seasonal_hud: object | None = None   # SeasonalHUD instance (optional)
@@ -407,7 +432,6 @@ class HUD:
 
     def _render_hotbar(self, screen: pygame.Surface) -> None:
         """Render the 8-slot hotbar at the bottom-center of the screen."""
-        from data import load_json_list
 
         SLOT_COUNT = 8
         CELL_W = 56
@@ -431,16 +455,7 @@ class HUD:
                 break
 
         # Fallback color map by item type (used when no sprite available)
-        items_data = load_json_list("items.json", "items")
-        _item_colors: dict[str, tuple[int, int, int]] = {}
-        for d in items_data:
-            iid = d.get("id", "")
-            if d.get("is_food", False):
-                _item_colors[iid] = (200, 80, 80)
-            elif d.get("is_equippable", False):
-                _item_colors[iid] = (100, 120, 200)
-            elif d.get("is_currency", False):
-                _item_colors[iid] = (255, 215, 0)
+        _item_colors, _item_sprites = self._item_tables()
         default_color = (120, 120, 140)
 
         self._hotbar_rects = []
@@ -477,15 +492,13 @@ class HUD:
 
                 # Render item sprite if available, otherwise fall back to colored icon
                 if self.sprite_renderer is not None:
-                    sprite_key = None
-                    for d in items_data:
-                        if d.get("id") == slot.item_id:
-                            sprite_key = d.get("sprite_key")
-                            break
+                    sprite_key = _item_sprites.get(slot.item_id)
                     if sprite_key:
                         sprite = self.sprite_renderer._get_base_sprite(sprite_key)
                         if sprite is not None:
-                            # Scale sprite to fit within cell
+                            # Scale sprite to fit within cell; cache the scaled
+                            # icon per sprite key (was a transform.scale per
+                            # slot per frame).
                             icon_size = 28
                             icon_x = cell_x + (CELL_W - icon_size) // 2
                             icon_y = cell_y + 10
@@ -494,8 +507,14 @@ class HUD:
                             scale = min(icon_size / sw, icon_size / sh) if sw > 0 and sh > 0 else 1.0
                             new_w = max(1, int(sw * scale))
                             new_h = max(1, int(sh * scale))
-                            sprite = pygame.transform.scale(sprite, (new_w, new_h))
-                            screen.blit(sprite, (icon_x + (icon_size - new_w) // 2, icon_y + (icon_size - new_h) // 2))
+                            icon_cache = getattr(self, "_hotbar_icon_cache", None)
+                            if icon_cache is None:
+                                icon_cache = self._hotbar_icon_cache = {}
+                            icon = icon_cache.get(sprite_key)
+                            if icon is None or icon.get_size() != (new_w, new_h):
+                                icon = pygame.transform.scale(sprite, (new_w, new_h))
+                                icon_cache[sprite_key] = icon
+                            screen.blit(icon, (icon_x + (icon_size - new_w) // 2, icon_y + (icon_size - new_h) // 2))
                         else:
                             # Fallback colored square
                             pygame.draw.rect(screen, color, (icon_x, icon_y, icon_size, icon_size))
@@ -562,9 +581,15 @@ class HUD:
         if self._active_action_progress > 0 and self._active_action_skill:
             panel_h += 10 + 12 + self.font.get_height()
         panel_w = self.BAR_WIDTH
-        overlay = pygame.Surface((panel_w + 12, panel_h + 12), pygame.SRCALPHA)
-        pygame.draw.rect(overlay, self.PANEL_COLOR, overlay.get_rect(), border_radius=6)
-        pygame.draw.rect(overlay, self.PANEL_BORDER_COLOR, overlay.get_rect(), 1, border_radius=6)
+        # Backing overlay recreated only when its size changes (its content
+        # is constant); it was allocated fresh every frame before.
+        o_key = (panel_w + 12, panel_h + 12)
+        overlay = getattr(self, "_panel_overlay", None)
+        if overlay is None or overlay.get_size() != o_key:
+            overlay = pygame.Surface(o_key, pygame.SRCALPHA)
+            pygame.draw.rect(overlay, self.PANEL_COLOR, overlay.get_rect(), border_radius=6)
+            pygame.draw.rect(overlay, self.PANEL_BORDER_COLOR, overlay.get_rect(), 1, border_radius=6)
+            self._panel_overlay = overlay
         screen.blit(overlay, (x - 6, y - 6))
 
         # ── Seasonal HUD (season bar + weather icon + forecast) ─────
@@ -737,8 +762,12 @@ class HUD:
 
         # ── Combat Damage Flash Overlay ────────────────────────────
         if self._damage_flash > 0:
-            # Semi-transparent red overlay
-            flash_surf = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+            # Semi-transparent red overlay; reuse one surface per screen size
+            # and vary only the uniform alpha via fill (allocation was per-frame).
+            flash_surf = getattr(self, "_flash_surf", None)
+            if flash_surf is None or flash_surf.get_size() != screen.get_size():
+                flash_surf = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+                self._flash_surf = flash_surf
             alpha = int(60 * self._damage_flash)
             flash_surf.fill((255, 0, 0, alpha))
             screen.blit(flash_surf, (0, 0))

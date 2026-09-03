@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional
 
 from config import DATA_DIR, ITEMS_FILE
 
@@ -49,6 +49,10 @@ class GearItem:
     tier: int = 1
     durability: Optional[int] = None
 
+    # Memoized load: several render paths call load_all() every frame; the
+    # JSON is static during play. Keyed by file path so tests can vary it.
+    _LOAD_CACHE: ClassVar[Dict[str, Dict[str, "GearItem"]]] = {}
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "GearItem":
         """Create a GearItem from a JSON dict."""
@@ -77,6 +81,9 @@ class GearItem:
         Returns:
             Dict mapping item_id to GearItem.
         """
+        cached = cls._LOAD_CACHE.get(gear_file)
+        if cached is not None:
+            return cached
         gear_map: Dict[str, GearItem] = {}
         with open(gear_file, "r") as f:
             data = json.load(f)
@@ -85,6 +92,7 @@ class GearItem:
                 for item_data in data[category].values():
                     item = cls.from_dict(item_data)
                     gear_map[item.item_id] = item
+        cls._LOAD_CACHE[gear_file] = gear_map
         return gear_map
 
 

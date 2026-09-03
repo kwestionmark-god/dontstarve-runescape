@@ -41,6 +41,7 @@ class ActionSystem:
         "woodcutting_skill",
         "mining_skill",
         "foraging_skill",
+        "_tile_map",
     )
 
     def __init__(self) -> None:
@@ -54,6 +55,11 @@ class ActionSystem:
         self.woodcutting_skill: "WoodcuttingSkill | None" = None
         self.mining_skill: "MiningSkill | None" = None
         self.foraging_skill: "ForagingSkill | None" = None
+        self._tile_map: object | None = None
+
+    def set_tile_map(self, tile_map: object) -> None:
+        """Wire the TileMap so depletion can start regrow timers."""
+        self._tile_map = tile_map
 
     def start_action(
         self,
@@ -62,6 +68,7 @@ class ActionSystem:
         skill_manager: "SkillManager",
         inventory: "Inventory",
         recipe_id: Optional[str] = None,
+        tile_xy: Optional[tuple[int, int]] = None,
     ) -> Optional[str]:
         """
         Start an action: checks tools, builds params, returns None or error string.
@@ -110,6 +117,7 @@ class ActionSystem:
 
         # Build the action with correct parameters
         action = ActiveAction(action_type=action_type)
+        action.tile_xy = tile_xy
 
         if action_type == ActionType.WOODCUTTING and resource is not None:
             action.duration = 1.5
@@ -351,6 +359,15 @@ class ActionSystem:
             # Success
             if not resource.harvest():
                 return ActionResult(success=False, message="The resource is depleted.")
+
+            # Notify the tile map so the regrow timer starts (keeps the
+            # per-frame update on a small dirty set, not the whole map).
+            if (
+                resource.is_depleted
+                and self._tile_map is not None
+                and action.tile_xy is not None
+            ):
+                self._tile_map.mark_regrowing(*action.tile_xy)
 
             # Determine yield using skill classes
             if action.action_type == ActionType.WOODCUTTING and self.woodcutting_skill is not None:

@@ -94,7 +94,7 @@ class TileMap:
 
     __slots__ = (
         "width", "height", "tiles", "spawn_x", "spawn_y", "_season_system",
-        "corner_ao", "corner_height", "corner_fog",
+        "corner_ao", "corner_height", "corner_fog", "_regrow_tiles",
     )
 
     def __init__(
@@ -112,6 +112,9 @@ class TileMap:
         self.corner_ao: list[list[float]] = []  # (width+1) x (height+1) AO factors per corner
         self.corner_height: list[list[float]] = []  # (width+1) x (height+1) smoothed corner heights
         self.corner_fog: list[list[float]] = []  # (width+1) x (height+1) exp(-h/scale) per corner
+        # Tiles with an active regrow timer — the only tiles update() ticks
+        # (enqueued on depletion / save restore, dequeued on regrow).
+        self._regrow_tiles: set[tuple[int, int]] = set()
 
         # Build grid column-major: tiles[x][y]
         # Tiles are initialized with placeholder biome; actual biome
@@ -165,22 +168,51 @@ class TileMap:
             dx = -1
         return self.get_tile(tile.x + dx, tile.y + dy)
 
+    def mark_regrowing(self, x: int, y: int) -> None:
+        """
+        Enqueue a tile into the regrow timer set.
+
+        Called when a resource node depletes (action system) or when a
+        regrow timer is restored from a save. Idempotent.
+        """
+        tile = self.get_tile(x, y)
+        if tile is None:
+            return
+        if (
+            tile.resource_node is not None
+            and tile.resource_node.is_depleted
+            and tile.regrow_timer <= 0
+        ):
+            tile.regrow_timer = tile.resource_node.regrow_time
+            tile.depleted = True
+        if tile.regrow_timer > 0:
+            self._regrow_tiles.add((x, y))
+
     def update(self, dt: float) -> None:
         """
-        Update all tiles each frame.
+        Tick only tiles with an active regrow timer.
 
         Handles regrowth timers and any tile-level state changes.
         Applies seasonal regrowth modifier when a SeasonSystem is wired.
+        Previously this visited all 512×512 tiles every frame; only tiles
+        in _regrow_tiles do work, so the full map is no longer scanned.
         """
+        if not self._regrow_tiles:
+            return
         regrowth_mod = 1.0
         if self._season_system is not None:
             try:
                 regrowth_mod = self._season_system.get_survival_modifiers().get("regrowth", 1.0)
             except Exception:
                 pass
-        for x in range(self.width):
-            for y in range(self.height):
-                self.tiles[x][y].update(dt, regrowth_mod)
+        done = []
+        for x, y in self._regrow_tiles:
+            tile = self.tiles[x][y]
+            tile.update(dt, regrowth_mod)
+            if tile.regrow_timer <= 0 and not tile.depleted:
+                done.append((x, y))
+        for key in done:
+            self._regrow_tiles.discard(key)
 
     def get_tile_at_pixel(self, pixel_x: float, pixel_y: float, tile_size: int) -> Tile | None:
         """

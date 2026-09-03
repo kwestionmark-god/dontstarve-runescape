@@ -527,9 +527,15 @@ class PanelWindow:
         pygame.draw.rect(screen, self.COLOR_BORDER_LIGHT,
                          (px + 3, py + 3, pw - 6, ph - 6), 1)
 
-        # Translucent fill
-        bg_surf = pygame.Surface((pw, ph), pygame.SRCALPHA)
-        bg_surf.fill((*self.COLOR_BG, self.bg_alpha))
+        # Translucent fill; the bg surface is cached until size/alpha change
+        # (previously allocated fresh every frame).
+        bg_key = (pw, ph, self.bg_alpha)
+        bg_surf = getattr(self, "_bg_surf", None)
+        if bg_surf is None or getattr(self, "_bg_surf_key", None) != bg_key:
+            bg_surf = pygame.Surface((pw, ph), pygame.SRCALPHA)
+            bg_surf.fill((*self.COLOR_BG, self.bg_alpha))
+            self._bg_surf = bg_surf
+            self._bg_surf_key = bg_key
         screen.blit(bg_surf, (px, py))
 
         # Title

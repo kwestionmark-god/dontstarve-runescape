@@ -257,6 +257,8 @@ class SaveSystem:
                     tile.resource_node = dataclasses.replace(node, current_depletions=current_depletions)
                     tile.depleted = depleted
                     tile.regrow_timer = regrow_timer
+                    if regrow_timer > 0:
+                        game.world._regrow_tiles.add((x, y))
                 else:
                     # Resource definition not found (maybe removed from data)
                     tile.resource_node = None
