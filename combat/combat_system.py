@@ -729,7 +729,11 @@ class CombatSystem:
             return
 
         rng = random.Random(rng_seed)
-        num_to_spawn = min(len(biome_monster_data), 5)
+        # Weather spawn modifier: affects the initial population count.
+        spawn_mod = 1.0
+        if self.weather_system is not None:
+            spawn_mod = self.weather_system.get_effects().get("spawn_mod", 1.0)
+        num_to_spawn = min(len(biome_monster_data), max(1, round(5 * spawn_mod)))
 
         monster_ids = list(biome_monster_data.keys())
         selected = rng.sample(monster_ids, num_to_spawn)

@@ -551,11 +551,15 @@ GPU world-gen pending).
 
 ### Still live
 
-- 🟡 **[seasons] Weather multipliers are rolled but never applied.** `weather_system.py`
-  `get_effects()` (movement/visibility/outdoor-crafting/spawn multipliers) is only
-  consumed by the test suite. Weather cycles and drives particles + the HUD icon,
-  but no gameplay system applies the multipliers. (Scheduled in Phase 4 of the
-  September 2026 plan.)
+- 🟡 **[seasons] Weather `visibility` multiplier has no consumer.** Verified
+  2026-09-03: most of `weather_system.py::get_effects()` is wired and live —
+  `movement_speed` (`core/player.py::Player.effective_speed`),
+  `outdoor_crafting` (`actions/action_system.py::_complete_gathering`), and
+  `light_level`/`cloud_coverage` (lighting/particles, visual only). But
+  `visibility` is only ever read via accessor properties on
+  `SurvivalSystem` (`survival/survival_system.py:257`) that nothing calls.
+  `spawn_mod` was wired-but-unread in `combat/combat_system.py` and is now
+  fixed (see below).
 - 🟡 **[cooking] Cooking skill math is never applied.** `skills/cooking/cooking.py` is
   instantiated (`core/bootstrap.py:229`) but none of its math methods
   (`calculate_nutrition`, `get_spoilage_modifier`, `get_success_rate_bonus`, …) have
@@ -563,6 +567,12 @@ GPU world-gen pending).
 
 ### Fixed (September 2026 audit — Phases 1–4)
 
+- 🟢 **[seasons] Weather `spawn_mod` wired but unread.** — **RESOLVED**
+  `CombatSystem.weather_system` was set by bootstrap but never read;
+  `spawn_initial_monsters()` now reads
+  `weather_system.get_effects()["spawn_mod"]` and scales the initial spawn
+  count with it (`combat/combat_system.py:733-736`). Regression test:
+  `tests/test_weather_spawn_effects.py`.
 - Crash blockers: F/F5 `AttributeError`; title-screen Continue never loading;
   foraging permanently locking the action system; trade gold stale-total
   dupe; faction-leader quests unacceptably gated; invisible trade/quest
