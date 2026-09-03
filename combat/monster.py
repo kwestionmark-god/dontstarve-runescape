@@ -62,6 +62,8 @@ class Monster:
         is_hostile: Whether the monster is always aggressive.
         ai_state: Current AI state — "idle", "patrol", "chase", "attack", "flee".
         attack_cooldown_timer: Countdown until next attack.
+        tamable: Whether this monster can be befriended (Phase 0+ taming).
+        faction_owned: Whether killing this monster is a hostile act against a faction.
     """
 
     monster_id: str
@@ -84,6 +86,8 @@ class Monster:
     ai_state: str = "idle"
     attack_cooldown_timer: float = 0.0
     special: str = ""  # "poison", "ranged", "ambush", "aerial"
+    tamable: bool = False
+    faction_owned: bool = False
     # Stats loaded from definition at initialization time
     _attack_range: float = field(default=40.0)
     # Base stats for special behavior restoration
@@ -93,6 +97,8 @@ class Monster:
     _base_speed: float = 0.0
     _base_defence: int = 0
     _base_attack_range: float = 0.0
+    # Snapshot of the original definition for respawn (Phase 1)
+    _source_def: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_def(cls, monster_id: str, biome: str,
@@ -134,6 +140,10 @@ class Monster:
         effective_special = monster_def.get("special", special)
         effective_loot = loot_table if loot_table is not None else (monster_def or {}).get("loot_table", [])
 
+        # Phase 0 taming / ownership flags (safe defaults when absent)
+        tamable = bool(monster_def.get("tamable", False))
+        faction_owned = bool(monster_def.get("faction_owned", False))
+
         instance = cls(
             monster_id=monster_id,
             name=monster_def.get("name", monster_id.replace("_", " ").title()),
@@ -153,6 +163,8 @@ class Monster:
             sprite_key=monster_def.get("sprite_key", f"monster/{monster_id}"),
             is_hostile=bool(monster_def.get("is_hostile", True)) if monster_def else True,
             special=effective_special,
+            tamable=tamable,
+            faction_owned=faction_owned,
         )
         # Persist the unmodified base stats so reset_special() can restore
         # poison/ranged/aerial modifiers to their original values.
@@ -162,6 +174,8 @@ class Monster:
             "defence": int(base["defence"]),
             "speed": float(base["speed"]),
         }
+        # Keep a copy of the source definition for respawn reconstruction.
+        instance._source_def = dict(monster_def)
         return instance
 
     def take_damage(self, damage: int) -> None:
@@ -363,4 +377,3 @@ class Monster:
         elif self.special == "ranged":
             if self._base_attack_range != 0.0:
                 self._attack_range = self._base_attack_range
-
