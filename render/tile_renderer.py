@@ -534,7 +534,8 @@ class TileRenderer:
         )
         cached = self._xform_cache.get(tkey)
         if cached is not None:
-            self._xform_cache.move_to_end(tkey)
+            # Mark most-recently-used (plain dict has no move_to_end).
+            self._xform_cache[tkey] = self._xform_cache.pop(tkey)
         if cached is None:
             sprite = terrain_sprite
             # First crossfade neighbouring biome textures across tile

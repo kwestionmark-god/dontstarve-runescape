@@ -358,6 +358,52 @@ class TestAmbientOverlayCache:
         assert sr._ambient_overlay is not first
 
 
+class TestXformCacheHit:
+    """5B: textured-tile cache hits must not crash (regression: plain dicts
+    have no move_to_end)."""
+
+    def test_second_render_of_same_tile_hits_cache(self) -> None:
+        import pygame
+
+        pygame.init()
+        # Terrain sprite loading uses convert_alpha(), which needs a real
+        # display surface (dummy SDL driver is fine).
+        pygame.display.set_mode((64, 64))
+        from world.tile_map import TileMap
+        from render.tile_renderer import TileRenderer
+
+        tm = TileMap(8, 8, 0, 0)
+        for x in range(8):
+            for y in range(8):
+                tm.tiles[x][y].elevation = 1
+        tm.bake_corner_heights()
+        tm.bake_corner_fog()
+
+        screen = pygame.Surface((320, 240))
+        renderer = TileRenderer(tm, screen, lighting_system=None)
+
+        class FakeCam:
+            yaw = 0.0
+            pitch = 0.5
+            zoom = 1.0
+            player = type("P", (), {"world_x": 4 * 64.0, "world_y": 4 * 64.0})()
+            screen_width = 320
+            screen_height = 240
+            pan_x = 0.0
+            pan_y = 0.0
+
+            def get_view_rect(self):
+                return (-128.0, -128.0, 8 * 64 + 128, 8 * 64 + 128)
+
+            def world_to_screen(self, wx, wy, elevation=0):
+                return (wx - 4 * 64 + 160, (wy - 4 * 64) * 0.5 + 120 - elevation)
+
+        renderer.render(FakeCam())
+        n1 = len(renderer._xform_cache)
+        renderer.render(FakeCam())  # second pass hits the cache
+        assert n1 > 0  # textured path populated cache (else test is vacuous)
+
+
 class TestXpTable:
     def _reference(self, level: int) -> int:
         total = 0
