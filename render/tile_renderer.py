@@ -44,10 +44,20 @@ class TileRenderer:
     """
 
     __slots__ = ("tile_map", "screen", "_terrain_cache", "seasonal_renderer", "lighting_system",
-                 "_xform_cache", "_wire_overlay_cache", "_fog_comp_cache")
+                 "_bake_cache", "_xform_cache", "_warp_state",
+                 "_frame_no", "_warp_budget", "_sched_active", "_last_cam_sig",
+                 "_wire_overlay_cache", "_fog_comp_cache")
 
     # How much higher-elevation tiles shift upward on screen (px).
     _ELEVATION_SORT_WEIGHT = 0.6
+
+    # Warp scheduler: warping every visible tile every frame makes camera
+    # yaw sweeps stutter, so re-warps are rate-limited per frame and a
+    # tile keeps its last-warped sprite (re-blit at the exact fresh
+    # position) until its turn comes. Tiles stale longer than
+    # _MAX_STALE_FRAMES are warped regardless of the remaining budget.
+    _WARP_BUDGET_PER_FRAME = 40
+    _MAX_STALE_FRAMES = 10
 
     def __init__(
         self,
@@ -61,7 +71,19 @@ class TileRenderer:
         # Transformed (shaded + rotated + scaled) sprite cache, keyed per
         # tile. Rebuilt only when a tile's shading values or the camera
         # transform change — a static camera reuses everything.
+        # Camera-independent baked sprites (biome blend + sub-tile
+        # shading), keyed per tile + shading state; survives camera motion.
+        self._bake_cache: dict = {}
         self._xform_cache: dict = {}
+        # Per-tile warp record: (x, y) -> (tkey, frame_warped, payload).
+        self._warp_state: dict = {}
+        self._frame_no = 0
+        self._warp_budget = 0
+        # Scheduler (staleness reuse) applies only while render() drives a
+        # frame; direct _render_tile_textured calls always warp on a key
+        # change.
+        self._sched_active = False
+        self._last_cam_sig: tuple[float, float, float] | None = None
         # Wireframe overlay surfaces reused across tiles (was one SRCALPHA
         # allocation per visible tile per frame).
         self._wire_overlay_cache: dict[tuple[int, int], pygame.Surface] = {}
@@ -85,6 +107,29 @@ class TileRenderer:
         tile_map = self.tile_map
         if tile_map is None or camera is None:
             return
+
+        self._frame_no += 1
+        self._warp_budget = self._WARP_BUDGET_PER_FRAME
+        # A camera jump (teleport, screenshot harness, snap) must not show
+        # mixed-orientation tiles: lift the budget for that one frame.
+        cam_sig = (
+            math.degrees(camera.yaw) if hasattr(camera, "yaw") else 0.0,
+            math.degrees(getattr(camera, "pitch", 0.0)),
+            getattr(camera, "zoom", 1.0),
+        )
+        if self._last_cam_sig is not None:
+            dyaw = abs(cam_sig[0] - self._last_cam_sig[0])
+            dpitch = abs(cam_sig[1] - self._last_cam_sig[1])
+            dzoom = abs(cam_sig[2] - self._last_cam_sig[2])
+            if dyaw > 12.0 or dpitch > 6.0 or dzoom > 0.2:
+                self._warp_budget = 1 << 20
+        self._last_cam_sig = cam_sig
+        self._sched_active = True
+        if len(self._warp_state) > 8192:
+            cutoff = self._frame_no - 300
+            self._warp_state = {
+                k: v for k, v in self._warp_state.items() if v[1] > cutoff
+            }
 
         lighting = self.lighting_system
         use_ao = lighting is not None and lighting.preset_config.get("ao", False)
@@ -175,6 +220,22 @@ class TileRenderer:
                     h_se = tile_map.get_corner_height(x + 1, y + 1)
 
                 avg_corner_h = (h_nw + h_ne + h_sw + h_se) / 4.0
+
+                # Screen-space cull: the world-space view rect is an AABB
+                # of the rotated view, so at diagonal yaw it includes many
+                # tiles that project far outside the window. Margin covers
+                # the rotated sprite bbox (+2 overdraw) at current zoom.
+                scr_x, scr_y = camera.world_to_screen(
+                    (x + 0.5) * tile_size, (y + 0.5) * tile_size,
+                    elevation=avg_corner_h * Z_SCALE * TERRAIN_HEIGHT_SCALE,
+                )
+                cull_margin = 96.0 * (camera.zoom if hasattr(camera, "zoom") else 1.0) + 96.0
+                if (scr_x < -cull_margin
+                        or scr_x > camera.screen_width + cull_margin
+                        or scr_y < -cull_margin
+                        or scr_y > camera.screen_height + cull_margin):
+                    continue
+
                 # Depth along the camera's view axis (yaw-rotated Y) so
                 # back-to-front order stays correct when the camera rotates.
                 depth = y * cos_yaw + x * sin_yaw + avg_corner_h * 0.5
@@ -528,23 +589,19 @@ class TileRenderer:
             # thrash the cache; heights change only when the world does.
             height_key = (int(h_nw * 4), int(h_ne * 4), int(h_sw * 4), int(h_se * 4))
 
-        tkey = (
-            x, y, biome_name, shade_key, height_key,
-            int(yaw * 720), int(zoom * 200), int(pitch_factor * 500),
-        )
-        cached = self._xform_cache.get(tkey)
-        if cached is not None:
+        # Two-tier cache: the shaded/blended tile sprite depends only on
+        # world + lighting state, so it is baked once and reused across
+        # any camera motion (yaw sweeps included). Only the cheap
+        # scale/rotate/warp is keyed on the camera.
+        bkey = (x, y, biome_name, shade_key)
+        baked = self._bake_cache.get(bkey)
+        if baked is not None:
             # Mark most-recently-used (plain dict has no move_to_end).
-            self._xform_cache[tkey] = self._xform_cache.pop(tkey)
-        if cached is None:
-            sprite = terrain_sprite
-            # First crossfade neighbouring biome textures across tile
-            # borders (splatting), then bake per-corner brightness/AO as
-            # sub-tile multiplicative shading using the per-pixel blended
-            # colour field so the light multiply stays hue-correct at
-            # borders.
+            self._bake_cache[bkey] = self._bake_cache.pop(bkey)
+        if baked is None:
+            baked = terrain_sprite
             if corner_brightness is not None or blend_colors:
-                sprite = terrain_sprite.copy()
+                baked = terrain_sprite.copy()
                 color_field = None
                 if blend_colors:
                     blend_sprites = {
@@ -552,14 +609,41 @@ class TileRenderer:
                         for d, biome_id in (blend_biomes or {}).items()
                     }
                     color_field = self._bake_biome_blending(
-                        sprite, tuple(base_color), blend_colors, blend_sprites,
+                        baked, tuple(base_color), blend_colors, blend_sprites,
                     )
                 if corner_brightness is not None:
                     self._bake_subtile_shading(
-                        sprite, x, y, base_color,
+                        baked, x, y, base_color,
                         corner_brightness, corner_ao, terrain_subdiv,
                         color_field,
                     )
+            if len(self._bake_cache) > 4096:
+                for stale_key in list(self._bake_cache)[:1024]:
+                    del self._bake_cache[stale_key]
+            self._bake_cache[bkey] = baked
+
+        tkey = (
+            x, y, biome_name, shade_key, height_key,
+            int(yaw * 720), int(zoom * 200), int(pitch_factor * 500),
+        )
+        warping = p_nw is not None
+        state = self._warp_state.get((x, y))
+        cached = None
+        if state is not None and state[0] == tkey:
+            cached = state[2]
+        elif (
+            state is not None and warping and self._sched_active
+            and self._warp_budget <= 0
+            and self._frame_no - state[1] < self._MAX_STALE_FRAMES
+        ):
+            # This frame's warp budget is spent: reuse the previous warp.
+            # The blit position is recomputed below from the live camera,
+            # so only the texture's shape lags by a few frames.
+            cached = state[2]
+        if cached is None:
+            if warping:
+                self._warp_budget -= 1
+            sprite = baked
 
             # Rotate by yaw, then squash vertically by tan(pitch)
             cos_y = math.cos(yaw)
@@ -621,6 +705,7 @@ class TileRenderer:
                     del self._xform_cache[stale_key]
             cached = (sprite, base_w, base_h, dx, dy)
             self._xform_cache[tkey] = cached
+            self._warp_state[(x, y)] = (tkey, self._frame_no, cached)
 
         sprite, base_w, base_h, dx, dy = cached
 

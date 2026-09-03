@@ -111,6 +111,8 @@ def _scan(out, sprite, edges, axis, lo, hi, off_x, off_y, n_rows) -> None:
     `n_rows` entries so compressed terrain doesn't show banding from
     snapping scanline texcoords to the original 64 source rows.
     """
+    import numpy as np
+
     src_w, src_h = sprite.get_size()
     if axis == 1 and n_rows != src_h:
         sprite = pygame.transform.smoothscale(sprite, (src_w, n_rows))
@@ -121,38 +123,86 @@ def _scan(out, sprite, edges, axis, lo, hi, off_x, off_y, n_rows) -> None:
     other = 1 - axis  # the coordinate perpendicular to the scanline
     # For rows (axis=1): perpendicular is x (offset off_x), scanline is y.
     perp_off = off_x if axis == 1 else off_y
-    scan_off = off_y if axis == 1 else off_x
 
-    for s in range(lo, hi + 1):
-        hits = []  # (perp_coord, texcoord)
-        for a, b, mode in edges:
-            span = b[axis] - a[axis]
-            if abs(span) < 1e-9:
-                continue
-            t = (s - a[axis]) / span
-            if t < 0.0 or t > 1.0:
-                continue
-            perp = a[other] + (b[other] - a[other]) * t
-            tex = t if mode == "t" else (0.0 if mode == "0" else 1.0)
-            hits.append((perp, tex))
-        if len(hits) < 2:
-            continue
-        hits.sort()
-        (p0, v0), (p1, v1) = hits[0], hits[-1]
-        # 1px overdraw on both sides so rounding seams between tiles are
-        # covered by painter's order instead of letting the sky through.
-        i0 = int(p0 - perp_off) - 1
-        i1 = int(p1 - perp_off) + 2
-        if i1 - i0 <= 0:
-            continue
-        tex = (v0 + v1) * 0.5
-        if axis == 1:
-            src_i = min(src_h - 1, max(0, int(tex * src_h)))
-            strip = sprite.subsurface((0, src_i, src_w, 1))
-            seg = pygame.transform.scale(strip, (i1 - i0, 1))
-            out.blit(seg, (i0, s - int(scan_off)))
-        else:
-            src_i = min(src_w - 1, max(0, int(tex * src_w)))
-            strip = sprite.subsurface((src_i, 0, 1, src_h))
-            seg = pygame.transform.scale(strip, (1, i1 - i0))
-            out.blit(seg, (s - int(scan_off), i0))
+    src_rgb = pygame.surfarray.array3d(sprite)      # (w, h, 3)
+    src_alpha = pygame.surfarray.array_alpha(sprite)  # (w, h)
+
+    # Intersect every scanline with every edge in one vectorized pass.
+    # Scanlines are anchored to the output surface extent (lo/hi can
+    # exceed it by one due to independent truncation of min/max).
+    out_w, out_h = out.get_size()
+    n_scan = out_h if axis == 1 else out_w
+    s = np.arange(int(lo), int(lo) + n_scan)
+
+    # Edge geometry as (4, n_scan) arrays; NaN marks scanlines an edge
+    # does not touch.
+    a_ax = np.empty(4)
+    b_ax = np.empty(4)
+    a_ot = np.empty(4)
+    b_ot = np.empty(4)
+    mode = np.empty(4, dtype=np.int8)  # 0=tex 0, 1=tex t, 2=tex 1
+    for e, (a, b, m) in enumerate(edges):
+        a_ax[e] = a[axis]
+        b_ax[e] = b[axis]
+        a_ot[e] = a[other]
+        b_ot[e] = b[other]
+        mode[e] = 1 if m == "t" else (0 if m == "0" else 2)
+    span = b_ax - a_ax
+    small = np.abs(span) < 1e-9
+    span = np.where(small, 1.0, span)
+    t = (s[None, :] - a_ax[:, None]) / span[:, None]
+    valid = (~small)[:, None] & (t >= 0.0) & (t <= 1.0)
+    perp = a_ot[:, None] + (b_ot - a_ot)[:, None] * t
+    texc = np.where(mode[:, None] == 1, t,
+                    np.where(mode[:, None] == 0, 0.0, 1.0))
+    perp_min = np.where(valid, perp, np.inf)
+    perp_max = np.where(valid, perp, -np.inf)
+
+    lo_idx = np.argmin(perp_min, axis=0)
+    hi_idx = np.argmax(perp_max, axis=0)
+    cols_scan = np.arange(n_scan)
+    perp_lo = perp_min[lo_idx, cols_scan]
+    perp_hi = perp_max[hi_idx, cols_scan]
+    tex_lo = texc[lo_idx, cols_scan]
+    tex_hi = texc[hi_idx, cols_scan]
+    ok = valid.sum(axis=0) >= 2
+
+    # 1px overdraw on both sides so rounding seams between tiles are
+    # covered by painter's order instead of letting the sky through.
+    i0 = np.clip(perp_lo - perp_off, -1e6, 1e6).astype(np.int64) - 1
+    i1 = np.clip(perp_hi - perp_off, -1e6, 1e6).astype(np.int64) + 2
+    ok &= np.isfinite(perp_lo) & np.isfinite(perp_hi)
+    ok &= i1 > i0
+
+    if not np.any(ok):
+        return
+
+    src_len = src_h if axis == 1 else src_w
+    src_i = np.clip(((tex_lo + tex_hi) * 0.5 * src_len).astype(np.int64),
+                    0, src_len - 1)
+
+    seg_w = np.maximum(i1 - i0, 1)
+
+    if axis == 1:
+        # Scanline s is a row; perpendicular extent runs along x.
+        rel = np.arange(out_w)[None, :] - i0[:, None]
+        mask = ok[:, None] & (rel >= 0) & (rel < seg_w[:, None])
+        cols = np.clip((rel * src_w) // seg_w[:, None], 0, src_w - 1)
+        # surfarray layout is (x, y): scanline rows run along axis 1.
+        rgb = src_rgb[cols, src_i[:, None]].transpose(1, 0, 2)
+        alpha = src_alpha[cols, src_i[:, None]].transpose(1, 0)
+        alpha[~mask.T] = 0
+    else:
+        # Scanline s is a column; perpendicular extent runs along y.
+        rel = np.arange(out_h)[None, :] - i0[:, None]
+        mask = ok[:, None] & (rel >= 0) & (rel < seg_w[:, None])
+        rows_idx = np.clip((rel * src_h) // seg_w[:, None], 0, src_h - 1)
+        cols = np.broadcast_to(src_i[:, None], rows_idx.shape)
+        rgb = src_rgb[cols, rows_idx]
+        alpha = src_alpha[cols, rows_idx]
+        alpha[~mask] = 0
+
+    pygame.surfarray.blit_array(out, rgb)
+    px_alpha = pygame.surfarray.pixels_alpha(out)
+    px_alpha[:, :] = alpha
+    del px_alpha
