@@ -192,8 +192,10 @@ class TestSkillPanelMouseMove:
         panel.on_mouse_move(370, 153)
         assert panel._selected_index == 1
 
+        # Moving off all buttons keeps the selection (mouse movement must
+        # not wipe keyboard navigation state).
         panel.on_mouse_move(100, 100)
-        assert panel._selected_index == -1
+        assert panel._selected_index == 1
 
 
 class TestSkillPanelColorCoding:

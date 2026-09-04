@@ -6,9 +6,16 @@ the Game already owns — the dashboard repositions them into the shared rect
 and delegates input/rendering to the active tab, so all panel state (scroll
 position, selection, sessions) survives tab switches.
 
-Keys: LEFT/RIGHT (or A/D) cycle tabs; tab-specific keys are forwarded to the
-active child. The router owns open/close (each panel key opens its tab;
-pressing it again or ESC closes).
+Focus model: the dashboard has two layers, ``tabs`` (default) and
+``content``. In ``tabs`` focus, LEFT/RIGHT (or A/D) cycle tabs and DOWN
+(or S / ENTER) drops into the active panel. In ``content`` focus every key
+is forwarded to the child panel, so grid navigation (including LEFT/RIGHT)
+belongs to the panel; pressing UP (or W) on the child's top row returns
+focus to the tab strip. Mouse clicks set focus by region: tab strip clicks
+focus the tabs, content clicks focus the panel.
+
+The router owns open/close (each panel key opens its tab; pressing it
+again or ESC closes).
 """
 
 from __future__ import annotations
@@ -56,6 +63,9 @@ class DashboardPanel(PanelWindow):
             title_height=0, show_close=False, has_scrollbar=False,
         )
         self.active_tab: str = "inventory"
+        # Keyboard focus layer: "tabs" = tab strip owns nav, "content" =
+        # the active child panel owns all keys (see module docstring).
+        self.focus: str = "tabs"
         # tab_id -> (child panel, render callable)
         self._tabs: Dict[str, Tuple["PanelWindow", Callable]] = {}
         self._tab_rects: List[Tuple[str, pygame.Rect]] = []
@@ -132,27 +142,62 @@ class DashboardPanel(PanelWindow):
     # ── Input ────────────────────────────────────────────────────────────
 
     def handle_key(self, key: int):
-        """LEFT/RIGHT (A/D) switch tabs; everything else goes to the child."""
-        if key in (pygame.K_RIGHT, pygame.K_d):
-            self.cycle(1)
+        """Route keys by focus layer (see module docstring)."""
+        if self.focus == "tabs":
+            if key in (pygame.K_RIGHT, pygame.K_d):
+                self.cycle(1)
+                return None
+            if key in (pygame.K_LEFT, pygame.K_a):
+                self.cycle(-1)
+                return None
+            if key in (pygame.K_DOWN, pygame.K_s, pygame.K_RETURN, pygame.K_KP_ENTER):
+                self._enter_content()
+                return None
             return None
-        if key in (pygame.K_LEFT, pygame.K_a):
-            self.cycle(-1)
-            return None
+
+        # Content focus: everything belongs to the child, except UP/W on
+        # the child's top row, which climbs back to the tab strip.
         tab = self._tabs.get(self.active_tab)
         if tab is None:
             return None
-        return tab[0].handle_key(key)
+        panel = tab[0]
+        if key in (pygame.K_UP, pygame.K_w) and self._child_at_top_row(panel):
+            self.focus = "tabs"
+            return None
+        return panel.handle_key(key)
+
+    def _enter_content(self) -> None:
+        """Drop keyboard focus into the active tab's panel."""
+        self.focus = "content"
+        panel = self._tabs.get(self.active_tab, (None, None))[0]
+        if panel is None:
+            return
+        # Ensure a visible selection so keyboard nav starts somewhere.
+        if getattr(panel, "_selected_index", -1) < 0 and hasattr(panel, "select"):
+            panel.select(0)
+
+    def _child_at_top_row(self, panel) -> bool:
+        """True when the child's selection is on its top nav row (or none)."""
+        try:
+            if panel.select_count() <= 0:
+                return True
+        except Exception:
+            return True
+        idx = getattr(panel, "_selected_index", -1)
+        step = panel.grid_cols if getattr(panel, "selection_mode", "list") == "grid" else 1
+        return idx < step
 
     def handle_click(self, x: int, y: int, button: int = 1):
-        """Tab strip first, then delegate to the active child."""
+        """Tab strip first (claims focus), then delegate to the child."""
         for tab_id, rect in self._tab_rects:
             if rect.collidepoint(x, y):
                 self.set_active(tab_id)
+                self.focus = "tabs"
                 return None
         tab = self._tabs.get(self.active_tab)
         if tab is None:
             return None
+        self.focus = "content"
         return tab[0].handle_click(x, y, button)
 
     def handle_mouse_move(self, mx: int, my: int) -> None:
@@ -201,6 +246,7 @@ class DashboardPanel(PanelWindow):
 
     def _draw_tabs(self, screen: pygame.Surface) -> None:
         font = get_font("monospace", 13, bold=True)
+        tabs_focused = self.focus == "tabs"
         for tab_id, rect in self._tab_rects:
             active = tab_id == self.active_tab
             fill = (70, 85, 110) if active else (40, 45, 58)
@@ -211,3 +257,13 @@ class DashboardPanel(PanelWindow):
                 label, True, (240, 240, 255) if active else (150, 150, 165),
             )
             screen.blit(surf, surf.get_rect(center=rect.center))
+        # Focus cue: accent bar under the active tab while the tab strip
+        # owns the keyboard; it disappears once focus drops into the panel.
+        if tabs_focused:
+            for tab_id, rect in self._tab_rects:
+                if tab_id == self.active_tab:
+                    accent = pygame.Rect(
+                        rect.x + 2, rect.bottom - 3, rect.width - 4, 3,
+                    )
+                    pygame.draw.rect(screen, (220, 190, 90), accent)
+                    break

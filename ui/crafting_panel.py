@@ -415,4 +415,5 @@ class CraftingPanel(PanelWindow):
             if rect.collidepoint(mx, my):
                 self.select(i)
                 return
-        self.select(-1)
+        # Hovering empty space keeps the selection so mouse movement
+        # doesn't break keyboard navigation.

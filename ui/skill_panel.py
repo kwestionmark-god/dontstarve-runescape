@@ -390,5 +390,5 @@ class SkillPanel(PanelWindow):
             if rect.collidepoint(mx, my):
                 self.select(i)
                 return
-        # Not hovering over any button: clear selection
-        self.select(-1)
+        # Hovering empty space keeps the current selection — clearing it
+        # here would break keyboard navigation on any mouse movement.

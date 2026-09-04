@@ -96,9 +96,64 @@ class TestTabSwitching:
     def test_child_keys_forwarded(self):
         dash, children = _dashboard()
         dash.set_active("skills")
+        dash.handle_key(pygame.K_DOWN)  # drop focus into the panel first
         result = dash.handle_key(pygame.K_RETURN)
         assert children["skills"].keys == [pygame.K_RETURN]
         assert result == ("key", "skills")
+
+    def test_initial_focus_is_tabs(self):
+        dash, _ = _dashboard()
+        assert dash.focus == "tabs"
+
+    def test_down_enters_content_focus(self):
+        dash, children = _dashboard()
+        dash.handle_key(pygame.K_DOWN)
+        assert dash.focus == "content"
+        # Subsequent keys belong to the child entirely.
+        dash.handle_key(pygame.K_RIGHT)
+        assert children["inventory"].keys == [pygame.K_RIGHT]
+        assert dash.active_tab == "inventory"
+
+    def test_tab_cycle_does_not_leak_to_child(self):
+        dash, children = _dashboard()
+        dash.handle_key(pygame.K_RIGHT)
+        assert children["inventory"].keys == []
+        assert children["skills"].keys == []
+
+    def test_up_on_top_row_returns_to_tabs(self):
+        dash, children = _dashboard()
+        dash.handle_key(pygame.K_DOWN)
+        assert dash.focus == "content"
+        # Stub child has no selectable items → counts as top row.
+        dash.handle_key(pygame.K_UP)
+        assert dash.focus == "tabs"
+        assert children["inventory"].keys == []
+
+    def test_up_in_content_middle_stays_in_child(self):
+        dash, children = _dashboard()
+        child = children["inventory"]
+        child.selection_mode = "grid"
+        child.grid_cols = 5
+        child.select_count = lambda: 20
+        child._selected_index = 7
+        dash.handle_key(pygame.K_DOWN)  # enter content focus
+        dash.handle_key(pygame.K_UP)   # row 1 → not top row
+        assert dash.focus == "content"
+        assert children["inventory"].keys == [pygame.K_UP]
+
+    def test_click_content_focuses_panel(self):
+        dash, children = _dashboard()
+        dash.set_active("gear")
+        dash.handle_click(dash.x + 100, dash.y + 300, 1)
+        assert dash.focus == "content"
+
+    def test_click_tab_strip_focuses_tabs(self):
+        dash, _ = _dashboard()
+        dash.handle_key(pygame.K_DOWN)
+        assert dash.focus == "content"
+        x = dash.x + 10
+        dash.handle_click(x, dash.y + 5, 1)
+        assert dash.focus == "tabs"
 
     def test_child_clicks_forwarded_below_tab_strip(self):
         dash, children = _dashboard()
