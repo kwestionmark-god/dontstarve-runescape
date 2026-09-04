@@ -597,19 +597,25 @@ class SaveSystem:
         # Resource nodes (depletion state, regrowth timers)
         resource_nodes: List[Dict[str, Any]] = []
         if hasattr(game, "world") and game.world:
+            # Use dirty tracking: only save resource nodes that have non-default state
+            # (depleted, regrowing, or modified depletion count)
             for x in range(game.world.width):
+                col = game.world.tiles[x]
                 for y in range(game.world.height):
-                    tile = game.world.get_tile(x, y)
+                    tile = col[y]
                     if tile and tile.resource_node is not None:
                         node = tile.resource_node
-                        resource_nodes.append({
-                            "x": x,
-                            "y": y,
-                            "resource_id": node.resource_id,
-                            "current_depletions": node.current_depletions,
-                            "depleted": tile.depleted,
-                            "regrow_timer": tile.regrow_timer,
-                        })
+                        # Only save if state differs from default (fresh node)
+                        if (tile.depleted or tile.regrow_timer > 0 or
+                            node.current_depletions > 0):
+                            resource_nodes.append({
+                                "x": x,
+                                "y": y,
+                                "resource_id": node.resource_id,
+                                "current_depletions": node.current_depletions,
+                                "depleted": tile.depleted,
+                                "regrow_timer": tile.regrow_timer,
+                            })
         snapshot["resource_nodes"] = resource_nodes
 
         # Active fires (guard null)

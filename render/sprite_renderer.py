@@ -48,7 +48,7 @@ class SpriteRenderer:
 
     __slots__ = ("sprite_dir", "_sprite_cache", "_font", "tile_map", "seasonal_renderer",
                  "_anim_timer", "_anim_frame", "_anim_speed", "lighting_system",
-                 "_tint_cache")
+                 "_tint_cache", "_season_tint_cache")
 
     def __init__(
         self,
@@ -69,6 +69,8 @@ class SpriteRenderer:
         # Tinted variants of cached sprites, keyed
         # (id(sprite), tint_color, alpha); avoids a copy+fill+blit per draw.
         self._tint_cache: dict[tuple[int, tuple[int, int, int], int], pygame.Surface] = {}
+        # Seasonal tint cache: (tier, season_name) -> tint_color
+        self._season_tint_cache: dict[tuple[int, str], tuple[int, int, int]] = {}
 
     # ── Player rendering ──────────────────────────────────────────────
 
@@ -288,6 +290,13 @@ class SpriteRenderer:
         Returns:
             RGB tuple for seasonal tint overlay.
         """
+        # Cache key: (tier, season_name)
+        season = getattr(self.seasonal_renderer, "_current_season", "spring") if self.seasonal_renderer else "none"
+        cache_key = (tier, season)
+        cached = self._season_tint_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         # Base tints per tier (used as fallback when no seasonal_renderer)
         base_tints = {
             1: (80, 100, 60),    # Green — nature, player
@@ -297,9 +306,9 @@ class SpriteRenderer:
         }
 
         if self.seasonal_renderer is None:
-            return base_tints.get(tier, base_tints[1])
-
-        season = getattr(self.seasonal_renderer, "_current_season", "spring")
+            result = base_tints.get(tier, base_tints[1])
+            self._season_tint_cache[cache_key] = result
+            return result
 
         # Season × tier tint variations
         # Summer: warmer, more vibrant | Winter: cooler, muted
@@ -330,7 +339,9 @@ class SpriteRenderer:
             },
         }
 
-        return seasonal_tints.get(season, {}).get(tier, base_tints.get(tier, base_tints[1]))
+        result = seasonal_tints.get(season, {}).get(tier, base_tints.get(tier, base_tints[1]))
+        self._season_tint_cache[cache_key] = result
+        return result
 
     def _apply_seasonal_tint(
         self,
@@ -378,17 +389,20 @@ class SpriteRenderer:
         """
         dx = world_x - player_x
         dy = world_y - player_y
-        dist = math.sqrt(dx * dx + dy * dy)
+        dist_sq = dx * dx + dy * dy
+        # Quick cull check using squared distance
+        if dist_sq >= FOG_CULL_DISTANCE * FOG_CULL_DISTANCE:
+            return 0.0
+        dist = math.sqrt(dist_sq)
         alpha = fog_alpha_for_distance(dist)
-        return max(0, alpha)  # -1 (cull) is handled by _should_cull
+        return max(0, alpha)  # -1 (cull) handled by _should_cull
 
     @staticmethod
     def _should_cull(world_x: float, world_y: float, player_x: float, player_y: float) -> bool:
         """Return True if the entity should be skipped due to LOD culling."""
         dx = world_x - player_x
         dy = world_y - player_y
-        dist = math.sqrt(dx * dx + dy * dy)
-        return dist >= FOG_CULL_DISTANCE
+        return dx * dx + dy * dy >= FOG_CULL_DISTANCE * FOG_CULL_DISTANCE
 
     @staticmethod
     def _apply_fog_overlay(
@@ -399,10 +413,13 @@ class SpriteRenderer:
         The overlay matches the region size and uses SRCALPHA with
         ``alpha`` as its opacity. Surfaces are cached keyed on size and a
         quantized alpha bucket (per-draw allocation was the norm before).
+        Skip very low alpha (visually negligible).
         """
+        a = int(alpha) // 8 * 8  # quantized bucket, ±4 max visual shift
+        if a <= 16:  # Skip negligible fog
+            return
         w = rect.width
         h = rect.height
-        a = int(alpha) // 8 * 8  # quantized bucket, ±4 max visual shift
         key = (w, h, a)
         fog_surf = _FOG_OVERLAY_CACHE.get(key)
         if fog_surf is None:
@@ -616,6 +633,11 @@ class SpriteRenderer:
         or known tree resource_ids, so the renderer can resolve regrowth
         stage sprites for any tree-type resource.
         """
+        # Check for cached family first
+        cached = getattr(node, "_cached_family", None)
+        if cached is not None:
+            return cached
+
         key = getattr(node, "sprite_key", "")
         rid = getattr(node, "resource_id", "")
         # Strip directory prefix (e.g. "trees/berry_bush" -> "berry_bush")
@@ -624,17 +646,22 @@ class SpriteRenderer:
 
         # Trees: sprite_key prefix "trees/" or known tree-ish resource_ids
         if key.startswith("trees/") or "tree" in combined or rid.endswith("_tree") or rid == "elder_wood":
-            return "tree"
-        if any(t in combined for t in ("gemstone", "rare_ore")):
-            return "ore"
-        if any(t in combined for t in ("rock", "iron_rock", "copper", "stone_quarry", "stone", "gold")):
-            return "rock"
-        if any(t in combined for t in ("bush", "berry", "cactus")):
-            return "bush"
-        if any(t in combined for t in ("water", "fish", "salt", "sand", "shell")):
-            return "water"
-        # Default: treat as plant-like
-        return "plant"
+            family = "tree"
+        elif any(t in combined for t in ("gemstone", "rare_ore")):
+            family = "ore"
+        elif any(t in combined for t in ("rock", "iron_rock", "copper", "stone_quarry", "stone", "gold")):
+            family = "rock"
+        elif any(t in combined for t in ("bush", "berry", "cactus")):
+            family = "bush"
+        elif any(t in combined for t in ("water", "fish", "salt", "sand", "shell")):
+            family = "water"
+        else:
+            # Default: treat as plant-like
+            family = "plant"
+
+        # Cache on the node for future calls
+        node._cached_family = family
+        return family
 
     @staticmethod
     def _darken(colour: tuple[int, int, int], amount: int) -> tuple[int, int, int]:

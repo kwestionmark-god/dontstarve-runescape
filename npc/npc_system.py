@@ -157,6 +157,7 @@ class NPCSystem:
         # Positions change here; drop the proximity grid so queries rebuild it.
         self._nearby_grid = None
 
+        # Process only active NPCs
         for npc in self.npcs:
             if not npc.is_active:
                 continue
@@ -176,10 +177,10 @@ class NPCSystem:
                 self._move_toward(npc, target_x, target_y, dt)
 
                 # When reached, clear target so a new one is picked next tick
-                dist = math.sqrt(
-                    (target_x - npc.world_x) ** 2 + (target_y - npc.world_y) ** 2,
-                )
-                if dist < 2.0:
+                # Use squared distance to avoid sqrt
+                dx = target_x - npc.world_x
+                dy = target_y - npc.world_y
+                if dx * dx + dy * dy < 4.0:  # 2.0^2 = 4.0
                     del self._patrol_targets[npc_id]
             else:
                 # Idle — no movement; clean up any stale target
@@ -232,16 +233,17 @@ class NPCSystem:
             self._nearby_grid = entry
 
         buckets, active = entry
+        radius_sq = radius * radius
         result: list[Tuple[float, NPC]] = []
         for i in buckets.query_indices(world_x, world_y, radius):
             npc = active[i]
             dx = npc.world_x - world_x
             dy = npc.world_y - world_y
-            dist = math.sqrt(dx * dx + dy * dy)
-            if dist <= radius:
-                result.append((dist, npc))
+            dist_sq = dx * dx + dy * dy
+            if dist_sq <= radius_sq:
+                result.append((dist_sq, npc))
 
-        # Sort by distance, nearest first
+        # Sort by squared distance, nearest first (sqrt not needed for ordering)
         result.sort(key=lambda x: x[0])
         return [npc for _, npc in result]
 

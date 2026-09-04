@@ -837,81 +837,94 @@ class CombatSystem:
         if self.player_attack_cooldown > 0:
             self.player_attack_cooldown -= dt
 
-        # Update monster AI
+        # Prefetch player position for distance checks
+        player_x = self.player.world_x if self.player else 0.0
+        player_y = self.player.world_y if self.player else 0.0
+        player_exists = self.player is not None
+
+        # Update monster AI - only process alive monsters
         for monster in self.monsters:
-            if monster.is_alive():
-                monster.update_ai(self.player, dt)
+            if not monster.is_alive():
+                continue
 
-                # Hostile monsters actively attack the player when in range
-                if (
-                    monster.ai_state == "attack"
-                    and monster.is_hostile
-                    and monster.attack_cooldown_timer <= 0
-                    and self.player is not None
-                    and monster.is_alive()
-                ):
-                    dx = self.player.world_x - monster.world_x
-                    dy = self.player.world_y - monster.world_y
-                    dist_sq = dx * dx + dy * dy
-                    attack_range = getattr(monster, "_attack_range", 40.0)
-                    if dist_sq <= attack_range * attack_range:
-                        damage = self._monster_attack_player(monster)
-                        if damage > 0:
-                            self.combat_log.append(
-                                f"The {monster.name} hits you for {damage} damage!"
-                            )
-                        monster.attack_cooldown_timer = monster.attack_cooldown
+            monster.update_ai(self.player, dt)
 
-                # Monster structure attacks (if monster is attacking and near structure)
-                if (
-                    monster.ai_state == "attack"
-                    and self.building_system is not None
-                ):
-                    # Monsters occasionally attack nearby structures
-                    if random.random() < 0.02:  # ~2% chance per frame during attack
-                        destroyed = self.building_system.monster_attack_structure(
-                            monster.attack, monster.world_x, monster.world_y,
+            # Hostile monsters actively attack the player when in range
+            if (
+                monster.ai_state == "attack"
+                and monster.is_hostile
+                and monster.attack_cooldown_timer <= 0
+                and player_exists
+            ):
+                dx = player_x - monster.world_x
+                dy = player_y - monster.world_y
+                dist_sq = dx * dx + dy * dy
+                attack_range = getattr(monster, "_attack_range", 40.0)
+                if dist_sq <= attack_range * attack_range:
+                    damage = self._monster_attack_player(monster)
+                    if damage > 0:
+                        self.combat_log.append(
+                            f"The {monster.name} hits you for {damage} damage!"
                         )
-                        if destroyed:
-                            self.combat_log.append(
-                                f"{monster.name} destroyed a {destroyed.structure_def.name}!"
-                            )
+                    monster.attack_cooldown_timer = monster.attack_cooldown
 
-                # Fire deterrence: monsters flee from fires
-                if self.firemaking is not None:
-                    fires = self.firemaking.get_fires_in_radius(
-                        monster.world_x, monster.world_y, 200.0,
+            # Monster structure attacks (if monster is attacking and near structure)
+            if monster.ai_state == "attack" and self.building_system is not None:
+                # Monsters occasionally attack nearby structures
+                if random.random() < 0.02:  # ~2% chance per frame during attack
+                    destroyed = self.building_system.monster_attack_structure(
+                        monster.attack, monster.world_x, monster.world_y,
                     )
-                    for fire in fires:
-                        if fire.heat_output > 1.0:  # Strong fires deter monsters
-                            # Move monster away from fire
-                            dx = monster.world_x - fire.world_x
-                            dy = monster.world_y - fire.world_y
-                            dist = math.sqrt(dx * dx + dy * dy)
-                            if dist > 0:
-                                monster.world_x += (dx / dist) * monster.speed * dt * 0.5
-                                monster.world_y += (dy / dist) * monster.speed * dt * 0.5
-                            if monster.ai_state == "attack":
-                                monster.ai_state = "flee"
+                    if destroyed:
+                        self.combat_log.append(
+                            f"{monster.name} destroyed a {destroyed.structure_def.name}!"
+                        )
 
-        # Update damage number timers
-        for dn in self.damage_numbers:
+            # Fire deterrence: monsters flee from fires
+            # Only check if firemaking exists and has active fires
+            if self.firemaking is not None:
+                fires = self.firemaking.get_fires_in_radius(
+                    monster.world_x, monster.world_y, 200.0,
+                )
+                for fire in fires:
+                    if fire.heat_output > 1.0:  # Strong fires deter monsters
+                        # Move monster away from fire
+                        dx = monster.world_x - fire.world_x
+                        dy = monster.world_y - fire.world_y
+                        dist_sq = dx * dx + dy * dy
+                        if dist_sq > 0:
+                            dist = math.sqrt(dist_sq)
+                            monster.world_x += (dx / dist) * monster.speed * dt * 0.5
+                            monster.world_y += (dy / dist) * monster.speed * dt * 0.5
+                        if monster.ai_state == "attack":
+                            monster.ai_state = "flee"
+
+        # Update damage number timers - in-place modification to avoid list allocation
+        i = 0
+        while i < len(self.damage_numbers):
+            dn = self.damage_numbers[i]
             dn.timer -= dt
-            dn.offset_y += dt * COMBAT_DAMAGE_NUMBER_RISE_RATE  # Damage number rise rate
-
-        # Remove expired damage numbers
-        self.damage_numbers = [dn for dn in self.damage_numbers if dn.timer > 0]
+            dn.offset_y += dt * COMBAT_DAMAGE_NUMBER_RISE_RATE
+            if dn.timer > 0:
+                i += 1
+            else:
+                self.damage_numbers.pop(i)
 
         # Update monster attack cooldowns
         for monster in self.monsters:
             if monster.attack_cooldown_timer > 0:
                 monster.attack_cooldown_timer -= dt
 
-        # Clean up NPC attack cooldowns (guards/faction NPCs)
-        for key in list(self._npc_attack_cooldowns.keys()):
-            if self._npc_attack_cooldowns[key] > 0:
-                self._npc_attack_cooldowns[key] -= dt
-            else:
+        # Clean up NPC attack cooldowns (guards/faction NPCs) - only when dict not empty
+        if self._npc_attack_cooldowns:
+            keys_to_delete = []
+            for key, value in self._npc_attack_cooldowns.items():
+                new_val = value - dt
+                if new_val > 0:
+                    self._npc_attack_cooldowns[key] = new_val
+                else:
+                    keys_to_delete.append(key)
+            for key in keys_to_delete:
                 del self._npc_attack_cooldowns[key]
 
         self._process_respawns(dt)
