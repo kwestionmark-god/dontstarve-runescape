@@ -46,6 +46,7 @@ class TileRenderer:
     __slots__ = ("tile_map", "screen", "_terrain_cache", "seasonal_renderer", "lighting_system",
                  "_bake_cache", "_xform_cache", "_warp_state",
                  "_frame_no", "_warp_budget", "_sched_active", "_last_cam_sig",
+                 "_last_cfg_version",
                  "_wire_overlay_cache", "_fog_comp_cache")
 
     # How much higher-elevation tiles shift upward on screen (px).
@@ -84,6 +85,7 @@ class TileRenderer:
         # change.
         self._sched_active = False
         self._last_cam_sig: tuple[float, float, float] | None = None
+        self._last_cfg_version: tuple | None = None
         # Wireframe overlay surfaces reused across tiles (was one SRCALPHA
         # allocation per visible tile per frame).
         self._wire_overlay_cache: dict[tuple[int, int], pygame.Surface] = {}
@@ -844,6 +846,115 @@ class TileRenderer:
             self._fog_comp_cache.clear()
         self._fog_comp_cache[key] = out
         return out
+
+    # ── Atlas chunk management ────────────────────────────────────────
+
+    def _chunk_coords(self, x: int, y: int) -> tuple[int, int]:
+        """Return (chunk_x, chunk_y) for a tile coordinate."""
+        return (x // 8, y // 8)
+
+    def _chunk_bounds(self, chunk_x: int, chunk_y: int) -> tuple[int, int, int, int]:
+        """Return (x_min, x_max, y_min, y_max) tile bounds for a chunk."""
+        x0 = chunk_x * self._CHUNK_TILES
+        y0 = chunk_y * self._CHUNK_TILES
+        x1 = min(x0 + self._CHUNK_TILES, self.tile_map.width)
+        y1 = min(y0 + self._CHUNK_TILES, self.tile_map.height)
+        return x0, x1, y0, y1
+
+    def _rebuild_chunk(self, chunk_x: int, chunk_y: int, camera: "Any") -> pygame.Surface:
+        """Render all tiles in a chunk to a single surface in WORLD space.
+
+        The chunk surface is rendered at 1x zoom, 0 yaw, 0 pitch, centered on
+        the chunk's world origin. At blit time we apply the current camera
+        transform (yaw/pitch/zoom/pan) to position it correctly.
+        """
+        x0, x1, y0, y1 = self._chunk_bounds(chunk_x, chunk_y)
+        tile_size = 64
+        chunk_w = (x1 - x0) * tile_size
+        chunk_h = (y1 - y0) * tile_size
+        # Padding for elevation displacement at max pitch.
+        pad = 64
+        surf = pygame.Surface((chunk_w + pad * 2, chunk_h + pad * 2), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 0))
+
+        # Canonical camera: world coords -> local chunk coords at 1x zoom, 0 yaw/pitch.
+        class ChunkCamera:
+            __slots__ = ("origin_x", "origin_y", "tile_size")
+            def __init__(self, origin_x, origin_y, tile_size):
+                self.origin_x = origin_x
+                self.origin_y = origin_y
+                self.tile_size = tile_size
+            def world_to_screen(self, wx, wy, elevation=0):
+                # Canonical: world coords -> local chunk coords at 1x zoom.
+                # elevation is in world units; scale by TERRAIN_HEIGHT_SCALE.
+                from config import TERRAIN_HEIGHT_SCALE, Z_SCALE
+                return (
+                    (wx - self.origin_x) * self.tile_size,
+                    (wy - self.origin_y) * self.tile_size - elevation * Z_SCALE * TERRAIN_HEIGHT_SCALE,
+                )
+
+        chunk_cam = ChunkCamera(x0, y0, 64)
+
+        # Collect and sort tiles in this chunk by canonical depth (yaw=0).
+        tiles_to_render = []
+        for x in range(x0, x1):
+            for y in range(y0, y1):
+                tile = self.tile_map.tiles[x][y]
+                if tile is None:
+                    continue
+                if self.tile_map.corner_height:
+                    h_nw = self.tile_map.corner_height[x][y]
+                    h_ne = self.tile_map.corner_height[x + 1][y]
+                    h_sw = self.tile_map.corner_height[x][y + 1]
+                    h_se = self.tile_map.corner_height[x + 1][y + 1]
+                else:
+                    h_nw = self.tile_map.get_corner_height(x, y)
+                    h_ne = self.tile_map.get_corner_height(x + 1, y)
+                    h_sw = self.tile_map.get_corner_height(x, y + 1)
+                    h_se = self.tile_map.get_corner_height(x + 1, y + 1)
+                avg_corner_h = (h_nw + h_ne + h_sw + h_se) / 4.0
+                # Canonical depth: just y (south = farther).
+                depth = y + avg_corner_h * 0.5
+                tiles_to_render.append((depth, x, y))
+
+        tiles_to_render.sort(key=lambda t: t[0], reverse=True)
+
+        # Render each tile into the chunk surface using canonical camera.
+        for _depth, x, y in tiles_to_render:
+            tile = self.tile_map.tiles[x][y]
+            if tile is None:
+                continue
+
+            biome_name = tile.biome.id if tile.biome else "forest"
+            base_color = tile.terrain_color
+            if self.seasonal_renderer is not None:
+                base_color = self.seasonal_renderer.get_tile_color(biome_name, base_color)
+
+            # No fog in chunk surface (applied at blit time based on real camera).
+            fog_alpha = 0
+
+            # Use textured path with canonical camera.
+            self._render_tile_textured(
+                x, y, tile, chunk_cam, 64,
+                base_color, biome_name,
+                None, None, None,  # corner_brightness, corner_ao, corner_fog
+                0, FOG_COLOR,
+                False,  # use_rim
+                TILE_SUBDIVISIONS, True, True,
+            )
+
+        return surf
+
+    def _mark_chunk_dirty(self, x: int, y: int) -> None:
+        """Mark the chunk containing (x, y) as dirty."""
+        cx, cy = self._chunk_coords(x, y)
+        self._dirty_chunks.add((cx, cy))
+
+    def _mark_all_dirty(self) -> None:
+        """Mark all chunks dirty (full rebuild next frame)."""
+        self._atlas_version += 1
+        self._dirty_chunks.clear()
+        self._atlas.clear()
 
     # Tile-space centres of the 8 neighbours relative to this tile.
     _NEIGHBOUR_CENTRES = {
