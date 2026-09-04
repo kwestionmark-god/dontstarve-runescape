@@ -94,8 +94,8 @@ class TileMap:
 
     __slots__ = (
         "width", "height", "tiles", "spawn_x", "spawn_y", "_season_system",
-        "corner_ao", "corner_height", "corner_fog", "_regrow_tiles",
-        "_elev_np",
+        "corner_ao", "corner_height", "corner_fog", "tile_center_height",
+        "_regrow_tiles", "_elev_np",
     )
 
     def elevation_grid(self) -> "np.ndarray":
@@ -127,6 +127,7 @@ class TileMap:
         self.corner_ao: list[list[float]] = []  # (width+1) x (height+1) AO factors per corner
         self.corner_height: list[list[float]] = []  # (width+1) x (height+1) smoothed corner heights
         self.corner_fog: list[list[float]] = []  # (width+1) x (height+1) exp(-h/scale) per corner
+        self.tile_center_height: list[list[float]] = []  # (width) x (height) tile center heights
         # Tiles with an active regrow timer — the only tiles update() ticks
         # (enqueued on depletion / save restore, dequeued on regrow).
         self._regrow_tiles: set[tuple[int, int]] = set()
@@ -297,13 +298,15 @@ class TileMap:
 
     def get_tile_center_height(self, x: int, y: int) -> float:
         """
-        Compute the average height of the four corners of a tile.
+        Return the pre-baked center height of a tile.
 
-        Convenience method for placing sprites on terrain surface.
-
-        Returns:
-            The average corner height as a float.
+        Reads from ``self.tile_center_height`` (populated by
+        ``bake_corner_heights()``) for O(1) access. Falls back to the
+        4-corner average if the bake hasn't run.
         """
+        grid = self.tile_center_height
+        if grid and 0 <= x < len(grid) and 0 <= y < len(grid[0]):
+            return grid[x][y]
         return (
             self.get_corner_height(x, y) +
             self.get_corner_height(x + 1, y) +
@@ -602,6 +605,13 @@ class TileMap:
 
         # Convert to list-of-lists for natural Python indexing.
         self.corner_height = grid.tolist()
+
+        # Tile center heights: average of the 4 corners of each tile.
+        # (w, h) grid, matching tile indices.
+        self.tile_center_height = (
+            grid[:-1, :-1] + grid[1:, :-1] + grid[:-1, 1:] + grid[1:, 1:]
+        ) * 0.25
+        self.tile_center_height = self.tile_center_height.tolist()
 
     def bake_corner_fog(self) -> None:
         """

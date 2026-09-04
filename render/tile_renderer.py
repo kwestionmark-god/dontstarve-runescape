@@ -46,6 +46,7 @@ class TileRenderer:
     __slots__ = ("tile_map", "screen", "_terrain_cache", "seasonal_renderer", "lighting_system",
                  "_bake_cache", "_xform_cache", "_warp_state",
                  "_frame_no", "_warp_budget", "_sched_active", "_last_cam_sig",
+                 "_canvas", "_snap", "_frames_since_snap",
                  "_wire_overlay_cache", "_fog_comp_cache")
 
     # How much higher-elevation tiles shift upward on screen (px).
@@ -58,6 +59,12 @@ class TileRenderer:
     # _MAX_STALE_FRAMES are warped regardless of the remaining budget.
     _WARP_BUDGET_PER_FRAME = 40
     _MAX_STALE_FRAMES = 10
+
+    # Motion replay limits: the composited terrain image is re-rendered
+    # exactly at least this often while the camera moves (rotation makes
+    # window corners show blank wedges as they accumulate).
+    _MAX_REPLAY_FRAMES = 8
+    _MAX_REPLAY_YAW = 0.14  # radians accumulated before forcing a render
 
     def __init__(
         self,
@@ -84,6 +91,13 @@ class TileRenderer:
         # change.
         self._sched_active = False
         self._last_cam_sig: tuple[float, float, float] | None = None
+        # Motion fast path: the last exact terrain render, kept as a
+        # single image plus the camera state it was rendered with. While
+        # the camera yaws/pans, the frame is that image rotated about the
+        # view center (one C transform) instead of re-warping every tile.
+        self._canvas: pygame.Surface | None = None
+        self._snap: tuple | None = None
+        self._frames_since_snap = 0
         # Wireframe overlay surfaces reused across tiles (was one SRCALPHA
         # allocation per visible tile per frame).
         self._wire_overlay_cache: dict[tuple[int, int], pygame.Surface] = {}
@@ -125,6 +139,21 @@ class TileRenderer:
                 self._warp_budget = 1 << 20
         self._last_cam_sig = cam_sig
         self._sched_active = True
+
+        # Motion fast path: replay the composited terrain image under the
+        # new camera instead of re-warping every tile this frame.
+        if self._try_motion_blit(camera):
+            return
+
+        # Exact frame: draw tiles into the motion canvas, then blit it to
+        # the real screen so it is ready as the next motion source.
+        target = self.screen
+        canvas = self._canvas
+        if canvas is None or canvas.get_size() != target.get_size():
+            canvas = pygame.Surface(target.get_size())
+            self._canvas = canvas
+        canvas.fill(FOG_COLOR)
+        self.screen = canvas
         if len(self._warp_state) > 8192:
             cutoff = self._frame_no - 300
             self._warp_state = {
@@ -316,6 +345,105 @@ class TileRenderer:
                     biome_blend,
                 )
 
+        # Publish the exact frame: restore the real screen, blit the
+        # composite, and remember the camera state for motion replays.
+        self.screen = target
+        target.blit(canvas, (0, 0))
+        player = getattr(camera, "player", None)
+        self._snap = (
+            getattr(camera, "yaw", 0.0), getattr(camera, "pitch", 0.0),
+            getattr(camera, "zoom", 1.0),
+            getattr(player, "world_x", 0.0), getattr(player, "world_y", 0.0),
+            getattr(camera, "pan_x", 0.0), getattr(camera, "pan_y", 0.0),
+        )
+        self._frames_since_snap = 0
+
+    def _try_motion_blit(self, camera: "Any") -> bool:
+        """Replay the last terrain render under camera motion.
+
+        Rotating the world about the player is, for the terrain layer,
+        exactly a screen-space rotation of the composited terrain image
+        (plus zoom and a translation for player movement). Redoing that
+        per tile is what made yaw panning stutter, so while the camera
+        moves in yaw/translation we transform the previous render as one
+        image; every few frames (or on pitch changes / large accumulated
+        rotation) the caller does a full render instead, which restores
+        exact elevation drape and refreshes the snapshot.
+
+        Returns True when the frame was rendered from the motion canvas.
+        """
+        canvas = self._canvas
+        snap = self._snap
+        if canvas is None or snap is None or self.screen is None:
+            return False
+
+        yaw = getattr(camera, "yaw", 0.0)
+        pitch = getattr(camera, "pitch", 0.0)
+        zoom = getattr(camera, "zoom", 1.0)
+        pan_x = getattr(camera, "pan_x", 0.0)
+        pan_y = getattr(camera, "pan_y", 0.0)
+        player = getattr(camera, "player", None)
+        px = getattr(player, "world_x", snap[3])
+        py = getattr(player, "world_y", snap[4])
+        syaw, spitch, szoom, spx, spy, spanx, spany = snap
+
+        dyaw = yaw - syaw
+        dpitch = pitch - spitch
+        k = zoom / szoom if szoom else 1.0
+        moving = (
+            abs(dyaw) > 1e-5 or abs(dpitch) > 1e-5 or abs(k - 1.0) > 1e-5
+            or pan_x != spanx or pan_y != spany or px != spx or py != spy
+        )
+        if not moving:
+            return False
+        # Pitch foreshortening is not a rotation — always refit. Large
+        # accumulated rotation/zoom or too many replayed frames would show
+        # blank wedges at the corners or visible texture aliasing.
+        if (
+            abs(dpitch) > 0.003
+            or abs(dyaw) > self._MAX_REPLAY_YAW
+            or not (0.95 <= k <= 1.0526)
+            or self._frames_since_snap >= self._MAX_REPLAY_FRAMES
+        ):
+            return False
+
+        sw, sh = self.screen.get_size()
+        cos_d = math.cos(dyaw)
+        sin_d = math.sin(dyaw)
+        # Screen-space center of the snapshot frame and of this frame
+        # (the camera pans shift content by the pan deltas).
+        c_snap = (sw / 2 + spanx, sh / 2 + spany)
+        c_now = (sw / 2 + pan_x, sh / 2 + pan_y)
+        center_img = (sw / 2, sh / 2)
+        # R(dyaw) * k applied to (image center − snapshot camera center)
+        vx = center_img[0] - c_snap[0]
+        vy = center_img[1] - c_snap[1]
+        rv = (k * (vx * cos_d - vy * sin_d), k * (vx * sin_d + vy * cos_d))
+        # Player translation since the snapshot, in current screen space.
+        dx = spx - px
+        dy = spy - py
+        cos_y = math.cos(yaw)
+        sin_y = math.sin(yaw)
+        tan_p = math.tan(pitch) if abs(pitch) > 1e-9 else 0.0
+        shift = (
+            (dx * cos_y - dy * sin_y) * zoom,
+            ((dx * sin_y + dy * cos_y) * tan_p) * zoom,
+        )
+        target_c = (c_now[0] + rv[0] + shift[0], c_now[1] + rv[1] + shift[1])
+
+        angle_deg = -math.degrees(dyaw)
+        if abs(k - 1.0) < 1e-4:
+            img = pygame.transform.rotate(canvas, angle_deg)
+        else:
+            img = pygame.transform.rotozoom(canvas, angle_deg, k)
+        self.screen.blit(
+            img,
+            (target_c[0] - img.get_width() / 2,
+             target_c[1] - img.get_height() / 2),
+        )
+        self._frames_since_snap += 1
+        return True
+
     def _render_tile_gouraud(
         self,
         x: int, y: int, tile: Tile, camera: "Any", tile_size: int,
@@ -457,6 +585,36 @@ class TileRenderer:
         fill_triangle(fog_surf, p0, p2, p3, fog_c, fog_c, fog_c)
         self.screen.blit(fog_surf, (0, 0))
 
+    def _render_tile_flat(
+        self,
+        x: int, y: int, camera: "Any", tile_size: int,
+        base_color: tuple[int, int, int],
+        corner_brightness: "np.ndarray | None",
+        fog_alpha: int, fog_color: tuple[int, int, int],
+    ) -> None:
+        """Draw a tile as an untextured elevation-following quad."""
+        if corner_brightness is not None:
+            b = corner_brightness[x, y]
+            r = int(base_color[0] * b)
+            g = int(base_color[1] * b)
+            b_ = int(base_color[2] * b)
+            color = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b_)))
+        else:
+            color = base_color
+        h_nw = self.tile_map.get_corner_height(x, y)
+        h_ne = self.tile_map.get_corner_height(x + 1, y)
+        h_se = self.tile_map.get_corner_height(x + 1, y + 1)
+        h_sw = self.tile_map.get_corner_height(x, y + 1)
+        corners = [
+            camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+            camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+            camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+            camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE * TERRAIN_HEIGHT_SCALE),
+        ]
+        pygame.draw.polygon(self.screen, color, corners)
+        if fog_alpha > 0:
+            self._apply_fog_to_quad(*corners, fog_alpha, fog_color)
+
     def _render_tile_textured(
         self,
         x: int, y: int, tile: Tile, camera: "Any", tile_size: int,
@@ -474,29 +632,8 @@ class TileRenderer:
         # Load terrain sprite
         terrain_sprite = self._load_terrain_sprite(biome_name)
         if terrain_sprite is None:
-            # Fallback to flat polygon
-            if corner_brightness is not None:
-                b = corner_brightness[x, y]
-                r = int(base_color[0] * b)
-                g = int(base_color[1] * b)
-                b_ = int(base_color[2] * b)
-                color = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b_)))
-            else:
-                color = base_color
-            # Get corner positions for flat quad
-            h_nw = self.tile_map.get_corner_height(x, y)
-            h_ne = self.tile_map.get_corner_height(x + 1, y)
-            h_se = self.tile_map.get_corner_height(x + 1, y + 1)
-            h_sw = self.tile_map.get_corner_height(x, y + 1)
-            corners = [
-                camera.world_to_screen(x * tile_size, y * tile_size, elevation=h_nw * Z_SCALE * TERRAIN_HEIGHT_SCALE),
-                camera.world_to_screen((x + 1) * tile_size, y * tile_size, elevation=h_ne * Z_SCALE * TERRAIN_HEIGHT_SCALE),
-                camera.world_to_screen((x + 1) * tile_size, (y + 1) * tile_size, elevation=h_se * Z_SCALE * TERRAIN_HEIGHT_SCALE),
-                camera.world_to_screen(x * tile_size, (y + 1) * tile_size, elevation=h_sw * Z_SCALE * TERRAIN_HEIGHT_SCALE),
-            ]
-            pygame.draw.polygon(self.screen, color, corners)
-            if fog_alpha > 0:
-                self._apply_fog_to_quad(*corners, fog_alpha, fog_color)
+            self._render_tile_flat(x, y, camera, tile_size, base_color,
+                                   corner_brightness, fog_alpha, fog_color)
             return
 
         # Camera projection: the world→screen map for a tile is
@@ -641,6 +778,16 @@ class TileRenderer:
             # so only the texture's shape lags by a few frames.
             cached = state[2]
         if cached is None:
+            if (
+                state is None and warping and self._sched_active
+                and self._warp_budget <= 0
+            ):
+                # Newly visible tile while the camera is moving and this
+                # frame's warp budget is spent: draw flat for now; it is
+                # picked up by the warp pipeline within a few frames.
+                self._render_tile_flat(x, y, camera, tile_size, base_color,
+                                       corner_brightness, fog_alpha, fog_color)
+                return
             if warping:
                 self._warp_budget -= 1
             sprite = baked

@@ -41,15 +41,28 @@ def main() -> None:
     t0 = time.perf_counter()
     for i in range(FRAMES):
         cam.yaw += math.radians(90.0) * (1.0 / 60.0)
+        game.update(1.0 / 60.0)
         game.render_game(screen)
     wall = time.perf_counter() - t0
-    print(f"Wall (no profiler): {wall * 1000 / FRAMES:.2f} ms/frame")
+    print(f"Wall (update+render): {wall * 1000 / FRAMES:.2f} ms/frame")
+
+    # Stationary camera, for comparison
+    for _ in range(10):
+        game.update(1.0 / 60.0)
+        game.render_game(screen)
+    t0 = time.perf_counter()
+    for i in range(FRAMES):
+        game.update(1.0 / 60.0)
+        game.render_game(screen)
+    wall = time.perf_counter() - t0
+    print(f"Wall (static cam):    {wall * 1000 / FRAMES:.2f} ms/frame")
 
     prof = cProfile.Profile()
     prof.enable()
     for i in range(FRAMES):
         # ~90 deg/s like CAMERA_ORBIT_SPEED
         cam.yaw += math.radians(90.0) * (1.0 / 60.0)
+        game.update(1.0 / 60.0)
         game.render_game(screen)
     prof.disable()
 

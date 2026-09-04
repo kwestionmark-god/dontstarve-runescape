@@ -60,6 +60,7 @@ class SeasonalRenderer:
         self._blend: float = 0.0
         self._current_season: str = "spring"
         self._previous_season: str | None = None
+        self._tile_color_cache: dict[tuple[str, str, str, int], tuple[int, int, int]] = {}
 
     def sync(
         self,
@@ -73,21 +74,28 @@ class SeasonalRenderer:
         self._blend = 1.0 - season_progress  # 1.0 = start of season, 0.0 = end
 
     def get_tile_color(self, biome_id: str, base_color: tuple[int, int, int]) -> tuple[int, int, int]:
-        """Return the season-blended color for a tile."""
+        """Return the season-blended color for a tile (cached per biome)."""
         season_colors = self.palettes.get(biome_id, {})
         if not season_colors:
             return base_color
-
+        # Cache key: biome + current season + previous season + blend progress
+        # Blend is quantized to 1/100 so transitions don't thrash the cache.
+        blend_q = int(self._blend * 100)
+        key = (biome_id, self._current_season, self._previous_season or "", blend_q)
+        cached = self._tile_color_cache.get(key)
+        if cached is not None:
+            return cached
         current = season_colors.get(self._current_season, base_color)
         if self._previous_season and self._blend > 0.0:
             previous = season_colors.get(self._previous_season, base_color)
-            # Lerp between previous and current
             r = int(previous[0] + (current[0] - previous[0]) * (1.0 - self._blend))
             g = int(previous[1] + (current[1] - previous[1]) * (1.0 - self._blend))
             b = int(previous[2] + (current[2] - previous[2]) * (1.0 - self._blend))
-            return (r, g, b)
-
-        return current
+            result = (r, g, b)
+        else:
+            result = current
+        self._tile_color_cache[key] = result
+        return result
 
     def draw_ambient_overlay(
         self,
